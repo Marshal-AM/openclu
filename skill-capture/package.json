@@ -1,0 +1,13 @@
+{
+  "name": "skill-capture",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "orchestrator": "npm run start --prefix orchestrator"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "viem": "^2.21.0"
+  }
+}

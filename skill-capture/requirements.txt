@@ -1,0 +1,12 @@
+groq
+openai-whisper
+pyaudio
+pillow
+mss
+pynput
+ffmpeg-python
+numpy
+soundfile
+keyboard
+python-dotenv
+pyngrok
