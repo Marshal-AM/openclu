@@ -1,0 +1,17 @@
+{
+  "skillName": "cursor-usage",
+  "vaultUuid": 1797,
+  "ipId": "0x0ef2f57898510e6A42Eb9D6D93C3122bDa683d55",
+  "licenseTermsId": "2546",
+  "cid": "bafkreiaqybzhno3tbuwxzupdph3e4zh22hxjujxui23iuclnbijm43fudi",
+  "licenseToken": "0xFe3838BFb30B34170F00030B52eA4893d8aAC6bC",
+  "readCondition": "0xC0640AD4CF2CaA9914C8e5C44234359a9102f7a3",
+  "writeCondition": "0x4C9bFC96d7092b590D497A191826C3dA2277c34B",
+  "mintingFeeIp": "0.1",
+  "publishedAt": "2026-05-20T05:32:10.057Z",
+  "bundlePath": "C:\\Users\\MSI\\Desktop\\openclu\\skill-capture\\skills\\cursor-usage",
+  "network": "aeneid",
+  "arkivListingKey": "0x8ec60b22ef8696c25a4d7a2d6eaa52fc10e28fbaee8ad7ffdc0df610cef9ee5d",
+  "arkivStatus": "published",
+  "arkivVersion": 6
+}
