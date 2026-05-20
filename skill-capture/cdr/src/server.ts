@@ -1,0 +1,148 @@
+import "./polyfill.js";
+import "dotenv/config";
+import cors from "cors";
+import express, { type Request, type Response, type NextFunction } from "express";
+import {
+  downloadBytesFromHelia,
+  getServerPeerHints,
+  pinBytesToHelia,
+  registerSkillIp,
+} from "./services/publish-service.js";
+import { createClients, ensureWasm } from "./client.js";
+import { isHeliaReady, whenHeliaReady } from "./helia-storage.js";
+
+const PORT = Number(process.env.CDR_SERVER_PORT ?? "8787");
+const app = express();
+
+app.use(cors());
+app.use(express.json({ limit: "2mb" }));
+
+app.use((req, _res, next) => {
+  console.log(`[cdr] ${req.method} ${req.path}`);
+  next();
+});
+
+function asyncRoute(
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>,
+) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    fn(req, res, next).catch(next);
+  };
+}
+
+app.get("/health", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "skill-capture-cdr",
+    port: PORT,
+    heliaReady: isHeliaReady(),
+    node: process.versions.node,
+  });
+});
+
+/** Block API routes until Helia finished booting (prevents concurrent libp2p start). */
+function requireHelia(
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>,
+) {
+  return asyncRoute(async (req, res, next) => {
+    try {
+      await whenHeliaReady();
+      await fn(req, res, next);
+    } catch (e) {
+      next(e);
+    }
+  });
+}
+
+app.post(
+  "/api/v1/storage/upload",
+  express.raw({ type: "application/octet-stream", limit: "256mb" }),
+  requireHelia(async (req, res) => {
+    const data = req.body as Buffer;
+    if (!data?.length) {
+      res.status(400).json({ error: "Empty body" });
+      return;
+    }
+    const { cid } = await pinBytesToHelia(new Uint8Array(data));
+    res.json({ cid });
+  }),
+);
+
+app.get(
+  "/api/v1/storage/download/:cid",
+  requireHelia(async (req, res) => {
+    const bytes = await downloadBytesFromHelia(req.params.cid);
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.send(Buffer.from(bytes));
+  }),
+);
+
+app.post(
+  "/api/v1/publish/start",
+  requireHelia(async (req, res) => {
+    const { skillName } = req.body as { skillName?: string };
+    if (!skillName) {
+      res.status(400).json({ error: "skillName required" });
+      return;
+    }
+    console.log(`[cdr] Story publish/start: ${skillName}…`);
+    await ensureWasm();
+    const { account } = createClients();
+    const result = await registerSkillIp(skillName, account.address);
+    console.log(`[cdr] Story publish/start done ipId=${result.ipId}`);
+    res.json(result);
+  }),
+);
+
+app.get(
+  "/api/v1/helia/peer-hints",
+  requireHelia(async (_req, res) => {
+    const hints = await getServerPeerHints();
+    res.json({
+      helia_peer_id: hints.helia_peer_id,
+      helia_multiaddrs: hints.helia_multiaddrs,
+    });
+  }),
+);
+
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[cdr] request error:", err);
+  if (!res.headersSent) res.status(500).json({ error: msg });
+});
+
+const nodeMajor = Number(process.versions.node.split(".")[0]);
+if (nodeMajor < 20) {
+  console.error(`Node ${process.versions.node} is too old — use Node 20+ (22+ recommended).`);
+  process.exit(1);
+}
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[cdr] unhandledRejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[cdr] uncaughtException:", err);
+});
+
+async function main() {
+  console.log(`[cdr] Booting Helia before accepting API traffic (Node ${process.versions.node})…`);
+  if (nodeMajor < 22) {
+    console.warn("[cdr] Node < 22: using Promise.withResolvers polyfill for Helia.");
+  }
+  await whenHeliaReady();
+  console.log("[cdr] Helia boot complete — starting HTTP listener");
+
+  const httpServer = app.listen(PORT, () => {
+    console.log(`CDR server listening on http://127.0.0.1:${PORT}`);
+    console.log("  Story Protocol: POST /api/v1/publish/start");
+    console.log("  Helia storage: POST /api/v1/storage/upload");
+  });
+  // Drop idle keep-alive sockets so long gaps (CLI capture) do not get ECONNRESET on reuse.
+  httpServer.keepAliveTimeout = 5_000;
+  httpServer.headersTimeout = 10_000;
+}
+
+main().catch((err) => {
+  console.error("[cdr] fatal:", err);
+  process.exit(1);
+});
