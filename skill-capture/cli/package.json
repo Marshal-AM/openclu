@@ -1,0 +1,20 @@
+{
+  "name": "skill-capture-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local capture, process, encrypt — calls CDR and Arkiv servers",
+  "type": "module",
+  "scripts": {
+    "capture": "tsx src/pipeline.ts capture",
+    "distribute": "tsx src/pipeline.ts distribute",
+    "skill": "tsx src/pipeline.ts skill"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}
