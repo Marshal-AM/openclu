@@ -1,0 +1,23 @@
+[
+  {
+    "frame": 0,
+    "app": "Visual Studio Code",
+    "action": "running a skill capture command in the terminal",
+    "details": "Terminal shows a command 'skill-capture-cli@0.1.0 skill' with output 'CDR server ready' and 'Starting in 3 seconds..'",
+    "timestamp": 1779340045.3931901
+  },
+  {
+    "frame": 1,
+    "app": "Visual Studio Code",
+    "action": "skill capture process initiated",
+    "details": "Terminal output shows 'Recording! Press Q to stop.' and a deprecation warning about 'mss.mss'",
+    "timestamp": 1779340050.46953
+  },
+  {
+    "frame": 2,
+    "app": "Visual Studio Code",
+    "action": "recording screen and audio",
+    "details": "Terminal output continues to show recording status with '[screen] recording.. [audio] recording..'",
+    "timestamp": 1779340055.5349476
+  }
+]

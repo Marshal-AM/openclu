@@ -1,0 +1,16 @@
+[
+  {
+    "frame": 0,
+    "app": "Visual Studio Code",
+    "action": "editing code",
+    "details": "The user is working on a Python project, with multiple files open, including capture.py, process.py, and requirements.txt. The terminal is open, showing a command to run a skill using npm.",
+    "timestamp": 1779339714.7702067
+  },
+  {
+    "frame": 1,
+    "app": "Visual Studio Code",
+    "action": "running a script",
+    "details": "The terminal shows that a script is running, with a deprecation warning about mss.mss being deprecated and a message indicating that the recording has started.",
+    "timestamp": 1779339719.8521736
+  }
+]

@@ -1,0 +1,51 @@
+[
+  {
+    "frame": 0,
+    "app": "Visual Studio Code",
+    "action": "opened file process.py",
+    "details": "skill-capture project open, showing process.py file",
+    "timestamp": 1779249857.7941449
+  },
+  {
+    "frame": 1,
+    "app": "Visual Studio Code",
+    "action": "scrolling through code",
+    "details": "scrolling through code in process.py",
+    "timestamp": 1779249862.8530786
+  },
+  {
+    "frame": 2,
+    "app": "Visual Studio Code",
+    "action": "scrolling through code",
+    "details": "scrolling through code in process.py",
+    "timestamp": 1779249867.9320314
+  },
+  {
+    "frame": 3,
+    "app": "Visual Studio Code",
+    "action": "scrolling through code",
+    "details": "scrolling through code in process.py",
+    "timestamp": 1779249872.9970746
+  },
+  {
+    "frame": 4,
+    "app": "Visual Studio Code",
+    "action": "right-clicking in terminal",
+    "details": "right-clicking in terminal to open context menu",
+    "timestamp": 1779249878.0649178
+  },
+  {
+    "frame": 5,
+    "app": "Visual Studio Code",
+    "action": "coding",
+    "details": "The user is editing a Python script in VS Code, specifically the process.py file, with a function to transcribe audio and a terminal output showing a skill capture process.",
+    "timestamp": 1779249883.1300855
+  },
+  {
+    "frame": 6,
+    "app": "Visual Studio Code",
+    "action": "coding",
+    "details": "The user continues editing the process.py file in VS Code, with no changes observed from the previous frame.",
+    "timestamp": 1779249888.2250721
+  }
+]

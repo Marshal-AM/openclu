@@ -1,0 +1,9 @@
+[
+  {
+    "frame": 0,
+    "app": "Visual Studio Code",
+    "action": "coding and terminal interaction",
+    "details": "The user is working on a Python project in VS Code, editing a file named process.py. The terminal shows a command output for skill-capture-cli, indicating a skill capture process for 'test-skill-2'. A chat window on the right appears to be discussing changes and issues related to the project, specifically about listing skills in Arkiv and CLI usage.",
+    "timestamp": 1779341578.8660488
+  }
+]

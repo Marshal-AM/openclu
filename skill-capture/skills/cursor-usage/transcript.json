@@ -1,0 +1,31 @@
+{
+  "full_text": " so today we are going to see how we can use cursor first open up any project you want now here I have skill capture open and then you can simply go ahead to the chat section present in the right side type messages like hi you have to specify which kind of task which you want the agent execute it might be a planning task or you can ask it it will just provide an output you can debug or you can also create multi tasks so this is all about cursor",
+  "segments": [
+    {
+      "t_start": 0,
+      "t_end": 6.12,
+      "text": "so today we are going to see how we can use cursor first open up any project you want"
+    },
+    {
+      "t_start": 6.12,
+      "t_end": 12.56,
+      "text": "now here I have skill capture open and then you can simply go ahead to the chat section"
+    },
+    {
+      "t_start": 12.56,
+      "t_end": 18.96,
+      "text": "present in the right side type messages like hi you have to specify which kind of task which"
+    },
+    {
+      "t_start": 18.96,
+      "t_end": 25.76,
+      "text": "you want the agent execute it might be a planning task or you can ask it it will just provide an"
+    },
+    {
+      "t_start": 25.76,
+      "t_end": 32.88,
+      "text": "output you can debug or you can also create multi tasks so this is all about cursor"
+    }
+  ],
+  "language": "English"
+}
