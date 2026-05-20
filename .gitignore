@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+.pnp
+.pnp.*
+
+# Environment (never commit secrets)
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.local.example
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Local Helia / IPFS block stores
+.helia-data/
+
+# Screen-capture artifacts (audio, frames) — stay on device only
+skill-capture/skills/raw/
+
+# Logs and local noise
+*.log
+npm-debug.log*
+publish-log.txt
+filelist.txt
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Vercel
+.vercel
+
+# PEM keys
+*.pem
