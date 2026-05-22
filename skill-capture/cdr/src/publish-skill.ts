@@ -46,6 +46,7 @@ import {
 
 import { getHeliaStorage, uploadJsonToIpfs } from "./helia-storage.js";
 import { upsertArkivCatalogListing } from "./arkiv-listing.js";
+import { pinCiphertextToPublicIpfs } from "./services/publish-service.js";
 import { zipSkillBundle } from "./zip-bundle.js";
 
 
@@ -302,7 +303,8 @@ async function main() {
 
   });
 
-
+  console.log("  [cdr] Pinning ciphertext on public IPFS (Pinata)…");
+  const { ipfsGatewayUrl } = await pinCiphertextToPublicIpfs(cid, storage, skillName);
 
   const manifest = {
 
@@ -330,6 +332,8 @@ async function main() {
 
     network: "aeneid",
 
+    ipfsGatewayUrl,
+
   };
 
 
@@ -353,6 +357,7 @@ async function main() {
     publisherAddress: owner,
     refreshPeerHints: true,
     encryptedSizeBytes: zipBytes.length,
+    ipfsGatewayUrl,
   });
 
   console.log(`  [cdr] Helia peer id: ${peerHints.helia_peer_id}`);

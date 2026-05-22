@@ -16,7 +16,7 @@ import { SkillListingPayloadSchema } from "./types.js";
 export function loadManifestAndSkillMd(
   skillName: string,
   bundleDir?: string,
-): { manifest: CdrManifest; skillMdPath: string } {
+): { manifest: CdrManifest; skillMdPath: string; bundleDir: string } {
   const base = bundleDir ?? resolve(process.cwd(), "..", "skills", skillName);
   const manifestPath = resolve(base, "cdr-manifest.json");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as CdrManifest;
@@ -67,6 +67,7 @@ export function buildListingPayload(
       licenseTokenAddress: ops.licenseTokenAddress,
       storyApiUrl: ops.storyApiUrl,
       rpcUrl: ops.rpcUrl,
+      ...(ops.ipfsGatewayUrl ? { ipfsGatewayUrl: ops.ipfsGatewayUrl } : {}),
     },
   };
 

@@ -41,12 +41,13 @@ Each `skillListing` includes an `ops` block written at publish time:
 
 | Field | Purpose |
 |-------|---------|
-| `heliaPeerId` / `heliaMultiaddrs` | Dial publisher Helia for encrypted blob |
+| `ipfsGatewayUrl` | **Primary:** Public IPFS gateway base (e.g. Pinata) where buyers fetch ciphertext by CID |
+| `heliaPeerId` / `heliaMultiaddrs` | Legacy P2P fallback only (publisher machine must be online) |
 | `encryptedSizeBytes` | Bundle size hint |
 | `readConditionAddress` / `writeConditionAddress` / `licenseTokenAddress` | Story CDR contracts (Aeneid) |
 | `storyApiUrl` / `rpcUrl` | Validator API + chain RPC |
 
-Re-publish or `cd ..\cdr && npm run index-arkiv -- <skill>` to refresh peer hints after Helia restarts.
+**Distribute** (`cli` pipeline or `cdr` publish) pins ciphertext on public IPFS (Pinata API key + secret, DeepShare-style) and writes `ipfsGatewayUrl` into Arkiv. Re-publish or `cd ..\cdr && npm run index-arkiv -- <skill>` to refresh peer hints only (does not re-pin ciphertext).
 
 ## Example
 

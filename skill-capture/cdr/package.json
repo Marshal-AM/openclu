@@ -13,7 +13,8 @@
     "purchase": "tsx src/purchase-skill.ts",
     "index-arkiv": "tsx src/index-listing.ts",
     "reset-stores": "tsx src/reset-stores.ts",
-    "e2e": "tsx src/e2e-full-flow.ts"
+    "e2e": "tsx src/e2e-full-flow.ts",
+    "test:pinata-api-keys": "tsx scripts/test-pinata-api-keys.ts"
   },
   "dependencies": {
     "@helia/unixfs": "^4.0.0",

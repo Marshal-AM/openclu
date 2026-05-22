@@ -1,0 +1,11 @@
+{
+  "full_text": " Hello, how are you doing?",
+  "segments": [
+    {
+      "t_start": 0,
+      "t_end": 3.26,
+      "text": "Hello, how are you doing?"
+    }
+  ],
+  "language": "English"
+}

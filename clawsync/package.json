@@ -1,0 +1,62 @@
+{
+  "name": "clawsync",
+  "version": "0.1.0",
+  "description": "Open source AI agent platform built with React + Convex",
+  "type": "module",
+  "workspaces": [
+    "skill-marketplace"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/ensure-marketplace-deps.mjs",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:purchase-snapshot": "tsx scripts/test-catalog-snapshot-purchase.ts",
+    "repin-pinata": "tsx scripts/repin-skill-pinata.ts",
+    "backfill-registry": "tsx scripts/backfill-marketplace-blobs.ts",
+    "republish-registry": "tsx scripts/republish-skill-registry.ts",
+    "deploy": "npx @convex-dev/self-static-hosting deploy",
+    "deploy:static": "npx @convex-dev/self-static-hosting upload --build --prod",
+    "cdr-storage": "npm run cdr-storage -w skill-marketplace"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.59",
+    "@ai-sdk/openai": "^2.0.89",
+    "@ai-sdk/openai-compatible": "^1.0.32",
+    "@browserbasehq/convex-stagehand": "^0.0.2",
+    "@convex-dev/agent": "^0.3.2",
+    "@convex-dev/r2": "^0.9.1",
+    "@convex-dev/rate-limiter": "^0.3.2",
+    "@convex-dev/self-static-hosting": "github:get-convex/self-static-hosting",
+    "@phosphor-icons/react": "^2.1.10",
+    "ai": "^5.0.29",
+    "convex": "^1.31.7",
+    "convex-firecrawl-scrape": "^0.1.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.3",
+    "react-router-dom": "^7.1.5",
+    "supermemory": "^4.0.0",
+    "tsx": "^4.19.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@convex-dev/eslint-plugin": "^1.1.1",
+    "@eslint/js": "^9.21.0",
+    "@types/node": "^22.13.4",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.21.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^15.15.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.1",
+    "vite": "^6.1.0",
+    "vitest": "^3.0.5"
+  },
+  "license": "MIT"
+}

@@ -28,7 +28,7 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function hasLocalPin(helia: Helia, cidStr: string): Promise<boolean> {
+export async function hasLocalPin(helia: Helia, cidStr: string): Promise<boolean> {
   try {
     const cid = CID.parse(cidStr);
     return await helia.pins.isPinned(cid);

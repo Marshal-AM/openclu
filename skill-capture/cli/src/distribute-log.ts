@@ -65,10 +65,12 @@ export function printCdrEncrypt(opts: {
   ipId: string;
   publisherAddress: string;
   peerHints: { helia_peer_id: string; helia_multiaddrs: string[] };
+  ipfsGatewayUrl?: string;
 }) {
-  section("CDR encrypt + Helia storage");
+  section("CDR encrypt + public IPFS (Pinata)");
   line("Vault UUID", opts.vaultUuid);
   line("Ciphertext CID", opts.cid);
+  if (opts.ipfsGatewayUrl) line("Buyer gateway base", opts.ipfsGatewayUrl);
   line("Plain zip size", `${opts.zipBytes} bytes`);
   line("Bound IP", opts.ipId);
   line("Owner", opts.publisherAddress);
@@ -78,7 +80,14 @@ export function printCdrEncrypt(opts: {
   line("Write condition", OWNER_WRITE_CONDITION);
   line("License token", LICENSE_TOKEN);
   line("Royalty module", ROYALTY_MODULE);
-  console.log("\n  Helia peer hints (for purchasers)");
+  console.log("\n  Buyer content delivery");
+  line(
+    "Fetch",
+    opts.ipfsGatewayUrl
+      ? `${opts.ipfsGatewayUrl}/{cid} (also in Arkiv ops.ipfsGatewayUrl)`
+      : "(re-run distribute with PINATA_API_KEY + PINATA_SECRET_KEY)",
+  );
+  console.log("\n  Helia peer hints (publish-time only; buyers use public IPFS)");
   line("Peer ID", opts.peerHints.helia_peer_id);
   const addrs = opts.peerHints.helia_multiaddrs;
   if (addrs.length) {
@@ -121,6 +130,7 @@ export function printDistributeSummary(opts: {
   vaultUuid: number;
   cid: string;
   arkiv: PublishCatalogResult;
+  ipfsGatewayUrl?: string;
 }) {
   section("Distribute complete");
   line("Skill", opts.skillName);
@@ -130,6 +140,9 @@ export function printDistributeSummary(opts: {
   line("IP Asset", opts.story.ipId);
   line("Arkiv listing", opts.arkiv.listingKey);
   line("Arkiv version", opts.arkiv.version);
+  if (opts.ipfsGatewayUrl) {
+    line("IPFS gateway", opts.ipfsGatewayUrl);
+  }
   console.log("\n  Quick links");
   url("Story IPA", storyIpaUrl(opts.story.ipId));
   if (opts.story.txHash) url("Story tx", storyTxUrl(opts.story.txHash));

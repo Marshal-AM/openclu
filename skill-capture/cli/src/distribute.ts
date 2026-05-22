@@ -10,6 +10,7 @@ import {
   encryptBundleToVault,
   getServerPeerHints,
   readBundleZip,
+  pinCiphertextToPublicIpfs,
   registerSkillIp,
   writeLocalManifest,
   type PublishManifest,
@@ -65,6 +66,9 @@ export async function distributeSkill(opts: { skillName: string; bundleDir: stri
     signerPrivateKey: deviceKey,
   });
 
+  console.log("\n  [cli] Pinning ciphertext on public IPFS (Pinata)…");
+  const { ipfsGatewayUrl } = await pinCiphertextToPublicIpfs(cid, storage, skillName);
+
   printCdrEncrypt({
     vaultUuid,
     cid,
@@ -72,6 +76,7 @@ export async function distributeSkill(opts: { skillName: string; bundleDir: stri
     ipId: story.ipId,
     publisherAddress: account.address,
     peerHints,
+    ipfsGatewayUrl,
   });
 
   const manifest: PublishManifest = {
@@ -90,6 +95,7 @@ export async function distributeSkill(opts: { skillName: string; bundleDir: stri
     encryptedSizeBytes: zipBytes.length,
     heliaPeerId: peerHints.helia_peer_id,
     heliaMultiaddrs: peerHints.helia_multiaddrs,
+    ipfsGatewayUrl,
   };
 
   const manifestPath = writeLocalManifest(bundleDir, skillName, manifest);
@@ -99,6 +105,7 @@ export async function distributeSkill(opts: { skillName: string; bundleDir: stri
     ...manifest,
     storyApiUrl: API_URL,
     rpcUrl: RPC_URL,
+    ipfsGatewayUrl,
   });
 
   const arkiv: PublishCatalogResult = await publishCatalogToArkiv({
@@ -117,5 +124,6 @@ export async function distributeSkill(opts: { skillName: string; bundleDir: stri
     vaultUuid,
     cid,
     arkiv,
+    ipfsGatewayUrl,
   });
 }

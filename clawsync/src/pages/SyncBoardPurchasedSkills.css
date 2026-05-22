@@ -1,0 +1,78 @@
+.purchased-skills-page .description {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
+}
+
+.purchased-skills-page .link {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.purchased-error {
+  color: var(--error);
+  font-size: var(--text-sm);
+}
+
+.purchased-hint {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.purchased-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.purchased-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: var(--bg-secondary);
+}
+
+.purchased-card h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-base);
+}
+
+.purchased-slug {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-2);
+}
+
+.purchased-meta {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-2);
+}
+
+.purchased-desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.purchased-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.purchased-preview {
+  margin-top: var(--space-3);
+  max-height: 12rem;
+  overflow: auto;
+  font-size: 11px;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+}

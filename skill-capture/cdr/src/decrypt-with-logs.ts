@@ -9,7 +9,6 @@ import {
 import { fromHex, toHex } from "viem";
 import type { PublicClient } from "viem";
 import { API_URL } from "./client.js";
-import { downloadFromIpfs } from "./helia-storage.js";
 import { log, timed } from "./logger.js";
 import type { SkillCdrListing } from "../../arkiv/src/lib/cdr-listing.js";
 import type { Helia } from "helia";
@@ -153,16 +152,10 @@ export async function downloadFileWithLogs(opts: {
   log.info(`Arkiv catalog CID: ${opts.listing.cid}`);
   log.info(`AES key (hex prefix): ${keyHex.slice(0, 16)}...`);
 
-  log.section("IPFS — dial publisher peers from Arkiv catalog, then Helia cat()");
-  const encryptedFile = await timed(
-    `Helia download via Arkiv peer hints (${cid})`,
-    () =>
-      downloadFromIpfs(
-        opts.storageProvider as HeliaProvider,
-        opts.helia,
-        opts.listing,
-        cid,
-      ),
+  log.section("IPFS — fetch ciphertext (content registry, then gateways, then P2P)");
+  const { downloadCiphertext } = await import("./download-ciphertext.js");
+  const encryptedFile = await timed(`Download ciphertext (${cid})`, () =>
+    downloadCiphertext(opts.listing, cid),
   );
   log.info(`Downloaded ciphertext: ${encryptedFile.length} bytes`);
 

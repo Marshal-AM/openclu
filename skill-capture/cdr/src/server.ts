@@ -3,10 +3,14 @@ import "dotenv/config";
 import cors from "cors";
 import express, { type Request, type Response, type NextFunction } from "express";
 import {
-  downloadBytesFromHelia,
+  readLocalRegistryBlob,
+  writeLocalRegistryBlob,
+} from "./blob-registry.js";
+import {
   getServerPeerHints,
   pinBytesToHelia,
   registerSkillIp,
+  tryDownloadBytesFromHeliaLocal,
 } from "./services/publish-service.js";
 import { createClients, ensureWasm } from "./client.js";
 import { isHeliaReady, whenHeliaReady } from "./helia-storage.js";
@@ -68,10 +72,46 @@ app.post(
   }),
 );
 
+app.get("/api/v1/registry/:cid", async (req, res) => {
+  const bytes = readLocalRegistryBlob(req.params.cid);
+  if (!bytes?.length) {
+    res.status(404).json({
+      error: "Ciphertext not in registry. Run distribute or PUT /api/v1/registry/:cid.",
+    });
+    return;
+  }
+  res.setHeader("Content-Type", "application/octet-stream");
+  res.send(Buffer.from(bytes));
+});
+
+app.put(
+  "/api/v1/registry/:cid",
+  express.raw({ type: "application/octet-stream", limit: "256mb" }),
+  async (req, res) => {
+    const data = req.body as Buffer;
+    if (!data?.length) {
+      res.status(400).json({ error: "Empty body" });
+      return;
+    }
+    writeLocalRegistryBlob(req.params.cid, new Uint8Array(data));
+    res.json({ ok: true, cid: req.params.cid, bytes: data.length });
+  },
+);
+
 app.get(
   "/api/v1/storage/download/:cid",
   requireHelia(async (req, res) => {
-    const bytes = await downloadBytesFromHelia(req.params.cid);
+    const registry = readLocalRegistryBlob(req.params.cid);
+    if (registry?.length) {
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.send(Buffer.from(registry));
+      return;
+    }
+    const bytes = await tryDownloadBytesFromHeliaLocal(req.params.cid);
+    if (!bytes?.length) {
+      res.status(404).json({ error: "CID not in registry or local Helia blockstore" });
+      return;
+    }
     res.setHeader("Content-Type", "application/octet-stream");
     res.send(Buffer.from(bytes));
   }),
@@ -135,7 +175,9 @@ async function main() {
   const httpServer = app.listen(PORT, () => {
     console.log(`CDR server listening on http://127.0.0.1:${PORT}`);
     console.log("  Story Protocol: POST /api/v1/publish/start");
+    console.log("  Marketplace registry: GET/PUT /api/v1/registry/:cid");
     console.log("  Helia storage: POST /api/v1/storage/upload");
+    console.log("  Helia cache: GET /api/v1/storage/download/:cid");
   });
   // Drop idle keep-alive sockets so long gaps (CLI capture) do not get ECONNRESET on reuse.
   httpServer.keepAliveTimeout = 5_000;

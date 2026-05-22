@@ -18,7 +18,13 @@ import {
   storyTxUrl,
 } from "../lib/explorer-links.js";
 import { log } from "../logger.js";
-import { getHeliaPeerHints, getHeliaStorage, uploadJsonToIpfs } from "../helia-storage.js";
+import {
+  getHeliaPeerHints,
+  getHeliaStorage,
+  hasLocalPin,
+  uploadJsonToIpfs,
+} from "../helia-storage.js";
+import { uploadCiphertextToPinata } from "../pinata-ipfs.js";
 import { zipSkillBundle } from "../zip-bundle.js";
 
 export interface PublishStartResult {
@@ -65,6 +71,8 @@ export interface PublishManifest {
   encryptedSizeBytes?: number;
   heliaPeerId?: string;
   heliaMultiaddrs?: string[];
+  /** Public IPFS gateway base for buyers (Arkiv ops.ipfsGatewayUrl), e.g. Pinata. */
+  ipfsGatewayUrl?: string;
 }
 
 /** Story Protocol IP + license registration — runs locally with contributor account. */
@@ -205,15 +213,61 @@ export async function encryptBundleToVault(opts: {
   return { vaultUuid: uuid, cid };
 }
 
+/**
+ * Pin ciphertext on public IPFS (Pinata) so any buyer can fetch by catalog CID.
+ */
+export async function pinCiphertextToPublicIpfs(
+  cid: string,
+  storageProvider: import("@piplabs/cdr-sdk").StorageProvider,
+  skillName: string,
+): Promise<{ cid: string; ipfsGatewayUrl: string }> {
+  log.info("Downloading ciphertext from local Helia for Pinata public pin…");
+  const ciphertext = await storageProvider.download(cid);
+
+  log.info("Uploading to Pinata (public IPFS)…");
+  const pin = await uploadCiphertextToPinata(ciphertext, skillName);
+
+  if (pin.cid !== cid) {
+    log.warn(
+      `Pinata CID ${pin.cid} differs from CDR vault CID ${cid} — Arkiv should use vault CID ${cid}`,
+    );
+  }
+
+  return { cid, ipfsGatewayUrl: pin.gatewayBase };
+}
+
 export async function pinBytesToHelia(data: Uint8Array): Promise<{ cid: string }> {
   const { storage } = await getHeliaStorage();
   const cid = await storage.upload(data, { pin: true });
   return { cid };
 }
 
+const LOCAL_PIN_TIMEOUT_MS = Number(process.env.LOCAL_BLOCKSTORE_TRY_MS ?? "8000");
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Fast local read — null if CID not pinned (avoids long Helia cat hang on GET /download). */
+export async function tryDownloadBytesFromHeliaLocal(cid: string): Promise<Uint8Array | null> {
+  const { helia, storage } = await getHeliaStorage();
+  if (!(await hasLocalPin(helia, cid))) return null;
+  try {
+    return await Promise.race([
+      storage.download(cid),
+      sleep(LOCAL_PIN_TIMEOUT_MS).then(() => {
+        throw new Error("local blockstore timeout");
+      }),
+    ]);
+  } catch {
+    return null;
+  }
+}
+
 export async function downloadBytesFromHelia(cid: string): Promise<Uint8Array> {
-  const { storage } = await getHeliaStorage();
-  return storage.download(cid);
+  const local = await tryDownloadBytesFromHeliaLocal(cid);
+  if (local?.length) return local;
+  throw new Error("CID not in local blockstore");
 }
 
 export function getServerPeerHints() {

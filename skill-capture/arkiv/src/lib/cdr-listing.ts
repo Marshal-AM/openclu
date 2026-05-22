@@ -23,6 +23,7 @@ export interface SkillCdrListing {
   manifest_path: string | null;
   published_at?: string;
   arkiv_listing_key?: string;
+  ipfs_gateway_url?: string | null;
 }
 
 function payloadToListing(
@@ -50,6 +51,7 @@ function payloadToListing(
     manifest_path: null,
     published_at: purchase.publishedAt,
     arkiv_listing_key: entityKey,
+    ipfs_gateway_url: ops.ipfsGatewayUrl ?? null,
   };
 }
 
@@ -72,10 +74,10 @@ export async function fetchSkillListingFromArkiv(
     );
   }
   const listing = payloadToListing(row.entityKey, raw);
-  if (!listing.helia_peer_id) {
+  if (!listing.ipfs_gateway_url?.trim() && !listing.helia_peer_id?.trim()) {
     throw new ArkivError(
       "VALIDATION_FAILED",
-      `Arkiv listing for "${skillName}" missing heliaPeerId.`,
+      `Arkiv listing for "${skillName}" missing ipfsGatewayUrl — re-distribute with Pinata API keys.`,
     );
   }
   return listing;

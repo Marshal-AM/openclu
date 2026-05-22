@@ -10,6 +10,10 @@ import {
   LICENSE_TOKEN,
   OWNER_WRITE_CONDITION,
 } from "./constants.js";
+import {
+  EMPTY_PEER_HINTS,
+  hasPublicIpfsDelivery,
+} from "../../arkiv/src/lib/peer-hints.js";
 import type { HeliaPeerHints } from "./helia-storage.js";
 import { getHeliaPeerHints, getHeliaStorage } from "./helia-storage.js";
 import { log } from "./logger.js";
@@ -33,6 +37,7 @@ export interface CdrManifestFile {
   arkivListingKey?: string;
   arkivStatus?: string;
   arkivVersion?: number;
+  ipfsGatewayUrl?: string;
 }
 
 export function loadSkillManifest(skillName: string, bundleDir?: string): {
@@ -75,6 +80,7 @@ export function saveManifestPeerHints(
 export function buildFullListingOps(
   peerHints: HeliaPeerHints,
   encryptedSizeBytes: number,
+  ipfsGatewayUrl?: string,
 ): {
   peerHints: HeliaPeerHints;
   encryptedSizeBytes: number;
@@ -83,6 +89,7 @@ export function buildFullListingOps(
   licenseTokenAddress: string;
   storyApiUrl: string;
   rpcUrl: string;
+  ipfsGatewayUrl?: string;
 } {
   return {
     peerHints,
@@ -92,6 +99,7 @@ export function buildFullListingOps(
     licenseTokenAddress: LICENSE_TOKEN,
     storyApiUrl: API_URL,
     rpcUrl: RPC_URL,
+    ...(ipfsGatewayUrl ? { ipfsGatewayUrl } : {}),
   };
 }
 
@@ -102,6 +110,7 @@ export interface UpsertArkivInput {
   /** Start Helia to refresh peer hints (slow on Windows). Default false if manifest has hints. */
   refreshPeerHints?: boolean;
   encryptedSizeBytes?: number;
+  ipfsGatewayUrl?: string;
 }
 
 /**
@@ -113,8 +122,11 @@ export async function upsertArkivCatalogListing(input: UpsertArkivInput) {
     input.bundleDir,
   );
 
+  const gatewayUrl = input.ipfsGatewayUrl ?? manifest.ipfsGatewayUrl;
   let peerHints = peerHintsFromManifest(manifest);
-  const needHelia = input.refreshPeerHints || !peerHints;
+  const needHelia =
+    !hasPublicIpfsDelivery({ ipfsGatewayUrl: gatewayUrl }) &&
+    (input.refreshPeerHints || !peerHints);
 
   if (needHelia) {
     log.info("Starting Helia to capture peer hints (first run or --refresh-peers)…");
@@ -133,9 +145,14 @@ export async function upsertArkivCatalogListing(input: UpsertArkivInput) {
   }
 
   if (!peerHints) {
-    throw new Error(
-      `No peer hints for "${input.skillName}". Run publish or: npm run index-arkiv -- ${input.skillName} --refresh-peers`,
-    );
+    if (gatewayUrl) {
+      peerHints = EMPTY_PEER_HINTS;
+      log.info("Public IPFS gateway set — skipping Helia peer hints");
+    } else {
+      throw new Error(
+        `No peer hints for "${input.skillName}". Run distribute with Pinata keys or: npm run index-arkiv -- ${input.skillName} --refresh-peers`,
+      );
+    }
   }
 
   const encryptedSizeBytes =
@@ -151,7 +168,11 @@ export async function upsertArkivCatalogListing(input: UpsertArkivInput) {
     manifest,
     bundleDir,
     publisherAddress: input.publisherAddress,
-    ops: buildFullListingOps(peerHints, encryptedSizeBytes),
+    ops: buildFullListingOps(
+      peerHints,
+      encryptedSizeBytes,
+      gatewayUrl,
+    ),
   });
 
   log.ok(`Arkiv listing key: ${result.listingKey}`);
