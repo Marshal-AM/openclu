@@ -3,7 +3,6 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import {
   ChartBar,
-  Brain,
   Robot,
   Lightning,
   Plug,
@@ -12,7 +11,6 @@ import {
   ClipboardText,
   Gear,
   UsersThree,
-  BookOpen,
   ListBullets,
   XLogo,
   EnvelopeSimple,
@@ -26,14 +24,25 @@ import {
   ShoppingCart,
   Package,
 } from '@phosphor-icons/react';
+import { marketplaceProductNavPaths } from '../config/productSurface';
 import './SyncBoard.css';
+
+type SkillSummary = {
+  status: string;
+  approved: boolean;
+};
+
+type ActivitySummary = {
+  _id: string;
+  actionType: string;
+  summary: string;
+  timestamp: number;
+};
 
 const navItems = [
   { path: '/syncboard', label: 'Overview', Icon: ChartBar },
   { path: '/syncboard/agents', label: 'Agents', Icon: UsersThree },
-  { path: '/syncboard/souls', label: 'Souls', Icon: BookOpen },
   { path: '/syncboard/agent-feed', label: 'Agent Feed', Icon: ListBullets },
-  { path: '/syncboard/soul', label: 'Soul Document', Icon: Brain },
   { path: '/syncboard/models', label: 'Models', Icon: Robot },
   { path: '/syncboard/skills', label: 'Skills', Icon: Lightning },
   { path: '/syncboard/skills/purchase', label: 'Purchase Agent Skills', Icon: ShoppingCart },
@@ -54,6 +63,8 @@ const navItems = [
   { path: '/syncboard/config', label: 'Configuration', Icon: Gear },
 ];
 
+const visibleNavItems = navItems.filter((item) => marketplaceProductNavPaths.has(item.path));
+
 export function SyncBoard() {
   const location = useLocation();
   const agentConfig = useQuery(api.agentConfig.get);
@@ -61,8 +72,10 @@ export function SyncBoard() {
   const activities = useQuery(api.activityLog.list, { limit: 10 });
   const agents = useQuery(api.agents.list);
 
-  const activeSkills = skills?.filter((s) => s.status === 'active' && s.approved).length ?? 0;
-  const pendingSkills = skills?.filter((s) => s.status === 'pending' || !s.approved).length ?? 0;
+  const activeSkills =
+    skills?.filter((s: SkillSummary) => s.status === 'active' && s.approved).length ?? 0;
+  const pendingSkills =
+    skills?.filter((s: SkillSummary) => s.status === 'pending' || !s.approved).length ?? 0;
   const runningAgents = agents?.filter((a: { status: string }) => a.status === 'running').length ?? 0;
   const totalAgents = agents?.length ?? 0;
 
@@ -77,7 +90,7 @@ export function SyncBoard() {
         </div>
 
         <nav className="sidebar-nav">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
@@ -122,7 +135,7 @@ export function SyncBoard() {
               <h3>Recent Activity</h3>
               {activities && activities.length > 0 ? (
                 <ul className="activity-list-compact">
-                  {activities.map((activity) => (
+                  {activities.map((activity: ActivitySummary) => (
                     <li key={activity._id}>
                       <span className="activity-type">{activity.actionType}</span>
                       <span className="activity-summary">{activity.summary}</span>
@@ -143,14 +156,11 @@ export function SyncBoard() {
                 <Link to="/syncboard/agents" className="btn btn-primary">
                   Manage Agents
                 </Link>
-                <Link to="/syncboard/skills/new" className="btn btn-secondary">
-                  Add Skill
+                <Link to="/syncboard/skills" className="btn btn-secondary">
+                  Manage Skills
                 </Link>
-                <Link to="/syncboard/souls" className="btn btn-secondary">
-                  Manage Souls
-                </Link>
-                <Link to="/syncboard/models" className="btn btn-secondary">
-                  Configure Model
+                <Link to="/syncboard/skills/purchase" className="btn btn-secondary">
+                  Browse Marketplace
                 </Link>
               </div>
             </section>

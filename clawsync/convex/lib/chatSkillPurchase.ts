@@ -7,8 +7,6 @@ import { normalizeSkillSlug } from './skillSlugUtils';
 import { logChatSkill } from './chatSkillLog';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const skillInternal = (internal as any).skillPurchasesInternal;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const chatSkillInternal = (internal as any).chatSkillInternal;
 
 export type CatalogMatch = {

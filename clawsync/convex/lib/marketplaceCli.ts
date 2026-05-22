@@ -1,53 +1,13 @@
 'use node';
 
 import { execFile } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { promisify } from 'node:util';
 import path from 'node:path';
 import { loadClawsyncDotEnv } from './clawsyncDotenv';
 
 const exec = promisify(execFile);
-
-const CDR_ENV_KEYS = [
-  'RPC_URL',
-  'API_URL',
-  'HELIA_DATA_DIR',
-  'SKIP_LICENSE_MINT',
-  'LICENSE_TOKEN_ID',
-  'LICENSE_MINT_FEE_IP',
-  'IPFS_DOWNLOAD_TIMEOUT_MS',
-  'PEER_DIAL_TIMEOUT_MS',
-  'CDR_DECRYPT_TIMEOUT_MS',
-  'PINATA_API_KEY',
-  'PINATA_SECRET_KEY',
-  'PINATA_JWT',
-  'PINATA_BUYER_GATEWAY',
-  'PINATA_GATEWAY',
-  'IPFS_GATEWAY',
-  'IPFS_GATEWAY_TIMEOUT_MS',
-  'CDR_LOCAL_DOWNLOAD_TIMEOUT_MS',
-] as const;
-
-function mergeDotenvFile(env: NodeJS.ProcessEnv, filePath: string): void {
-  for (const line of readFileSync(filePath, 'utf-8').split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    if (!CDR_ENV_KEYS.includes(key as (typeof CDR_ENV_KEYS)[number])) continue;
-    if (env[key]?.trim()) continue;
-    let value = trimmed.slice(eq + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    env[key] = value;
-  }
-}
 
 /** Convex bundles Node actions — import.meta.url is not the repo root. */
 export function findClawsyncRoot(): string {

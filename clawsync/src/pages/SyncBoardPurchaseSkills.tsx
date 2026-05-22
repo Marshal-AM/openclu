@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAction } from 'convex/react';
+import { useAction, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import { CatalogDetailPanel } from '../components/syncboard/CatalogDetailPanel';
 import './SyncBoardPurchaseSkills.css';
@@ -20,11 +21,19 @@ type QueryMatch = {
   payload?: Record<string, unknown>;
 };
 
+type AgentOption = {
+  _id: Id<'agents'>;
+  name: string;
+  isDefault: boolean;
+};
+
 export function SyncBoardPurchaseSkills() {
   const catalogQuery = useAction(api.catalogActions.query);
   const catalogGetDetail = useAction(api.catalogActions.getDetail);
   const purchaseSkill = useAction(api.skillPurchaseActions.purchaseSkill);
+  const importPurchasedSkill = useAction(api.skillPurchaseImport.importPurchasedSkill);
   const getWalletStatus = useAction(api.skillPurchaseActions.getWalletStatus);
+  const agents = useQuery(api.agents.list) as AgentOption[] | undefined;
 
   const [query, setQuery] = useState('');
   const [tag, setTag] = useState('');
@@ -47,6 +56,7 @@ export function SyncBoardPurchaseSkills() {
   const [purchaseError, setPurchaseError] = useState('');
   const [purchaseLogs, setPurchaseLogs] = useState<string[]>([]);
   const [purchaseElapsedSec, setPurchaseElapsedSec] = useState(0);
+  const [targetAgentId, setTargetAgentId] = useState<Id<'agents'> | ''>('');
   const purchaseInFlight = useRef(false);
 
   useEffect(() => {
@@ -150,8 +160,20 @@ export function SyncBoardPurchaseSkills() {
       appendPurchaseLog(
         `Done in ${(result.durationMs / 1000).toFixed(1)}s — license ${result.licenseTokenId}, saved to disk.`,
       );
+      appendPurchaseLog('Registering purchased skill in the Skills registry and assigning it to the agent…');
+      const defaultAgent = agents?.find((agent) => agent.isDefault) ?? agents?.[0];
+      const selectedAgentId = targetAgentId || defaultAgent?._id;
+      const importResult = await importPurchasedSkill({
+        purchasedSkillId: result.purchasedSkillId,
+        ...(selectedAgentId ? { targetAgentId: selectedAgentId } : {}),
+      });
+      const selectedAgentName =
+        agents?.find((agent) => agent._id === selectedAgentId)?.name ?? 'the default agent';
+      appendPurchaseLog(
+        `${importResult.alreadyImported ? 'Already registered' : 'Registered'} as skill ${importResult.skillRegistryId} and assigned to ${selectedAgentName}.`,
+      );
       setPurchaseError('');
-      alert(`Purchased "${skillName}". Open My Purchased Skills to import it into your agent.`);
+      alert(`Purchased "${skillName}" and added it to ${selectedAgentName}.`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       appendPurchaseLog(`Failed: ${msg}`);
@@ -183,9 +205,26 @@ export function SyncBoardPurchaseSkills() {
         <p className="description">
           Browse the Arkiv catalog. Detail view shows full metadata, purchase block, ops, tags, and
           version. Purchases use your AGENT_PRIVATE_KEY wallet on Story Aeneid (local Convex dev).
-          Run <code>npm run cdr-storage</code> in a second terminal before buying — keeps IPFS
-          ready; catalog JSON supplies peer hints when P2P is needed.
+          Purchased skills are registered in Skills and assigned to the selected agent automatically.
+          Run <code>npm run cdr-storage</code> in a second terminal before buying.
         </p>
+
+        <div className="purchase-target-agent">
+          <label htmlFor="purchase-target-agent">Add purchased skills to</label>
+          <select
+            id="purchase-target-agent"
+            className="input"
+            value={targetAgentId}
+            onChange={(e) => setTargetAgentId(e.target.value as Id<'agents'> | '')}
+          >
+            <option value="">Default agent</option>
+            {agents?.map((agent) => (
+              <option key={agent._id} value={agent._id}>
+                {agent.name}{agent.isDefault ? ' (default)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="purchase-filters">
           <input

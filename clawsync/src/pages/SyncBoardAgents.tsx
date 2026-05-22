@@ -14,7 +14,6 @@ import { Plus } from '@phosphor-icons/react';
 
 export function SyncBoardAgents() {
   const agents = useQuery(api.agents.list);
-  const souls = useQuery(api.souls.list);
   const createAgent = useMutation(api.agents.create);
   const [showCreate, setShowCreate] = useState(false);
 
@@ -23,7 +22,6 @@ export function SyncBoardAgents() {
   const [description, setDescription] = useState('');
   const [model, setModel] = useState('claude-sonnet-4-20250514');
   const [modelProvider, setModelProvider] = useState('anthropic');
-  const [soulId, setSoulId] = useState<string>('');
 
   const handleCreate = async () => {
     if (!name.trim()) return;
@@ -32,7 +30,6 @@ export function SyncBoardAgents() {
       description: description.trim() || undefined,
       model,
       modelProvider,
-      soulId: soulId ? (soulId as any) : undefined,
     });
     setName('');
     setDescription('');
@@ -187,29 +184,6 @@ export function SyncBoardAgents() {
                 }}
               />
             </div>
-            {/* Soul selection */}
-            {souls && souls.length > 0 && (
-              <select
-                value={soulId}
-                onChange={(e) => setSoulId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--bg-secondary)',
-                  color: 'var(--text-primary)',
-                  fontSize: 'var(--text-sm)',
-                }}
-              >
-                <option value="">No shared soul</option>
-                {souls.map((s) => (
-                  <option key={s._id} value={s._id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            )}
             <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowCreate(false)}

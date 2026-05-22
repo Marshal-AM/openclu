@@ -63,7 +63,7 @@ export function SyncBoardChannels() {
         )}
 
         <div className="channels-grid">
-          {channels?.map((channel) => {
+          {channels?.map((channel: any) => {
             const info = channelInfo[channel.channelType] || {
               icon: <LinkIcon size={32} weight="regular" />,
               description: 'Custom channel',

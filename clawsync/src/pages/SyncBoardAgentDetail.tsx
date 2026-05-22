@@ -21,6 +21,7 @@ import {
  */
 
 type Tab = 'overview' | 'soul' | 'model' | 'skills' | 'mcp' | 'activity';
+type SkillOption = { _id: Id<'skillRegistry'>; name: string; skillType: string; status: string };
 
 export function SyncBoardAgentDetail() {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +29,6 @@ export function SyncBoardAgentDetail() {
   const agentId = id as Id<'agents'>;
 
   const agent = useQuery(api.agents.get, { agentId });
-  const souls = useQuery(api.souls.list);
   const skillAssignments = useQuery(api.agentAssignments.listSkills, { agentId });
   const mcpAssignments = useQuery(api.agentAssignments.listMcpServers, { agentId });
   const allSkills = useQuery(api.skillRegistry.list);
@@ -47,7 +47,6 @@ export function SyncBoardAgentDetail() {
   const [editDescription, setEditDescription] = useState('');
   const [editModel, setEditModel] = useState('');
   const [editProvider, setEditProvider] = useState('');
-  const [editSoulId, setEditSoulId] = useState('');
   const [editSoulDoc, setEditSoulDoc] = useState('');
   const [editSystemPrompt, setEditSystemPrompt] = useState('');
   const [initialized, setInitialized] = useState(false);
@@ -58,7 +57,6 @@ export function SyncBoardAgentDetail() {
     setEditDescription(agent.description || '');
     setEditModel(agent.model);
     setEditProvider(agent.modelProvider);
-    setEditSoulId(agent.soulId || '');
     setEditSoulDoc(agent.soulDocument || '');
     setEditSystemPrompt(agent.systemPrompt || '');
     setInitialized(true);
@@ -81,7 +79,6 @@ export function SyncBoardAgentDetail() {
       description: editDescription || undefined,
       model: editModel,
       modelProvider: editProvider,
-      soulId: editSoulId ? (editSoulId as any) : undefined,
       soulDocument: editSoulDoc || undefined,
       systemPrompt: editSystemPrompt || undefined,
     });
@@ -101,8 +98,12 @@ export function SyncBoardAgentDetail() {
     { id: 'activity', label: 'Activity' },
   ];
 
-  const assignedSkillIds = new Set(skillAssignments?.map((a) => a.skillId) || []);
-  const assignedMcpIds = new Set(mcpAssignments?.map((a) => a.mcpServerId) || []);
+  const assignedSkillIds = new Set(
+    skillAssignments?.map((a: { skillId: Id<'skillRegistry'> }) => a.skillId) || [],
+  );
+  const assignedMcpIds = new Set(
+    mcpAssignments?.map((a: { mcpServerId: Id<'mcpServers'> }) => a.mcpServerId) || [],
+  );
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
@@ -292,28 +293,16 @@ export function SyncBoardAgentDetail() {
           {activeTab === 'soul' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
               <div>
-                <label style={labelStyle}>Shared Soul</label>
-                <select
-                  style={inputStyle}
-                  value={editSoulId}
-                  onChange={(e) => setEditSoulId(e.target.value)}
-                >
-                  <option value="">None (use inline soul)</option>
-                  {souls?.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={labelStyle}>Inline Soul Document</label>
+                <label style={labelStyle}>soul.md</label>
                 <textarea
                   style={{ ...inputStyle, minHeight: 200, fontFamily: 'var(--font-mono)', resize: 'vertical' }}
                   value={editSoulDoc}
                   onChange={(e) => setEditSoulDoc(e.target.value)}
-                  placeholder="Markdown soul document (used if no shared soul selected)"
+                  placeholder="# Soul&#10;&#10;Write the markdown soul document for this agent."
                 />
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
+                  This is the single soul.md source used by this agent's config.
+                </p>
               </div>
               <div>
                 <label style={labelStyle}>System Prompt</label>
@@ -401,7 +390,7 @@ export function SyncBoardAgentDetail() {
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0 }}>
                 Toggle which skills this agent can use.
               </p>
-              {allSkills?.map((skill) => {
+              {allSkills?.map((skill: SkillOption) => {
                 const isAssigned = assignedSkillIds.has(skill._id);
                 return (
                   <div

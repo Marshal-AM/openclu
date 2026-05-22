@@ -92,7 +92,7 @@ export function SyncBoardMedia() {
         {/* File list */}
         {files && files.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            {files.map((file) => (
+            {files.map((file: any) => (
               <div key={file._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-3) var(--space-4)' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 500 }}>{file.filename}</div>

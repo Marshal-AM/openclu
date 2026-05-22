@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -6,32 +6,45 @@ import type { Id } from '../../convex/_generated/dataModel';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import './SyncBoardPurchasedSkills.css';
 
+type PurchasedSkillRow = {
+  _id: Id<'purchasedSkills'>;
+  title: string;
+  skillName: string;
+  description: string;
+  status: 'purchased' | 'imported';
+  purchasedAt: number;
+  mintingFeeIp: string;
+  skillRegistryId?: Id<'skillRegistry'>;
+};
+
 export function SyncBoardPurchasedSkills() {
-  const purchased = useQuery(api.skillPurchases.listPurchased);
+  const purchased = useQuery(api.skillPurchases.listPurchased) as PurchasedSkillRow[] | undefined;
   const importSkill = useAction(api.skillPurchaseImport.importPurchasedSkill);
   const getPreview = useAction(api.skillPurchaseActions.getSkillPreview);
 
-  const [importingId, setImportingId] = useState<Id<'purchasedSkills'> | null>(null);
+  const [autoImportingIds, setAutoImportingIds] = useState<Set<Id<'purchasedSkills'>>>(new Set());
   const [previewId, setPreviewId] = useState<Id<'purchasedSkills'> | null>(null);
   const [previewText, setPreviewText] = useState('');
   const [error, setError] = useState('');
+  const autoImportStarted = useRef(new Set<Id<'purchasedSkills'>>());
 
-  async function handleImport(id: Id<'purchasedSkills'>) {
-    setImportingId(id);
-    setError('');
-    try {
-      const result = await importSkill({ purchasedSkillId: id });
-      if (result.alreadyImported) {
-        alert('Skill was already imported.');
-      } else {
-        alert('Skill imported and assigned to your default agent.');
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setImportingId(null);
+  useEffect(() => {
+    const pending = purchased?.filter((row) => row.status === 'purchased') ?? [];
+    for (const row of pending) {
+      if (autoImportStarted.current.has(row._id)) continue;
+      autoImportStarted.current.add(row._id);
+      setAutoImportingIds((prev) => new Set(prev).add(row._id));
+      void importSkill({ purchasedSkillId: row._id })
+        .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+        .finally(() => {
+          setAutoImportingIds((prev) => {
+            const next = new Set(prev);
+            next.delete(row._id);
+            return next;
+          });
+        });
     }
-  }
+  }, [importSkill, purchased]);
 
   async function handlePreview(id: Id<'purchasedSkills'>) {
     setPreviewId(id);
@@ -47,8 +60,8 @@ export function SyncBoardPurchasedSkills() {
     <SyncBoardLayout title="My Purchased Skills">
       <div className="purchased-skills-page">
         <p className="description">
-          Skills you bought from the Arkiv marketplace. Import a skill to register it with your agent
-          and enable it on the default agent.
+          Skills you bought from the Arkiv marketplace. Purchases are automatically registered in
+          Skills and enabled on the default agent.
         </p>
         <p className="description">
           <Link to="/syncboard/skills/purchase" className="link">
@@ -65,16 +78,7 @@ export function SyncBoardPurchasedSkills() {
         )}
 
         <ul className="purchased-list">
-          {purchased?.map((row: {
-            _id: Id<'purchasedSkills'>;
-            title: string;
-            skillName: string;
-            description: string;
-            status: 'purchased' | 'imported';
-            purchasedAt: number;
-            mintingFeeIp: string;
-            skillRegistryId?: Id<'skillRegistry'>;
-          }) => (
+          {purchased?.map((row) => (
             <li key={row._id} className="purchased-card">
               <div className="purchased-card-main">
                 <h3>{row.title}</h3>
@@ -93,14 +97,9 @@ export function SyncBoardPurchasedSkills() {
                   Preview SKILL.md
                 </button>
                 {row.status === 'purchased' && (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    disabled={importingId === row._id}
-                    onClick={() => void handleImport(row._id)}
-                  >
-                    {importingId === row._id ? 'Importing…' : 'Import to agent'}
-                  </button>
+                  <span className="purchased-status-pill">
+                    {autoImportingIds.has(row._id) ? 'Registering with agent…' : 'Waiting to register'}
+                  </span>
                 )}
                 {row.status === 'imported' && row.skillRegistryId && (
                   <Link

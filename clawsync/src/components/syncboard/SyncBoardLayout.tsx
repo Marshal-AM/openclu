@@ -27,6 +27,7 @@ import {
   ShoppingCart,
   Package,
 } from '@phosphor-icons/react';
+import { marketplaceProductNavPaths } from '../../config/productSurface';
 import './SyncBoardLayout.css';
 
 const navItems = [
@@ -54,6 +55,8 @@ const navItems = [
   { path: '/syncboard/activity', label: 'Activity Log', Icon: ClipboardText },
   { path: '/syncboard/config', label: 'Configuration', Icon: Gear },
 ];
+
+const visibleNavItems = navItems.filter((item) => marketplaceProductNavPaths.has(item.path));
 
 interface SyncBoardLayoutProps {
   title?: string;
@@ -103,7 +106,7 @@ export function SyncBoardLayout({ title, children }: SyncBoardLayoutProps) {
         </div>
 
         <nav className="sidebar-nav">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}

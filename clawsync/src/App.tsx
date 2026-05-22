@@ -3,36 +3,21 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useQuery } from 'convex/react';
 import { UpdateBanner } from '@convex-dev/self-static-hosting/react';
 import { api } from '../convex/_generated/api';
-import { LandingPage } from './pages/LandingPage';
 import { ChatPage } from './pages/ChatPage';
 import { SetupWizard } from './pages/SetupWizard';
 import { SyncBoardLogin } from './pages/SyncBoardLogin';
 import { SyncBoard } from './pages/SyncBoard';
-import { SyncBoardSoul } from './pages/SyncBoardSoul';
 import { SyncBoardModels } from './pages/SyncBoardModels';
 import { SyncBoardSkills } from './pages/SyncBoardSkills';
 import { SyncBoardSkillNew } from './pages/SyncBoardSkillNew';
 import { SyncBoardSkillDetail } from './pages/SyncBoardSkillDetail';
-import { SyncBoardMcp } from './pages/SyncBoardMcp';
-import { SyncBoardChannels } from './pages/SyncBoardChannels';
-import { SyncBoardThreads } from './pages/SyncBoardThreads';
-import { SyncBoardActivity } from './pages/SyncBoardActivity';
-import { SyncBoardConfig } from './pages/SyncBoardConfig';
 import { SyncBoardApi } from './pages/SyncBoardApi';
-import { SyncBoardX } from './pages/SyncBoardX';
-import { SyncBoardAgentMail } from './pages/SyncBoardAgentMail';
-import { SyncBoardMedia } from './pages/SyncBoardMedia';
-import { SyncBoardStagehand } from './pages/SyncBoardStagehand';
-import { SyncBoardFirecrawl } from './pages/SyncBoardFirecrawl';
-import { SyncBoardResearch } from './pages/SyncBoardResearch';
-import { SyncBoardAnalytics } from './pages/SyncBoardAnalytics';
-import { SyncBoardMemory } from './pages/SyncBoardMemory';
 import { SyncBoardAgents } from './pages/SyncBoardAgents';
 import { SyncBoardAgentDetail } from './pages/SyncBoardAgentDetail';
-import { SyncBoardSouls } from './pages/SyncBoardSouls';
 import { SyncBoardAgentFeed } from './pages/SyncBoardAgentFeed';
 import { SyncBoardPurchaseSkills } from './pages/SyncBoardPurchaseSkills';
 import { SyncBoardPurchasedSkills } from './pages/SyncBoardPurchasedSkills';
+import { PRODUCT_HOME_PATH } from './config/productSurface';
 
 // Wrapper component to check if setup is required
 function SetupGuard({ children }: { children: React.ReactNode }) {
@@ -169,6 +154,8 @@ function SyncBoardAuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 export function App() {
+  const hiddenRoute = <Navigate to={PRODUCT_HOME_PATH} replace />;
+
   return (
     <BrowserRouter>
       {/* Live reload banner when new deployment is available */}
@@ -183,37 +170,37 @@ export function App() {
           <Route path="/setup" element={<SetupWizard />} />
 
           {/* Public routes */}
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<Navigate to={PRODUCT_HOME_PATH} replace />} />
           <Route path="/chat" element={<ChatPage />} />
 
           {/* SyncBoard routes (admin) - protected by password auth */}
           <Route path="/syncboard" element={<SyncBoardAuthGuard><SyncBoard /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/soul" element={<SyncBoardAuthGuard><SyncBoardSoul /></SyncBoardAuthGuard>} />
+          <Route path="/syncboard/soul" element={hiddenRoute} />
           <Route path="/syncboard/models" element={<SyncBoardAuthGuard><SyncBoardModels /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills" element={<SyncBoardAuthGuard><SyncBoardSkills /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills/purchase" element={<SyncBoardAuthGuard><SyncBoardPurchaseSkills /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills/purchased" element={<SyncBoardAuthGuard><SyncBoardPurchasedSkills /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills/new" element={<SyncBoardAuthGuard><SyncBoardSkillNew /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills/:id" element={<SyncBoardAuthGuard><SyncBoardSkillDetail /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/mcp" element={<SyncBoardAuthGuard><SyncBoardMcp /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/channels" element={<SyncBoardAuthGuard><SyncBoardChannels /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/threads" element={<SyncBoardAuthGuard><SyncBoardThreads /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/activity" element={<SyncBoardAuthGuard><SyncBoardActivity /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/config" element={<SyncBoardAuthGuard><SyncBoardConfig /></SyncBoardAuthGuard>} />
+          <Route path="/syncboard/mcp" element={hiddenRoute} />
+          <Route path="/syncboard/channels" element={hiddenRoute} />
+          <Route path="/syncboard/threads" element={hiddenRoute} />
+          <Route path="/syncboard/activity" element={hiddenRoute} />
+          <Route path="/syncboard/config" element={hiddenRoute} />
           <Route path="/syncboard/api" element={<SyncBoardAuthGuard><SyncBoardApi /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/x" element={<SyncBoardAuthGuard><SyncBoardX /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/agentmail" element={<SyncBoardAuthGuard><SyncBoardAgentMail /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/media" element={<SyncBoardAuthGuard><SyncBoardMedia /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/stagehand" element={<SyncBoardAuthGuard><SyncBoardStagehand /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/firecrawl" element={<SyncBoardAuthGuard><SyncBoardFirecrawl /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/research" element={<SyncBoardAuthGuard><SyncBoardResearch /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/analytics" element={<SyncBoardAuthGuard><SyncBoardAnalytics /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/memory" element={<SyncBoardAuthGuard><SyncBoardMemory /></SyncBoardAuthGuard>} />
+          <Route path="/syncboard/x" element={hiddenRoute} />
+          <Route path="/syncboard/agentmail" element={hiddenRoute} />
+          <Route path="/syncboard/media" element={hiddenRoute} />
+          <Route path="/syncboard/stagehand" element={hiddenRoute} />
+          <Route path="/syncboard/firecrawl" element={hiddenRoute} />
+          <Route path="/syncboard/research" element={hiddenRoute} />
+          <Route path="/syncboard/analytics" element={hiddenRoute} />
+          <Route path="/syncboard/memory" element={hiddenRoute} />
 
           {/* Multi-Agent routes */}
           <Route path="/syncboard/agents" element={<SyncBoardAuthGuard><SyncBoardAgents /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/agents/:id" element={<SyncBoardAuthGuard><SyncBoardAgentDetail /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/souls" element={<SyncBoardAuthGuard><SyncBoardSouls /></SyncBoardAuthGuard>} />
+          <Route path="/syncboard/souls" element={hiddenRoute} />
           <Route path="/syncboard/agent-feed" element={<SyncBoardAuthGuard><SyncBoardAgentFeed /></SyncBoardAuthGuard>} />
 
           {/* Fallback */}

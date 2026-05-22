@@ -264,7 +264,7 @@ export function SyncBoardSouls() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            {souls.map((soul) => (
+            {souls.map((soul: any) => (
               <SoulItem
                 key={soul._id}
                 soul={soul}
@@ -332,7 +332,7 @@ function SoulItem({
           >
             <Robot size={12} />
             <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-              Used by {agents.map((a) => a.name).join(', ')}
+              Used by {agents.map((a: { name: string }) => a.name).join(', ')}
             </span>
           </div>
         )}

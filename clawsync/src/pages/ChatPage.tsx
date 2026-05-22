@@ -5,7 +5,16 @@ import { Id } from '../../convex/_generated/dataModel';
 import { AgentChat } from '../components/chat/AgentChat';
 import { ActivityFeed } from '../components/chat/ActivityFeed';
 import { AgentSelector } from '../components/agents/AgentSelector';
+import { SHOW_CHAT_ACTIVITY_FEED } from '../config/productSurface';
 import './ChatPage.css';
+
+type AgentListItem = {
+  _id: Id<'agents'>;
+  isDefault?: boolean;
+  name?: string;
+  modelProvider?: string;
+  model?: string;
+};
 
 export function ChatPage() {
   const [sessionId] = useState(() => {
@@ -32,9 +41,9 @@ export function ChatPage() {
   const activeAgent = useMemo(() => {
     if (!agents?.length) return null;
     if (selectedAgentId) {
-      return agents.find((a) => a._id === selectedAgentId) ?? null;
+      return agents.find((a: AgentListItem) => a._id === selectedAgentId) ?? null;
     }
-    return agents.find((a) => a.isDefault) ?? agents[0];
+    return agents.find((a: AgentListItem) => a.isDefault) ?? agents[0];
   }, [agents, selectedAgentId]);
 
   useEffect(() => {
@@ -90,7 +99,7 @@ export function ChatPage() {
           />
         </div>
 
-        {uiConfig?.showActivityFeed !== false && (
+        {SHOW_CHAT_ACTIVITY_FEED && uiConfig?.showActivityFeed !== false && (
           <aside className="activity-sidebar">
             <ActivityFeed />
           </aside>

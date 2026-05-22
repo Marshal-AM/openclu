@@ -152,7 +152,7 @@ export function SyncBoardApi() {
         {/* API Keys List */}
         {apiKeys && apiKeys.length > 0 ? (
           <div className="keys-list">
-            {apiKeys.map((key) => (
+            {apiKeys.map((key: any) => (
               <div
                 key={key._id}
                 className={`key-card ${key._id === selectedKeyId ? 'selected' : ''} ${!key.isActive ? 'revoked' : ''}`}

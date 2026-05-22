@@ -157,7 +157,7 @@ export default function ContributePage() {
     async (
       slug: string,
       status: string,
-      pr?: DeviceSkill,
+      pr?: Partial<DeviceSkill>,
       meta?: { title?: string; description?: string },
     ) => {
       await fetch("/api/contributions", {
