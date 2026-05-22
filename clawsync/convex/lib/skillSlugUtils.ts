@@ -1,6 +1,15 @@
 /**
- * Normalize user/LLM skill references to Arkiv catalog slugs (e.g. "abc skill" → "abc").
+ * Helpers for marketplace tools — slug extraction only (not purchase routing).
+ * Marketplace tools also include attach_existing_skill and detach_attached_skill.
  */
+
+const SLUG_STOP_WORDS = new Set(['a', 'an', 'the', 'for', 'skill', 'called', 'named']);
+
+function slugFromMatch(m: RegExpMatchArray | null): string | undefined {
+  const token = m?.[1]?.trim().toLowerCase();
+  if (!token || SLUG_STOP_WORDS.has(token)) return undefined;
+  return token;
+}
 
 /** Extract a likely catalog slug from a natural-language query. */
 export function extractSkillSlugFromQuery(query: string): string | undefined {
@@ -9,36 +18,32 @@ export function extractSkillSlugFromQuery(query: string): string | undefined {
 
   // "purchase the abc skill" / "buy abc skill"
   const skillSuffix = q.match(/\b([a-z0-9][a-z0-9_-]{0,62})\s+skill\b/);
-  if (skillSuffix) return skillSuffix[1];
+  const fromSuffix = slugFromMatch(skillSuffix);
+  if (fromSuffix) return fromSuffix;
 
-  // "purchase abc" / "get the abc"
-  const afterVerb = q.match(
-    /\b(?:purchase|buy|get|add|install|acquire|find)\s+(?:the\s+)?([a-z0-9][a-z0-9_-]{0,62})\b/,
+  // "skill called joker" / "named joker" (before generic "search for …")
+  const called = q.match(/\b(?:skill\s+)?(?:called|named)\s+([a-z0-9][a-z0-9_-]{0,62})\b/);
+  const fromCalled = slugFromMatch(called);
+  if (fromCalled) return fromCalled;
+
+  // "search for a skill called joker" (typo serach supported)
+  const searchSkill = q.match(
+    /\b(?:search|serach)(?:\s+for)?\s+(?:a\s+)?skill\s+(?:called|named)\s+([a-z0-9][a-z0-9_-]{0,62})\b/,
   );
-  if (afterVerb) return afterVerb[1];
+  const fromSearchSkill = slugFromMatch(searchSkill);
+  if (fromSearchSkill) return fromSearchSkill;
+
+  // "purchase abc" / "find rocking" / "search for rocking"
+  const afterVerb = q.match(
+    /\b(?:purchase|buy|get|add|install|acquire|find|search(?:\s+for)?|serach(?:\s+for)?)\s+(?:the\s+)?([a-z0-9][a-z0-9_-]{0,62})\b/,
+  );
+  const fromVerb = slugFromMatch(afterVerb);
+  if (fromVerb) return fromVerb;
 
   // Whole string is a slug
   if (/^[a-z0-9][a-z0-9_-]{0,62}$/.test(q)) return q;
 
   return undefined;
-}
-
-/** True when the user wants to find/get/buy a skill (not just browse). */
-export function userWantsSkillAcquisition(text: string): boolean {
-  const q = text.trim().toLowerCase();
-  if (!q) return false;
-  if (
-    /\b(purchase|buy|get|add|install|acquire|attach|obtain|import|download)\b/.test(q)
-  ) {
-    return true;
-  }
-  if (/\b(look\s+for|find|search\s+for|fetch|locate)\b/.test(q)) {
-    return true;
-  }
-  if (/\b(use|need|want)\s+(the\s+)?[a-z0-9]/.test(q)) {
-    return true;
-  }
-  return false;
 }
 
 /** Map display phrases to catalog slug (never use "foo skill" as slug). */

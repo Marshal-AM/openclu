@@ -47,7 +47,13 @@ const MODEL_OPTIONS = [
   { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', description: 'Fast and affordable' },
   { id: 'grok-3', name: 'Grok 3', provider: 'xai', description: 'xAI flagship model' },
   { id: 'grok-3-fast', name: 'Grok 3 Fast', provider: 'xai', description: 'Fast Grok variant' },
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', provider: 'groq', description: 'Groq fast Llama' },
+  {
+    id: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    name: 'Llama 4 Scout (Groq tools)',
+    provider: 'groq',
+    description: 'Recommended for marketplace tool calling',
+  },
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', provider: 'groq', description: 'Fast chat; marketplace uses server-side search' },
   { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B Instant', provider: 'groq', description: 'Groq low-latency' },
 ];
 

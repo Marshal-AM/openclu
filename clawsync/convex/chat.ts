@@ -113,6 +113,8 @@ export const send = action({
         soulDocument?: string;
         systemPrompt?: string;
         soulId?: string;
+        model?: string;
+        modelProvider?: string;
       } | null = args.agentId
         ? await ctx.runQuery(internal.agents.getInternal, { agentId: args.agentId })
         : await ctx.runQuery(internal.agents.getDefault);
@@ -169,14 +171,20 @@ export const send = action({
                 )
                 .join('\n')
             : '(none — you have no marketplace skills attached yet)';
-        const marketplaceGuide = `## Skills attached to you
+        const marketplaceGuide = `## Skills attached to you (snapshot — may be stale)
 ${skillsBlock}
 
-## Marketplace behavior
-When the user asks to find, look for, get, buy, add, or use a marketplace skill: call search_arkiv_skills once (it auto-purchases when appropriate).
-Use skillSlug for named skills (e.g. "abc" not "abc skill"). After the tool returns, summarize success or failure in plain language — never leave your reply empty.
-Never ask the user to pick from a list. Never dump the full catalog in your reply.
-If already attached, say so instead of buying again.`;
+## Marketplace tools (you MUST use these — do not guess)
+- list_attached_skills — when the user asks what skills you have, what you can do, or your capabilities.
+- search_arkiv_skills — find a skill on Arkiv (use skillSlug for named skills, e.g. "rocking" not "rocking skill").
+- purchase_and_attach_skill — buy from Arkiv and attach (pass skillName, listingKey, searchId from search).
+- attach_existing_skill — attach a skill already in the local registry (imported earlier); no purchase.
+- detach_attached_skill — remove a skill from this agent (registry entry remains).
+
+Workflow for "get/buy skill X from marketplace": (1) search_arkiv_skills (2) purchase_and_attach_skill.
+Workflow for "add/use skill X I already have": attach_existing_skill. Workflow for "remove skill X": detach_attached_skill.
+Always write a short plain-language reply after tools finish — never send an empty message.
+Use assistantMessage from tool JSON if helpful. Never ask the user to pick from a list.`;
         system = system ? `${system}\n\n${marketplaceGuide}` : marketplaceGuide;
       }
 
@@ -184,6 +192,7 @@ If already attached, say so instead of buying again.`;
       const tools = await loadTools(ctx, effectiveAgentId);
 
       // Arkiv marketplace tools (Node-only; wired here to keep toolLoader out of node bundle graph)
+      let hasMarketplaceTools = false;
       if (effectiveAgentId && threadId) {
         try {
           const { loadMarketplaceTools } = await import('./agent/marketplaceTools');
@@ -195,14 +204,61 @@ If already attached, say so instead of buying again.`;
               userMessage: args.message,
             }),
           );
+          hasMarketplaceTools = true;
         } catch (e) {
           console.error('Failed to load marketplace tools:', e);
         }
       }
 
+      const legacyConfig: { modelProvider?: string; model?: string } | null =
+        await ctx.runQuery(internal.agentConfig.getConfig as any);
+      const { resolveAgentModel, shouldRunMarketplaceDirect, runMarketplaceDirectAction } =
+        await import('./lib/marketplaceDirectReply.js');
+      const { detectMarketplaceIntent } = await import('./lib/marketplaceIntent.js');
+      const { provider, modelId } = resolveAgentModel(agentRecord, legacyConfig);
+      const marketplaceIntent = hasMarketplaceTools
+        ? detectMarketplaceIntent(args.message)
+        : null;
+
+      if (
+        effectiveAgentId &&
+        threadId &&
+        marketplaceIntent &&
+        shouldRunMarketplaceDirect(provider, modelId, marketplaceIntent)
+      ) {
+        const direct = await runMarketplaceDirectAction(
+          ctx,
+          { agentId: effectiveAgentId, threadId, userMessage: args.message },
+          marketplaceIntent,
+          args.message,
+        );
+        if (direct?.response.trim()) {
+          const { persistChatExchange } = await import('./lib/persistChatExchange.js');
+          await persistChatExchange(ctx, {
+            threadId,
+            userMessage: args.message,
+            assistantText: direct.response.trim(),
+            toolCalls: direct.toolCalls,
+          });
+          await ctx.runMutation(internal.activityLog.log, {
+            actionType: 'chat_message',
+            summary: `Marketplace direct (${marketplaceIntent}): "${args.message.slice(0, 50)}${args.message.length > 50 ? '...' : ''}"`,
+            visibility: 'private',
+            ...(args.agentId && { agentId: args.agentId }),
+          });
+          return {
+            response: direct.response.trim(),
+            threadId,
+            toolCalls: direct.toolCalls,
+          };
+        }
+      }
+
       // Generate response with tools and multi-step support
       const hasTools = Object.keys(tools).length > 0;
-      const result: { text: string; steps?: Array<unknown> } = await thread.generateText(
+      let result: { text: string; steps?: Array<unknown> };
+      try {
+        result = await thread.generateText(
         {
           prompt: args.message,
           ...(system && { system }),
@@ -215,6 +271,67 @@ If already attached, say so instead of buying again.`;
           storageOptions: { saveMessages: 'all' },
         },
       );
+      } catch (genError) {
+        const {
+          extractGroqFailedGeneration,
+          isGroqToolUseFailed,
+          parseGroqFailedToolCall,
+          groqToolUseHint,
+        } = await import('./lib/groqToolSupport.js');
+        if (
+          isGroqToolUseFailed(genError) &&
+          effectiveAgentId &&
+          threadId &&
+          hasMarketplaceTools
+        ) {
+          const failedGen = extractGroqFailedGeneration(genError);
+          const parsed = failedGen ? parseGroqFailedToolCall(failedGen) : null;
+          const intent =
+            parsed?.name === 'search_arkiv_skills'
+              ? ('search' as const)
+              : parsed?.name === 'list_attached_skills'
+                ? ('list' as const)
+                : parsed?.name === 'attach_existing_skill'
+                  ? ('attach' as const)
+                  : parsed?.name === 'detach_attached_skill'
+                    ? ('detach' as const)
+                    : marketplaceIntent;
+          if (intent && intent !== 'purchase') {
+            const direct = await runMarketplaceDirectAction(
+              ctx,
+              { agentId: effectiveAgentId, threadId, userMessage: args.message },
+              intent,
+              args.message,
+              parsed ?? undefined,
+            );
+            if (direct?.response.trim()) {
+              const { persistChatExchange } = await import('./lib/persistChatExchange.js');
+              await persistChatExchange(ctx, {
+                threadId,
+                userMessage: args.message,
+                assistantText: direct.response.trim(),
+                toolCalls: direct.toolCalls,
+              });
+              console.warn(
+                '[chat] Recovered from Groq tool_use_failed via direct marketplace execution',
+                { intent, parsedTool: parsed?.name },
+              );
+              return {
+                response: direct.response.trim(),
+                threadId,
+                toolCalls: direct.toolCalls,
+              };
+            }
+          }
+        }
+        if (isGroqToolUseFailed(genError) && provider === 'groq') {
+          return {
+            error: groqToolUseHint(modelId),
+            threadId,
+          };
+        }
+        throw genError;
+      }
 
       // Log activity (include agentId if multi-agent)
       await ctx.runMutation(internal.activityLog.log, {
@@ -226,7 +343,7 @@ If already attached, say so instead of buying again.`;
 
       // Extract tool call info from steps
       const toolCalls: Array<{ name: string; args: string; result: string }> = [];
-      const steps = (result as any).steps;
+      const steps = (result as { steps?: unknown }).steps;
       if (Array.isArray(steps)) {
         for (const step of steps) {
           if (Array.isArray(step.toolCalls)) {
@@ -257,8 +374,18 @@ If already attached, say so instead of buying again.`;
         // Supermemory not configured; skip
       }
 
+      let responseText = (result.text ?? '').trim();
+      if (!responseText) {
+        const { synthesizeReplyFromToolSteps } = await import('./lib/marketplaceToolMessages.js');
+        responseText = synthesizeReplyFromToolSteps(steps) ?? '';
+      }
+      if (!responseText && toolCalls.length > 0) {
+        responseText =
+          'Marketplace action completed — see the skill card below if a purchase is in progress.';
+      }
+
       return {
-        response: result.text,
+        response: responseText,
         threadId,
         toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
       };

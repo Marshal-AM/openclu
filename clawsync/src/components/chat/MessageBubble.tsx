@@ -8,7 +8,13 @@ interface ToolCall {
   result: string;
 }
 
-const HIDDEN_TOOL_NAMES = new Set(['search_arkiv_skills', 'purchase_and_attach_skill']);
+const HIDDEN_TOOL_NAMES = new Set([
+  'search_arkiv_skills',
+  'purchase_and_attach_skill',
+  'list_attached_skills',
+  'attach_existing_skill',
+  'detach_attached_skill',
+]);
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant';

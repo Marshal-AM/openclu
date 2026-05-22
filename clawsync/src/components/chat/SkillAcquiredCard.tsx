@@ -94,8 +94,8 @@ export function SkillAcquiredCard({ purchaseEventId }: SkillAcquiredCardProps) {
 
       {isActive && event.status === 'purchasing' && (
         <div className="skill-acquired-footer">
-          Purchase runs in the background (mint + download can take 1–3 minutes). Keep{' '}
-          <code>npm run cdr-storage</code> running.
+          Purchase runs in the background (Story mint + public IPFS download + decrypt — often 1–3
+          minutes).
         </div>
       )}
 
@@ -105,8 +105,7 @@ export function SkillAcquiredCard({ purchaseEventId }: SkillAcquiredCardProps) {
           {event.error.includes('AGENT_PRIVATE_KEY') && (
             <span>
               {' '}
-              Set via <code>npx convex env set AGENT_PRIVATE_KEY</code> and run{' '}
-              <code>npm run cdr-storage</code> for downloads.
+              Set <code>AGENT_PRIVATE_KEY</code> in clawsync/.env (Convex loads it in dev).
             </span>
           )}
         </div>

@@ -138,6 +138,37 @@ export const getAgentSkillsSummary = internalQuery({
   },
 });
 
+// Internal: active approved skills in the registry not yet assigned to this agent
+export const listUnattachedSkillsForAgent = internalQuery({
+  args: { agentId: v.id('agents') },
+  returns: v.array(
+    v.object({
+      skillRegistryId: v.id('skillRegistry'),
+      name: v.string(),
+      description: v.string(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const assignments = await ctx.db
+      .query('agentSkillAssignments')
+      .withIndex('by_agentId', (q) => q.eq('agentId', args.agentId))
+      .collect();
+    const attached = new Set(assignments.map((a) => a.skillId));
+    const skills = await ctx.db
+      .query('skillRegistry')
+      .withIndex('by_status', (q) => q.eq('status', 'active'))
+      .filter((q) => q.eq(q.field('approved'), true))
+      .take(200);
+    return skills
+      .filter((s) => !attached.has(s._id))
+      .map((s) => ({
+        skillRegistryId: s._id,
+        name: s.name,
+        description: s.description,
+      }));
+  },
+});
+
 // Internal: get active skill IDs for an agent (used by toolLoader)
 export const getAgentSkillIds = internalQuery({
   args: { agentId: v.id('agents') },

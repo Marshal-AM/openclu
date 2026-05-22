@@ -5,14 +5,15 @@ import { jsonSchema } from 'ai';
 import type { ActionCtx } from '../_generated/server';
 import type { Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
-import { runMarketplaceCli } from '../lib/marketplaceCli';
 import { runPurchaseAndAttach, type CatalogMatch } from '../lib/chatSkillPurchase';
-import {
-  extractSkillSlugFromQuery,
-  normalizeSkillSlug,
-  userWantsSkillAcquisition,
-} from '../lib/skillSlugUtils';
+import { normalizeSkillSlug } from '../lib/skillSlugUtils';
 import { logChatSkill } from '../lib/chatSkillLog';
+import {
+  executeAttachExistingSkill,
+  executeDetachAttachedSkill,
+  executeListAttachedSkills,
+  executeSearchArkivSkills,
+} from '../lib/marketplaceExecutions';
 import type { ToolSet } from './toolLoader';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,251 +71,74 @@ export function loadMarketplaceTools(
     required: ['skillName'],
   });
 
+  const skillRefSchema = jsonSchema<{ skillName: string; skillRegistryId?: string }>({
+    type: 'object' as const,
+    properties: {
+      skillName: {
+        type: 'string',
+        description: 'Registry skill slug/name (e.g. "rocking"), not "rocking skill"',
+      },
+      skillRegistryId: {
+        type: 'string',
+        description: 'Optional skillRegistry document id from list_attached_skills',
+      },
+    },
+    required: ['skillName'],
+  });
+
   return {
     search_arkiv_skills: createTool({
       description:
-        'Search the Arkiv marketplace. Use skillSlug for a named skill (catalog slug only, e.g. "abc" not "abc skill"). Returns matches for purchase_and_attach_skill.',
+        'Search the Arkiv marketplace catalog. Use skillSlug for a named skill (slug only, e.g. "rocking" not "rocking skill"). Does not purchase — call purchase_and_attach_skill after search when the user wants to acquire a skill.',
       args: searchSchema,
       handler: async (
         _toolCtx,
         { query, skillSlug, limit }: { query: string; skillSlug?: string; limit?: number },
-      ) => {
-        const cap = Math.min(limit ?? 8, 12);
-        const slug =
-          (skillSlug ? normalizeSkillSlug(skillSlug) : undefined) ??
-          extractSkillSlugFromQuery(query);
+      ) =>
+        executeSearchArkivSkills(
+          ctx,
+          { agentId, threadId, userMessage },
+          { query, skillSlug, limit },
+        ),
+    }),
 
-        logChatSkill('search_start', {
-          threadId,
-          agentId,
-          query: query.trim(),
-          skillSlugArg: skillSlug ?? null,
-          resolvedSlug: slug ?? null,
-        });
+    list_attached_skills: createTool({
+      description:
+        'List marketplace skills currently attached to this agent. Call when the user asks what skills you have, what you can do, or your capabilities from the marketplace.',
+      args: jsonSchema<Record<string, never>>({
+        type: 'object' as const,
+        properties: {},
+      }),
+      handler: async (_toolCtx) =>
+        executeListAttachedSkills(ctx, { agentId, threadId, userMessage }),
+    }),
 
-        let raw: CatalogMatch[] = [];
-        let searchMode: 'exact_slug' | 'natural_language' | 'exact_then_nl' = 'natural_language';
+    attach_existing_skill: createTool({
+      description:
+        'Attach a skill that already exists in the local skill registry (imported/purchased previously) to this agent. Does not buy from Arkiv — use purchase_and_attach_skill for new marketplace acquisitions.',
+      args: skillRefSchema,
+      handler: async (
+        _toolCtx,
+        { skillName, skillRegistryId }: { skillName: string; skillRegistryId?: string },
+      ) =>
+        executeAttachExistingSkill(ctx, { agentId, threadId, userMessage }, {
+          skillName,
+          skillRegistryId,
+        }),
+    }),
 
-        if (slug) {
-          searchMode = 'exact_slug';
-          const exact = (await runMarketplaceCli('query', {
-            skillSlug: slug,
-            scope: 'marketplace',
-            full: true,
-            minScore: 0,
-          })) as { matches?: CatalogMatch[] };
-          raw = exact.matches ?? [];
-          logChatSkill('search_exact_slug', {
-            slug,
-            matchCount: raw.length,
-            found: raw.map((m) => m.skillName),
-          });
-        }
-
-        if (raw.length === 0) {
-          searchMode = slug ? 'exact_then_nl' : 'natural_language';
-          const searchQuery = slug ? slug : query.trim();
-          const data = (await runMarketplaceCli('query', {
-            query: searchQuery,
-            scope: 'marketplace',
-            full: true,
-            minScore: 0,
-          })) as { matches?: CatalogMatch[]; matchCount?: number };
-          raw = data.matches ?? [];
-          logChatSkill('search_natural_language', {
-            searchQuery,
-            matchCount: data.matchCount ?? raw.length,
-            topSlugs: raw.slice(0, 8).map((m) => ({
-              skillName: m.skillName,
-              score: m.score,
-            })),
-          });
-          if (slug) {
-            const hit = raw.find(
-              (m) =>
-                m.skillName === slug ||
-                normalizeSkillSlug(m.skillName) === slug,
-            );
-            if (hit) {
-              raw = [hit, ...raw.filter((m) => m.skillName !== hit.skillName)];
-              logChatSkill('search_slug_promoted', { slug, title: hit.title });
-            } else {
-              try {
-                await runMarketplaceCli('get-detail', slug);
-                logChatSkill('search_slug_exists_via_detail', {
-                  slug,
-                  note: 'Listing exists on Arkiv but did not rank in NL search; purchase may still work.',
-                });
-              } catch (detailErr) {
-                logChatSkill('search_slug_not_on_arkiv', {
-                  slug,
-                  error:
-                    detailErr instanceof Error ? detailErr.message : String(detailErr),
-                });
-              }
-            }
-          }
-        }
-
-        const matches = raw.slice(0, cap).map((m) => ({
-          skillName: m.skillName,
-          title: m.title,
-          description: m.description?.slice(0, 200),
-          score: m.score,
-          listingKey: m.listingKey ?? m.entityKey,
-          entityKey: m.entityKey ?? m.listingKey,
-          payload: m.payload,
-        }));
-
-        const searchId = await ctx.runMutation(chatSkillInternal.insertSearchSnapshot, {
-          threadId,
-          agentId,
-          query: slug ? `${query.trim()} [slug:${slug}]` : query.trim(),
-          matchesJson: JSON.stringify(matches),
-        });
-
-        logChatSkill('search_done', {
-          searchId,
-          searchMode,
-          resolvedSlug: slug ?? null,
-          matchCount: matches.length,
-          topMatches: matches.map((m) => ({
-            skillName: m.skillName,
-            score: m.score,
-            title: m.title,
-          })),
-        });
-
-        const acquireIntent =
-          userWantsSkillAcquisition(query) ||
-          (userMessage ? userWantsSkillAcquisition(userMessage) : false) ||
-          Boolean(skillSlug?.trim()) ||
-          (Boolean(slug) && searchMode === 'exact_slug' && matches.length > 0);
-
-        // In-chat marketplace search always acquires when we have a match
-        const shouldAutoPurchase = matches.length > 0 && acquireIntent;
-
-        logChatSkill('auto_purchase_decision', {
-          shouldAutoPurchase,
-          acquireIntent,
-          query: query.trim(),
-          userMessageSnippet: userMessage?.slice(0, 120) ?? null,
-          skillSlugArg: skillSlug ?? null,
-          resolvedSlug: slug ?? null,
-          matchCount: matches.length,
-        });
-
-        let autoPurchase:
-          | {
-              purchaseEventId: string;
-              success: boolean;
-              title: string;
-              error?: string;
-              alreadyAttached?: boolean;
-              purchasing?: boolean;
-            }
-          | undefined;
-        let pickedSkillName: string | undefined;
-
-        if (shouldAutoPurchase) {
-          // Prefer exact slug; otherwise best NL match (e.g. "cursor" → cursor-usage)
-          const exactPick = slug
-            ? matches.find(
-                (m) =>
-                  m.skillName === slug || normalizeSkillSlug(m.skillName) === slug,
-              )
-            : undefined;
-          const pick = exactPick ?? matches[0];
-          pickedSkillName = pick.skillName;
-          if (slug && !exactPick && pick) {
-            logChatSkill('search_slug_fuzzy_pick', {
-              requestedSlug: slug,
-              pickedSkillName: pick.skillName,
-            });
-          }
-
-          logChatSkill('auto_purchase_triggered', {
-            reason: skillSlug?.trim()
-              ? 'named_skill_slug'
-              : slug && searchMode === 'exact_slug'
-                ? 'exact_slug_match'
-                : 'user_acquire_intent',
-            query: query.trim(),
-            userMessage: userMessage?.slice(0, 120) ?? null,
-            skillName: pick.skillName,
-            searchId,
-          });
-
-          const purchaseResult = await runPurchaseAndAttach(ctx, {
-            agentId,
-            threadId,
-            skillName: pick.skillName,
-            title: pick.title,
-            description: pick.description ?? '',
-            listingKey: pick.listingKey ?? pick.entityKey ?? pick.skillName,
-            catalogSnapshot:
-              pick.payload && (pick.entityKey ?? pick.listingKey)
-                ? {
-                    entityKey: pick.entityKey ?? pick.listingKey!,
-                    payload: pick.payload,
-                  }
-                : undefined,
-            searchId: searchId as Id<'skillSearchSnapshots'>,
-          });
-
-          autoPurchase = {
-            purchaseEventId: purchaseResult.purchaseEventId,
-            success: purchaseResult.success,
-            title: purchaseResult.title,
-            error: purchaseResult.error,
-            alreadyAttached: purchaseResult.alreadyAttached,
-            purchasing: purchaseResult.purchasing,
-          };
-
-          logChatSkill('auto_purchase_done', autoPurchase);
-        } else if (matches.length === 0) {
-          logChatSkill('auto_purchase_skipped', {
-            reason: 'no_matches',
-            query: query.trim(),
-            userMessage: userMessage?.slice(0, 120) ?? null,
-          });
-        } else {
-          logChatSkill('auto_purchase_skipped', {
-            reason: 'no_acquire_intent',
-            query: query.trim(),
-            userMessage: userMessage?.slice(0, 120) ?? null,
-          });
-        }
-
-        return JSON.stringify({
-          searchId,
-          resolvedSlug: slug ?? null,
-          searchMode,
-          matchCount: matches.length,
-          matches: matches.map(({ payload: _p, ...rest }) => rest),
-          autoPurchased: Boolean(autoPurchase?.success && !autoPurchase?.purchasing),
-          purchaseInProgress: Boolean(autoPurchase?.purchasing),
-          purchaseEventId: autoPurchase?.purchaseEventId,
-          purchaseSuccess: autoPurchase?.success,
-          purchaseError: autoPurchase?.error,
-          alreadyAttached: autoPurchase?.alreadyAttached,
-          pickedSkillName,
-          hint:
-            matches.length === 0
-              ? 'No Arkiv listings matched. Try skillSlug or a clearer query.'
-              : autoPurchase?.alreadyAttached
-                ? `Skill "${autoPurchase.title}" is already attached to this agent.`
-                : autoPurchase?.purchasing
-                  ? `Purchasing "${autoPurchase.title ?? pickedSkillName ?? 'skill'}" in the background — watch the card below.`
-                  : autoPurchase?.success
-                    ? `Acquired "${autoPurchase.title}" and attached to this agent.`
-                    : autoPurchase?.error
-                      ? `Purchase failed: ${autoPurchase.error}`
-                      : acquireIntent
-                        ? undefined
-                        : 'Call purchase_and_attach_skill after search when the user wants to acquire a skill.',
-        });
-      },
+    detach_attached_skill: createTool({
+      description:
+        'Remove a skill from this agent’s assignments. The skill stays in the registry; use attach_existing_skill to add it again.',
+      args: skillRefSchema,
+      handler: async (
+        _toolCtx,
+        { skillName, skillRegistryId }: { skillName: string; skillRegistryId?: string },
+      ) =>
+        executeDetachAttachedSkill(ctx, { agentId, threadId, userMessage }, {
+          skillName,
+          skillRegistryId,
+        }),
     }),
 
     purchase_and_attach_skill: createTool({
@@ -417,15 +241,27 @@ export function loadMarketplaceTools(
           error: result.error ?? null,
         });
 
+        const assistantMessage = result.alreadyAttached
+          ? `Skill "${result.title}" is already attached to this agent.`
+          : result.purchasing
+            ? `Purchasing "${result.title}" in the background — see the card below.`
+            : result.success
+              ? `Acquired and attached "${result.title}".`
+              : result.error
+                ? `Purchase failed: ${result.error}`
+                : `Started acquisition of "${result.title}".`;
+
         return JSON.stringify({
           purchaseEventId: result.purchaseEventId,
           success: result.success,
           title: result.title,
           skillRegistryId: result.skillRegistryId,
           alreadyAttached: result.alreadyAttached ?? false,
+          purchasing: result.purchasing ?? false,
           normalizedSlug,
           snapshotMatch,
           error: result.error,
+          assistantMessage,
         });
       },
     }),

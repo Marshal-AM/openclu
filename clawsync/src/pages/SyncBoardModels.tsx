@@ -8,7 +8,16 @@ const PROVIDERS = [
   { id: 'openai', name: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'] },
   { id: 'openrouter', name: 'OpenRouter', models: ['anthropic/claude-3.5-sonnet', 'openai/gpt-4o', 'meta-llama/llama-3.1-70b-instruct'] },
   { id: 'xai', name: 'xAI', models: ['grok-3', 'grok-3-fast'] },
-  { id: 'groq', name: 'Groq', models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'] },
+  {
+    id: 'groq',
+    name: 'Groq',
+    models: [
+      'meta-llama/llama-4-scout-17b-16e-instruct',
+      'llama3-groq-70b-8192-tool-use-preview',
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+    ],
+  },
   { id: 'opencode-zen', name: 'OpenCode Zen', models: ['claude-sonnet', 'gpt-4o'] },
 ];
 

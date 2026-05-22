@@ -3,6 +3,7 @@ import { useAction } from 'convex/react';
 import { useThreadMessages } from '@convex-dev/agent/react';
 import { api } from '../../../convex/_generated/api';
 import { MessageBubble } from './MessageBubble';
+import { summarizeFromToolCalls } from '../../lib/marketplaceToolMessages';
 import './AgentChat.css';
 
 interface ToolCall {
@@ -21,7 +22,13 @@ interface DisplayMessage {
   streaming?: boolean;
 }
 
-const MARKETPLACE_TOOLS = new Set(['search_arkiv_skills', 'purchase_and_attach_skill']);
+const MARKETPLACE_TOOLS = new Set([
+  'search_arkiv_skills',
+  'purchase_and_attach_skill',
+  'list_attached_skills',
+  'attach_existing_skill',
+  'detach_attached_skill',
+]);
 
 function parsePurchaseEventIdFromResult(result: string): string | undefined {
   if (!result) return undefined;
@@ -34,37 +41,29 @@ function parsePurchaseEventIdFromResult(result: string): string | undefined {
   }
 }
 
+/** Text for display — agent messages may only have content parts, not top-level text. */
+function getMessageText(msg: {
+  text?: string;
+  message?: { content?: unknown };
+}): string {
+  if (typeof msg.text === 'string' && msg.text.trim()) return msg.text.trim();
+  const content = msg.message?.content;
+  if (typeof content === 'string' && content.trim()) return content.trim();
+  if (Array.isArray(content)) {
+    return content
+      .filter((p: { type?: string }) => p.type === 'text')
+      .map((p: { text?: string }) => p.text ?? '')
+      .join('')
+      .trim();
+  }
+  return '';
+}
+
 function toolResultSummary(toolCalls: ToolCall[] | undefined): string | undefined {
   if (!toolCalls?.length) return undefined;
-  for (const tc of toolCalls) {
-    if (tc.name !== 'search_arkiv_skills' || !tc.result) continue;
-    try {
-      const p = JSON.parse(tc.result) as {
-        autoPurchased?: boolean;
-        purchaseSuccess?: boolean;
-        purchaseError?: string;
-        hint?: string;
-        topMatches?: Array<{ skillName: string; title?: string }>;
-      };
-      if (p.hint) return p.hint;
-      if (p.purchaseInProgress) {
-        const name =
-          (p as { pickedSkillName?: string }).pickedSkillName ??
-          p.topMatches?.[0]?.skillName;
-        return `Purchasing "${name ?? 'skill'}"… (see card below).`;
-      }
-      if (p.autoPurchased && p.topMatches?.[0]) {
-        return `Acquired skill "${p.topMatches[0].title ?? p.topMatches[0].skillName}".`;
-      }
-      if (p.purchaseError) return `Could not acquire skill: ${p.purchaseError}`;
-      if (p.topMatches?.length) {
-        return `Found ${p.topMatches.length} marketplace skill(s); acquiring…`;
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-  return undefined;
+  const withResults = toolCalls.filter((tc) => tc.result?.trim());
+  if (!withResults.length) return undefined;
+  return summarizeFromToolCalls(withResults);
 }
 
 interface AgentChatProps {
@@ -88,9 +87,16 @@ export function AgentChat({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null);
+  /** Last completed send — kept until the thread subscription shows the same exchange */
+  const [localExchange, setLocalExchange] = useState<{
+    userText: string;
+    assistantText: string;
+    toolCalls?: ToolCall[];
+  } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const lastThreadMessagesRef = useRef<unknown[] | undefined>(undefined);
 
   const sendMessage = useAction(api.chat.send);
 
@@ -101,13 +107,18 @@ export function AgentChat({
     { initialNumItems: 100, stream: true },
   );
 
+  if (threadMessages) {
+    lastThreadMessagesRef.current = threadMessages;
+  }
+  const effectiveThreadMessages = threadMessages ?? lastThreadMessagesRef.current;
+
   // Build a map of toolCallId -> result from tool-role messages
   const toolResultMap = useMemo(() => {
     const map = new Map<string, string>();
     const toolNameByCallId = new Map<string, string>();
-    if (!threadMessages) return map;
+    if (!effectiveThreadMessages) return map;
 
-    for (const msg of threadMessages) {
+    for (const msg of effectiveThreadMessages) {
       if (msg.message?.role === 'assistant' && Array.isArray(msg.message.content)) {
         for (const part of msg.message.content as Array<{ type?: string; toolCallId?: string; toolName?: string }>) {
           if (part.type === 'tool-call' && part.toolCallId && part.toolName) {
@@ -117,7 +128,7 @@ export function AgentChat({
       }
     }
 
-    for (const msg of threadMessages) {
+    for (const msg of effectiveThreadMessages) {
       if (msg.message?.role === 'tool' && Array.isArray(msg.message.content)) {
         for (const part of msg.message.content) {
           if (part.type === 'tool-result' && part.toolCallId) {
@@ -135,29 +146,40 @@ export function AgentChat({
       }
     }
     return map;
-  }, [threadMessages]);
+  }, [effectiveThreadMessages, threadMessages]);
 
   // Convert thread messages to display format
   const messages: DisplayMessage[] = useMemo(() => {
     const result: DisplayMessage[] = [];
-    if (!threadMessages) {
-      // Show optimistic user message when subscription hasn't activated yet
-      if (pendingUserMessage) {
+    const threadList = effectiveThreadMessages;
+
+    if (!threadList?.length) {
+      const userText = pendingUserMessage ?? localExchange?.userText;
+      if (userText) {
         result.push({
-          id: 'pending-user',
+          id: 'local-user',
           role: 'user',
-          content: pendingUserMessage,
+          content: userText,
           timestamp: Date.now(),
+        });
+      }
+      if (localExchange?.assistantText.trim()) {
+        result.push({
+          id: 'local-assistant',
+          role: 'assistant',
+          content: localExchange.assistantText.trim(),
+          timestamp: Date.now(),
+          toolCalls: localExchange.toolCalls,
         });
       }
       return result;
     }
 
-    for (const msg of threadMessages) {
+    for (const msg of threadList) {
       const role = msg.message?.role;
       if (role !== 'user' && role !== 'assistant') continue;
 
-      const text = msg.text ?? '';
+      const text = getMessageText(msg);
 
       // Extract tool calls from assistant message content
       let toolCalls: ToolCall[] | undefined;
@@ -186,13 +208,18 @@ export function AgentChat({
         }
       }
 
-      const toolSummary = toolResultSummary(toolCalls);
-      const displayContent =
+      let toolSummary = toolResultSummary(toolCalls);
+      if (!toolSummary && toolCalls?.length) {
+        const pendingNames = toolCalls.map((tc) => tc.name).join(', ');
+        toolSummary = `Running marketplace tools (${pendingNames})…`;
+      }
+
+      let displayContent =
         text.trim() ||
         toolSummary ||
         (skillPurchase ? 'Acquiring skill from Arkiv marketplace…' : '');
 
-      if (role === 'assistant' && !displayContent.trim() && !toolCalls && !skillPurchase) {
+      if (role === 'assistant' && !displayContent.trim() && !toolCalls?.length && !skillPurchase) {
         continue;
       }
 
@@ -207,11 +234,39 @@ export function AgentChat({
       });
     }
 
-    // Clear pending message once subscription has the user's message
-    if (pendingUserMessage && result.some((m) => m.role === 'user' && m.content === pendingUserMessage)) {
-      // Will clear on next render cycle
-    } else if (pendingUserMessage) {
-      // Subscription active but user message not yet saved — show optimistic
+    const hasUserInThread = result.some(
+      (m) =>
+        m.role === 'user' &&
+        (m.content === localExchange?.userText || m.content === pendingUserMessage),
+    );
+    const hasAssistantInThread = result.some(
+      (m) =>
+        m.role === 'assistant' &&
+        m.content.trim() &&
+        !m.content.startsWith('Running marketplace tools'),
+    );
+
+    if (localExchange && !hasUserInThread && localExchange.userText.trim()) {
+      result.push({
+        id: 'local-user',
+        role: 'user',
+        content: localExchange.userText.trim(),
+        timestamp: Date.now(),
+      });
+    }
+
+    if (
+      localExchange?.assistantText.trim() &&
+      !hasAssistantInThread
+    ) {
+      result.push({
+        id: 'local-assistant',
+        role: 'assistant',
+        content: localExchange.assistantText.trim(),
+        timestamp: Date.now(),
+        toolCalls: localExchange.toolCalls,
+      });
+    } else if (pendingUserMessage && !hasUserInThread) {
       result.push({
         id: 'pending-user',
         role: 'user',
@@ -221,7 +276,7 @@ export function AgentChat({
     }
 
     return result;
-  }, [threadMessages, toolResultMap, pendingUserMessage]);
+  }, [effectiveThreadMessages, toolResultMap, pendingUserMessage, localExchange]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -230,6 +285,35 @@ export function AgentChat({
   useEffect(() => {
     scrollToBottom();
   }, [messages.length]);
+
+  // Drop local exchange overlay once the thread subscription shows the same messages
+  useEffect(() => {
+    if (!localExchange || !effectiveThreadMessages?.length) return;
+    let hasUser = false;
+    let hasAssistant = false;
+    for (const msg of effectiveThreadMessages) {
+      const role = msg.message?.role;
+      const text = getMessageText(msg);
+      if (role === 'user' && text === localExchange.userText.trim()) hasUser = true;
+      if (role === 'assistant') {
+        if (text === localExchange.assistantText.trim()) hasAssistant = true;
+        if (Array.isArray(msg.message?.content)) {
+          const calls = (msg.message.content as { type?: string; toolName?: string; toolCallId?: string }[])
+            .filter((p) => p.type === 'tool-call')
+            .map((p) => ({
+              name: p.toolName ?? 'unknown',
+              result: toolResultMap.get(p.toolCallId ?? '') ?? '',
+            }));
+          const summary = summarizeFromToolCalls(calls);
+          if (summary?.trim() === localExchange.assistantText.trim()) hasAssistant = true;
+        }
+      }
+    }
+    if (hasUser && hasAssistant) {
+      setLocalExchange(null);
+      setPendingUserMessage(null);
+    }
+  }, [effectiveThreadMessages, toolResultMap, localExchange]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,6 +330,7 @@ export function AgentChat({
     setInput('');
     setIsLoading(true);
     setPendingUserMessage(trimmedInput);
+    setLocalExchange(null);
 
     try {
       const result = await sendMessage({
@@ -259,6 +344,25 @@ export function AgentChat({
         setError(result.error);
       }
 
+      const replyText =
+        result.response?.trim() ||
+        summarizeFromToolCalls(result.toolCalls ?? []) ||
+        '';
+      if (replyText || result.toolCalls?.length) {
+        setLocalExchange({
+          userText: trimmedInput,
+          assistantText:
+            replyText ||
+            'Marketplace search finished — expand the thread if details are still loading.',
+          toolCalls: result.toolCalls,
+        });
+      } else {
+        setLocalExchange({
+          userText: trimmedInput,
+          assistantText: '',
+        });
+      }
+
       // Set threadId so subscription activates (important for first message)
       if (result.threadId && result.threadId !== threadId) {
         onThreadChange(result.threadId);
@@ -266,9 +370,10 @@ export function AgentChat({
     } catch (err) {
       setError('Failed to send message. Please try again.');
       console.error('Send error:', err);
+      setPendingUserMessage(null);
+      setLocalExchange(null);
     } finally {
       setIsLoading(false);
-      setPendingUserMessage(null);
       inputRef.current?.focus();
     }
   };
@@ -282,6 +387,9 @@ export function AgentChat({
 
   const handleClearChat = () => {
     localStorage.removeItem('clawsync_thread_id');
+    setLocalExchange(null);
+    setPendingUserMessage(null);
+    lastThreadMessagesRef.current = undefined;
     onThreadChange('');
   };
 
