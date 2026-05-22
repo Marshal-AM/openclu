@@ -1,4 +1,9 @@
-import { catalogQuery, catalogGetSkill, catalogStats } from "../catalog-read-bridge.js";
+import {
+  catalogQuery,
+  catalogGetSkill,
+  catalogGetSkillDetail,
+  catalogStats,
+} from "../catalog-read-bridge.js";
 
 const cmd = process.argv[2];
 
@@ -29,6 +34,15 @@ async function main() {
       process.exit(1);
     }
     console.log(JSON.stringify(await catalogGetSkill(slug)));
+    return;
+  }
+  if (cmd === "get-detail") {
+    const slug = process.argv[3];
+    if (!slug) {
+      console.error(JSON.stringify({ error: "skill slug required" }));
+      process.exit(1);
+    }
+    console.log(JSON.stringify(await catalogGetSkillDetail(slug)));
     return;
   }
   if (cmd === "stats") {

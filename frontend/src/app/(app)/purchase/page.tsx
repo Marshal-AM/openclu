@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CatalogDetailPanel } from "@/components/CatalogDetailPanel";
 
 type QueryMatch = {
   score: number;
@@ -10,6 +11,11 @@ type QueryMatch = {
   triggers: string[];
   listingKey: string;
   status: string;
+  owner?: string;
+  creator?: string;
+  arkivVersion?: number;
+  tags?: string[];
+  payload?: Record<string, unknown>;
 };
 
 export default function PurchasePage() {
@@ -26,14 +32,16 @@ export default function PurchasePage() {
   const [error, setError] = useState("");
   const [searched, setSearched] = useState(false);
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [showFullBrowse, setShowFullBrowse] = useState(false);
 
-  async function runSearch() {
+  async function runSearch(opts?: { full?: boolean; emptyQuery?: boolean }) {
     setLoading(true);
     setError("");
-    setDetail(null);
+    if (!opts?.full) setDetail(null);
     try {
       const body: Record<string, unknown> = {
-        query: query.trim() || undefined,
+        query: opts?.emptyQuery ? "" : query.trim() || undefined,
         tag: tag.trim() || undefined,
         status: status || undefined,
         since: since ? Date.parse(since) : undefined,
@@ -41,6 +49,7 @@ export default function PurchasePage() {
         minScore: Number(minScore) || 0,
         skillSlug: skillSlug.trim() || undefined,
         scope,
+        full: opts?.full ?? false,
       };
       const res = await fetch("/api/catalog/query", {
         method: "POST",
@@ -51,6 +60,7 @@ export default function PurchasePage() {
       if (!res.ok) throw new Error(data.error ?? "Search failed");
       setMatches(data.matches ?? []);
       setSearched(true);
+      if (opts?.full) setShowFullBrowse(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setMatches([]);
@@ -61,8 +71,19 @@ export default function PurchasePage() {
   }
 
   async function openDetail(name: string) {
-    const res = await fetch(`/api/catalog/${encodeURIComponent(name)}`);
-    if (res.ok) setDetail(await res.json());
+    setDetailLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/catalog/${encodeURIComponent(name)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to load listing");
+      setDetail(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setDetail(null);
+    } finally {
+      setDetailLoading(false);
+    }
   }
 
   function onFilterKeyDown(e: React.KeyboardEvent) {
@@ -76,7 +97,8 @@ export default function PurchasePage() {
     <div className="max-w-4xl">
       <h1 className="text-2xl font-semibold">Purchase Agent Skills</h1>
       <p className="mt-1 text-sm text-zinc-400">
-        Set filters, then click Search to query the Arkiv catalog.
+        Browse the Arkiv catalog. Detail view shows full metadata, purchase block, ops, tags, and
+        version.
       </p>
 
       <div className="mt-6 grid gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
@@ -135,51 +157,103 @@ export default function PurchasePage() {
             value={scope}
             onChange={(e) => setScope(e.target.value as "marketplace" | "mine")}
           >
-            <option value="marketplace">Marketplace (all listings)</option>
+            <option value="marketplace">Marketplace (published only)</option>
             <option value="mine">My listings only</option>
           </select>
         </div>
-        <button
-          type="button"
-          onClick={() => void runSearch()}
-          disabled={loading}
-          className="rounded-lg bg-emerald-600 px-4 py-2.5 font-medium hover:bg-emerald-500 disabled:opacity-50"
-        >
-          {loading ? "Searching…" : "Search"}
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => void runSearch()}
+            disabled={loading}
+            className="rounded-lg bg-emerald-600 px-4 py-2.5 font-medium hover:bg-emerald-500 disabled:opacity-50"
+          >
+            {loading ? "Searching…" : "Search"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void runSearch({ full: true, emptyQuery: true })}
+            disabled={loading}
+            className="rounded-lg border border-zinc-600 px-4 py-2.5 text-sm hover:bg-zinc-800 disabled:opacity-50"
+          >
+            {loading ? "Loading…" : "Browse entire catalog"}
+          </button>
+        </div>
       </div>
 
       {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
 
       {!searched && !loading && (
-        <p className="mt-6 text-sm text-zinc-500">No search yet — adjust filters and click Search.</p>
+        <p className="mt-6 text-sm text-zinc-500">
+          Search by keyword or click Browse entire catalog to load all published listings with full
+          payloads.
+        </p>
       )}
 
       {searched && !loading && !error && matches.length === 0 && (
         <p className="mt-6 text-sm text-zinc-500">No skills matched your filters.</p>
       )}
 
-      <ul className="mt-6 space-y-3">
+      {searched && matches.length > 0 && (
+        <p className="mt-6 text-sm text-zinc-500">
+          {matches.length} listing{matches.length === 1 ? "" : "s"}
+          {showFullBrowse ? " (full catalog rows)" : ""}
+        </p>
+      )}
+
+      <ul className="mt-4 space-y-3">
         {matches.map((m) => (
           <li
             key={m.listingKey}
-            className="cursor-pointer rounded-xl border border-zinc-800 p-4 hover:border-emerald-800/50"
-            onClick={() => openDetail(m.skillName)}
+            className="rounded-xl border border-zinc-800 p-4 hover:border-emerald-800/50"
           >
-            <div className="flex justify-between gap-2">
-              <h3 className="font-medium">{m.title}</h3>
-              <span className="text-xs text-zinc-500">score {(m.score * 100).toFixed(0)}%</span>
-            </div>
-            <p className="mt-1 text-sm text-zinc-400 line-clamp-2">{m.description}</p>
-            <p className="mt-2 font-mono text-xs text-zinc-600">{m.skillName}</p>
+            <button
+              type="button"
+              className="w-full text-left"
+              onClick={() => void openDetail(m.skillName)}
+            >
+              <div className="flex flex-wrap justify-between gap-2">
+                <h3 className="font-medium">{m.title}</h3>
+                <span className="text-xs text-zinc-500">
+                  {m.status}
+                  {m.arkivVersion != null ? ` · v${m.arkivVersion}` : ""}
+                  {query.trim() ? ` · score ${(m.score * 100).toFixed(0)}%` : ""}
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-zinc-400 line-clamp-2">{m.description}</p>
+              <p className="mt-2 font-mono text-xs text-zinc-600">{m.skillName}</p>
+            </button>
+            {showFullBrowse && m.payload && (
+              <details className="mt-3 border-t border-zinc-800 pt-3">
+                <summary className="cursor-pointer text-xs text-zinc-500">
+                  Inline full payload
+                </summary>
+                <pre className="mt-2 max-h-64 overflow-auto rounded bg-zinc-900 p-2 text-[10px]">
+                  {JSON.stringify(
+                    {
+                      entityKey: m.listingKey,
+                      status: m.status,
+                      owner: m.owner,
+                      creator: m.creator,
+                      arkivVersion: m.arkivVersion,
+                      tags: m.tags,
+                      payload: m.payload,
+                    },
+                    null,
+                    2,
+                  )}
+                </pre>
+              </details>
+            )}
           </li>
         ))}
       </ul>
 
-      {detail && (
-        <pre className="mt-6 max-h-96 overflow-auto rounded-lg border border-zinc-800 bg-zinc-950 p-4 text-xs">
-          {JSON.stringify(detail, null, 2)}
-        </pre>
+      {detailLoading && (
+        <p className="mt-6 text-sm text-zinc-500">Loading full catalog entry…</p>
+      )}
+      {detail && !detailLoading && (
+        <CatalogDetailPanel detail={detail} onClose={() => setDetail(null)} />
       )}
     </div>
   );

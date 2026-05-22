@@ -22,8 +22,18 @@ Fund the wallet with test GLM: [Braga faucet](https://braga.hoodi.arkiv.network/
 | `npm run index` | `npm run index -- <skill-name>` |
 | `npm run query` | `npm run query -- "natural language" [--tag cursor] [--status published]` |
 | `npm run stats` | Entity counts |
-| `npm run archive` | `npm run archive -- <skill-name>` |
+| `npm run archive` | `npm run archive -- <skill-name>` — soft-delete (`status: archived`) |
 | `npm run extend` | `npm run extend -- <skill-name>` |
+| `update-catalog` job | `npx tsx src/jobs/update-catalog.ts <skill-name>` — metadata-only re-index (bumps `arkivVersion`) |
+
+## Creator lifecycle
+
+- **Publish / update:** `publishCatalogToArkiv` — create or update `skillListing`, replace tags, append `listingVersion` snapshot.
+- **Edit metadata:** change `SKILL.md`, run `update-catalog` (or UI **Save metadata to Arkiv**) — no new CDR encrypt.
+- **Re-publish ciphertext:** CLI `distribute` or UI **Re-encrypt** / **Re-record** — new vault/CID; Arkiv version increments.
+- **Delete:** `archive` — listing stays on-chain with `archived` status (not hard-deleted).
+
+**`$owner`:** device wallet from `DEVICE_WALLET_PRIVATE_KEY` — required for all writes. **`$creator`:** immutable; use `.createdBy(address)` on queries for trusted publisher reads. Marketplace queries default to `status: published`.
 
 ## Listing payload (`ops`)
 

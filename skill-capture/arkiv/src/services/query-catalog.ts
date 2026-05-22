@@ -5,6 +5,7 @@ import { createArkivPublicClient, getCreatorWallet } from "../lib/client.js";
 import {
   ATTR,
   ENTITY_TYPE,
+  LISTING_STATUS,
   PROJECT_ATTRIBUTE,
   type ListingStatus,
 } from "../lib/constants.js";
@@ -13,6 +14,7 @@ import {
   SkillTagPayloadSchema,
   type QueryMatch,
   type PurchaseInfo,
+  type SkillListingPayload,
 } from "../lib/types.js";
 
 export type ListingQueryScope = "marketplace" | "mine";
@@ -27,19 +29,51 @@ export interface ListingFilters {
   limit?: number;
   /** Filter by Arkiv $owner (device wallet). */
   ownerAddress?: Hex;
+  /** Filter by Arkiv $creator (immutable attribution). */
+  createdByAddress?: Hex;
   scope?: ListingQueryScope;
+  /** Attach full SkillListingPayload on each match. */
+  full?: boolean;
+}
+
+/** Marketplace browse defaults to published only; mine keeps all statuses unless set. */
+export function normalizeListingFilters(filters: ListingFilters = {}): ListingFilters {
+  const scope = filters.scope ?? (filters.ownerAddress ? "mine" : "marketplace");
+  const status =
+    filters.status ??
+    (scope === "marketplace" && !filters.createdByAddress
+      ? (LISTING_STATUS.published as ListingStatus)
+      : undefined);
+  return { ...filters, scope, status };
 }
 
 function applyWalletScope<T extends { ownedBy: (a: Hex) => T; createdBy: (a: Hex) => T }>(
   qb: T,
   filters: ListingFilters,
 ): T {
+  if (filters.createdByAddress) {
+    return qb.createdBy(filters.createdByAddress);
+  }
   const scope = filters.scope ?? (filters.ownerAddress ? "mine" : "marketplace");
   if (scope === "mine") {
     const owner = (filters.ownerAddress ?? getCreatorWallet()) as Hex;
     return qb.ownedBy(owner);
   }
   return qb;
+}
+
+function entityWalletMeta(entity: Entity): { owner?: string; creator?: string } {
+  const e = entity as Entity & {
+    owner?: Hex;
+    creator?: Hex;
+    metadata?: { owner?: Hex; creator?: Hex };
+  };
+  const owner = e.owner ?? e.metadata?.owner;
+  const creator = e.creator ?? e.metadata?.creator;
+  return {
+    owner: owner ? String(owner) : undefined,
+    creator: creator ? String(creator) : undefined,
+  };
 }
 
 function listingQueryBuilder(filters: ListingFilters = {}) {
@@ -57,6 +91,7 @@ function listingQueryBuilder(filters: ListingFilters = {}) {
     .where(and(preds))
     .withPayload(true)
     .withAttributes(true)
+    .withMetadata(true)
     .orderBy(desc(ATTR.publishedAt, "number"));
 
   qb = applyWalletScope(qb, filters);
@@ -68,14 +103,19 @@ function parseListingEntity(entity: Entity): {
   payload: ReturnType<typeof SkillListingPayloadSchema.parse>;
   entityKey: string;
   status: string;
+  owner?: string;
+  creator?: string;
 } {
   const raw = entity.toJson();
   const payload = SkillListingPayloadSchema.parse(raw);
   const statusAttr = entity.attributes.find((a) => a.key === ATTR.status);
+  const wallet = entityWalletMeta(entity);
   return {
     payload,
     entityKey: entity.key,
     status: String(statusAttr?.value ?? "published"),
+    owner: wallet.owner,
+    creator: wallet.creator,
   };
 }
 
@@ -100,9 +140,11 @@ export async function fetchListings(filters: ListingFilters = {}): Promise<
     entityKey: string;
     status: string;
     payload: ReturnType<typeof SkillListingPayloadSchema.parse>;
+    owner?: string;
+    creator?: string;
   }>
 > {
-  const qb = listingQueryBuilder(filters);
+  const qb = listingQueryBuilder(normalizeListingFilters(filters));
   const entities = await fetchAllPages(qb);
   let rows = entities.map(parseListingEntity);
 
@@ -190,7 +232,7 @@ export async function searchNaturalLanguage(
   query: string,
   filters: ListingFilters = {},
 ): Promise<QueryMatch[]> {
-  const rows = await fetchListings(filters);
+  const rows = await fetchListings(normalizeListingFilters(filters));
   const scored = rows.map((row) => ({
     row,
     score: query.trim() ? scoreSearch(query, row.payload.searchText) : 1,
@@ -207,7 +249,7 @@ export async function searchNaturalLanguage(
 
   const matches: QueryMatch[] = [];
   for (const { row, score } of scored) {
-    matches.push({
+    const match: QueryMatch = {
       score,
       entityKey: row.entityKey,
       skillName: row.payload.skillName,
@@ -217,7 +259,17 @@ export async function searchNaturalLanguage(
       purchase: row.payload.purchase as PurchaseInfo,
       listingKey: row.entityKey,
       status: row.status,
-    });
+      owner: row.owner,
+      creator: row.creator,
+    };
+    if (filters.full) {
+      match.payload = row.payload;
+      const listingKey = row.entityKey as Hex;
+      const next = await getNextVersionNumber(listingKey);
+      match.arkivVersion = Math.max(1, next - 1);
+      match.tags = await fetchTagsForListing(listingKey);
+    }
+    matches.push(match);
   }
   return matches;
 }
@@ -226,10 +278,12 @@ export async function findListingBySkillSlug(skillSlug: string): Promise<{
   entityKey: Hex;
   version: number;
 } | null> {
-  const rows = await fetchListings({ skillSlug, limit: 1 });
+  const rows = await fetchListings({ skillSlug, limit: 1, scope: "mine" });
   if (!rows.length) return null;
-  const manifestVersion = 0;
-  return { entityKey: rows[0].entityKey as Hex, version: manifestVersion };
+  const entityKey = rows[0].entityKey as Hex;
+  const next = await getNextVersionNumber(entityKey);
+  const version = Math.max(1, next - 1);
+  return { entityKey, version };
 }
 
 export async function fetchTagEntityKeysForListing(listingKey: Hex): Promise<Hex[]> {

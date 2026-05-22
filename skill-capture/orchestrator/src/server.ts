@@ -4,7 +4,7 @@ import express from "express";
 import { resolve } from "node:path";
 import { config } from "dotenv";
 import { SKILL_CAPTURE_ROOT } from "../../arkiv/src/lib/device-wallet.js";
-import { writeDraftSkillMd, type SkillMetadataInput } from "./skill-md.js";
+import { readDraftSkill, writeDraftSkillMd, type SkillMetadataInput } from "./skill-md.js";
 import {
   getJob,
   getSpawnPreflight,
@@ -81,6 +81,16 @@ app.get("/api/v1/skills/:slug/manifest", (req, res) => {
   res.json({ manifest });
 });
 
+app.get("/api/v1/skills/:slug/draft", (req, res) => {
+  const slug = req.params.slug;
+  const draft = readDraftSkill(slug);
+  if (!draft) {
+    res.status(404).json({ error: `No SKILL.md for skill "${slug}"` });
+    return;
+  }
+  res.json({ draft });
+});
+
 app.get("/api/v1/jobs/:id", (req, res) => {
   const job = getJob(req.params.id);
   if (!job) {
@@ -142,6 +152,16 @@ app.post("/api/v1/jobs/republish", (req, res) => {
   }
   const job = startArkivJob("republish-skill", skillSlug);
   res.json({ jobId: job.id });
+});
+
+app.post("/api/v1/jobs/update-catalog", (req, res) => {
+  const { skillSlug } = req.body as { skillSlug?: string };
+  if (!skillSlug) {
+    res.status(400).json({ error: "skillSlug required" });
+    return;
+  }
+  const job = startArkivJob("update-catalog", skillSlug);
+  res.json({ jobId: job.id, status: job.status });
 });
 
 async function main() {

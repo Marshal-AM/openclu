@@ -1,11 +1,11 @@
 {
-  "full_text": " \uc548\ub155\ud558\uc138\uc694",
+  "full_text": "\u3042\u308a\u304c\u3068\u3046\u3054\u3056\u3044\u307e\u3057\u305f",
   "segments": [
     {
       "t_start": 0,
-      "t_end": 2.68,
-      "text": "\uc548\ub155\ud558\uc138\uc694"
+      "t_end": 1.52,
+      "text": "\u3042\u308a\u304c\u3068\u3046\u3054\u3056\u3044\u307e\u3057\u305f"
     }
   ],
-  "language": "Korean"
+  "language": "Japanese"
 }

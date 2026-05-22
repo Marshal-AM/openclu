@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CatalogDetailPanel } from "@/components/CatalogDetailPanel";
+import { useOrchestratorJob } from "@/hooks/useOrchestratorJob";
 
 type MetadataForm = {
   skillSlug: string;
@@ -19,6 +21,7 @@ type Contribution = {
   title?: string | null;
   description?: string | null;
   arkiv_listing_key?: string;
+  arkiv_version?: number | null;
 };
 
 type DeviceSkill = {
@@ -35,6 +38,21 @@ type DeviceSkill = {
 type PublishSuccess = {
   slug: string;
   listingKey?: string;
+  version?: number;
+  message?: string;
+};
+
+type DraftPayload = {
+  skillSlug: string;
+  title: string;
+  description: string;
+  triggers: string[];
+  extraTags: string[];
+  expertiseSource?: string;
+  recordedAt?: string;
+  arkivListingKey?: string;
+  arkivVersion?: number;
+  arkivStatus?: string;
 };
 
 const ORCH = "/api/orch";
@@ -43,8 +61,8 @@ function isPublishedOnDevice(s: DeviceSkill): boolean {
   return s.arkivStatus === "published" || !!s.arkivListingKey;
 }
 
-export default function ContributePage() {
-  const [form, setForm] = useState<MetadataForm>({
+function emptyForm(): MetadataForm {
+  return {
     skillSlug: "",
     title: "",
     description: "",
@@ -52,7 +70,53 @@ export default function ContributePage() {
     extraTags: "",
     expertiseSource: "",
     recordedAt: new Date().toISOString().slice(0, 16),
+  };
+}
+
+function draftToForm(d: DraftPayload): MetadataForm {
+  return {
+    skillSlug: d.skillSlug,
+    title: d.title,
+    description: d.description,
+    triggers: d.triggers.join("\n"),
+    extraTags: d.extraTags.join(", "),
+    expertiseSource: d.expertiseSource ?? "",
+    recordedAt: d.recordedAt
+      ? new Date(d.recordedAt).toISOString().slice(0, 16)
+      : new Date().toISOString().slice(0, 16),
+  };
+}
+
+async function postSkillMd(form: MetadataForm): Promise<{ ok: boolean; error?: string }> {
+  const slug = form.skillSlug.toLowerCase().replace(/\s+/g, "-");
+  const triggers = form.triggers
+    .split("\n")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const extraTags = form.extraTags
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const res = await fetch(`${ORCH}/jobs/skill-md`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      skillSlug: slug,
+      title: form.title,
+      description: form.description,
+      triggers: triggers.length ? triggers : ["general"],
+      extraTags,
+      expertiseSource: form.expertiseSource || undefined,
+      recordedAt: form.recordedAt ? new Date(form.recordedAt).toISOString() : undefined,
+    }),
   });
+  const data = await res.json();
+  if (!res.ok) return { ok: false, error: data.error ?? "Failed to save SKILL.md" };
+  return { ok: true };
+}
+
+export default function ContributePage() {
+  const [form, setForm] = useState<MetadataForm>(emptyForm);
   const [draftSaved, setDraftSaved] = useState(false);
   const [captureJobId, setCaptureJobId] = useState<string | null>(null);
   const [distributeJobId, setDistributeJobId] = useState<string | null>(null);
@@ -63,7 +127,17 @@ export default function ContributePage() {
   const [catalogDetail, setCatalogDetail] = useState<Record<string, unknown> | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<PublishSuccess | null>(null);
   const [contributionsError, setContributionsError] = useState("");
+
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<MetadataForm | null>(null);
+  const [editDraftMeta, setEditDraftMeta] = useState<DraftPayload | null>(null);
+  const [orchJobId, setOrchJobId] = useState<string | null>(null);
+  const orchJobLabelRef = useRef("");
+
   const distributeRequested = useRef(false);
+  const recaptureDistributeRequested = useRef(false);
+  const editFormRef = useRef<MetadataForm | null>(null);
+  editFormRef.current = editForm;
 
   const loadContributions = useCallback(async () => {
     const res = await fetch("/api/contributions");
@@ -78,6 +152,30 @@ export default function ContributePage() {
       );
     }
   }, []);
+
+  const syncContributionFromJob = useCallback(
+    async (
+      slug: string,
+      status: string,
+      pr?: DeviceSkill,
+      meta?: { title?: string; description?: string },
+    ) => {
+      await fetch("/api/contributions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skillSlug: slug,
+          status,
+          arkivListingKey: pr?.arkivListingKey,
+          arkivVersion: pr?.arkivVersion,
+          title: meta?.title,
+          description: meta?.description,
+        }),
+      });
+      await loadContributions();
+    },
+    [loadContributions],
+  );
 
   const syncPublishedFromDevice = useCallback(async () => {
     const res = await fetch(`${ORCH}/skills`);
@@ -97,26 +195,26 @@ export default function ContributePage() {
     }
     const data = await res.json();
     const skills = (data.skills ?? []) as DeviceSkill[];
-    const published = skills.filter(isPublishedOnDevice);
-    if (published.length === 0) return;
+    const onDevice = skills.filter(
+      (s) => isPublishedOnDevice(s) || s.arkivStatus === "archived",
+    );
+    if (onDevice.length === 0) return;
 
     const failures: string[] = [];
-    for (const s of published) {
+    for (const s of onDevice) {
       const postRes = await fetch("/api/contributions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           skillSlug: s.skillSlug,
-          status: "published",
+          status: s.arkivStatus === "archived" ? "archived" : isPublishedOnDevice(s) ? "published" : "draft",
           arkivListingKey: s.arkivListingKey,
           arkivVersion: s.arkivVersion,
         }),
       });
       if (!postRes.ok) {
         const err = await postRes.json().catch(() => ({}));
-        failures.push(
-          `${s.skillSlug}: ${(err as { error?: string }).error ?? postRes.status}`,
-        );
+        failures.push(`${s.skillSlug}: ${(err as { error?: string }).error ?? postRes.status}`);
       }
     }
     if (failures.length > 0) {
@@ -130,6 +228,62 @@ export default function ContributePage() {
       await loadContributions();
     })();
   }, [syncPublishedFromDevice, loadContributions]);
+
+  const { logs: orchLogs } = useOrchestratorJob(orchJobId, {
+    onPublished: async (job) => {
+      const slug = job.skillSlug;
+      const pr = job.publishResult;
+      const label = orchJobLabelRef.current;
+      orchJobLabelRef.current = "";
+      setOrchJobId(null);
+      setLogs([]);
+      if (label === "update-catalog") {
+        setPublishSuccess({
+          slug,
+          listingKey: pr?.arkivListingKey,
+          version: pr?.arkivVersion,
+          message: `Catalog updated on Arkiv (v${pr?.arkivVersion ?? "?"})`,
+        });
+        setEditingSlug(null);
+        setEditForm(null);
+        setEditDraftMeta(null);
+        await syncContributionFromJob(slug, "published", pr, {
+          title: editFormRef.current?.title,
+          description: editFormRef.current?.description,
+        });
+      } else if (label === "archive") {
+        setPublishSuccess({
+          slug,
+          message: `"${slug}" removed from marketplace (archived on Arkiv)`,
+        });
+        setEditingSlug(null);
+        setEditForm(null);
+        setEditDraftMeta(null);
+        await syncContributionFromJob(slug, "archived", pr);
+      } else if (label === "republish") {
+        setPublishSuccess({
+          slug,
+          listingKey: pr?.arkivListingKey,
+          version: pr?.arkivVersion,
+          message: `Re-encrypted and listed on Arkiv (v${pr?.arkivVersion ?? "?"})`,
+        });
+        setEditingSlug(null);
+        setEditForm(null);
+        setEditDraftMeta(null);
+        await syncContributionFromJob(slug, "published", pr);
+      }
+    },
+    onFailed: (job) => {
+      setError(job.error ?? `${orchJobLabelRef.current || "Job"} failed`);
+      setLogs(job.logs ?? []);
+      orchJobLabelRef.current = "";
+      setOrchJobId(null);
+    },
+  });
+
+  useEffect(() => {
+    if (orchJobId && orchLogs.length > 0) setLogs(orchLogs);
+  }, [orchJobId, orchLogs]);
 
   useEffect(() => {
     if (!captureJobId && !distributeJobId) return;
@@ -148,10 +302,14 @@ export default function ContributePage() {
         job.status === "processing"
       ) {
         distributeRequested.current = true;
+        const slug =
+          editingSlug && recaptureDistributeRequested.current
+            ? editingSlug
+            : form.skillSlug;
         const dRes = await fetch(`${ORCH}/jobs/${captureJobId}/distribute`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ skillSlug: form.skillSlug }),
+          body: JSON.stringify({ skillSlug: slug }),
         });
         const d = await dRes.json();
         if (dRes.ok && d.jobId) {
@@ -160,6 +318,7 @@ export default function ContributePage() {
           if (d.logs?.length) setLogs(d.logs);
         } else {
           distributeRequested.current = false;
+          recaptureDistributeRequested.current = false;
           if (d.logs?.length) setLogs(d.logs);
           setError(d.error ?? "Failed to start distribute");
         }
@@ -169,45 +328,48 @@ export default function ContributePage() {
         setError(job.error ?? "Distribute failed");
         setDistributeJobId(null);
         distributeRequested.current = false;
+        recaptureDistributeRequested.current = false;
       }
       if (distributeJobId && job.status === "published") {
-        const slug = (job.skillSlug as string) || form.skillSlug;
+        const wasRecapture = recaptureDistributeRequested.current;
+        const slug =
+          (job.skillSlug as string) ||
+          (wasRecapture ? editingSlug : null) ||
+          form.skillSlug ||
+          "";
         const pr = job.publishResult as DeviceSkill | undefined;
         setPublishSuccess({
           slug,
           listingKey: pr?.arkivListingKey,
+          version: pr?.arkivVersion,
+          message: wasRecapture
+            ? `Re-recorded and listed on Arkiv (v${pr?.arkivVersion ?? "?"})`
+            : undefined,
         });
         setCaptureJobId(null);
         setDistributeJobId(null);
         distributeRequested.current = false;
-        const postRes = await fetch("/api/contributions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            skillSlug: slug,
-            status: "published",
-            arkivListingKey: pr?.arkivListingKey,
-            arkivVersion: pr?.arkivVersion,
-            title: form.title || undefined,
-            description: form.description || undefined,
-          }),
+        recaptureDistributeRequested.current = false;
+        const metaForm = wasRecapture ? editForm : form;
+        await syncContributionFromJob(slug, "published", pr, {
+          title: metaForm?.title,
+          description: metaForm?.description,
         });
-        if (!postRes.ok) {
-          const err = await postRes.json().catch(() => ({}));
-          setContributionsError(
-            (err as { error?: string }).error ?? "Published on device but failed to save to Supabase",
-          );
+        if (wasRecapture) {
+          setEditingSlug(null);
+          setEditForm(null);
+          setEditDraftMeta(null);
         }
-        await loadContributions();
       }
       if (captureJobId && job.status === "failed") {
         setLogs(job.logs ?? []);
         setError(job.error ?? "Capture failed");
         setCaptureJobId(null);
+        recaptureDistributeRequested.current = false;
       }
     }, 2000);
     return () => clearInterval(id);
-  }, [captureJobId, distributeJobId, form.skillSlug, loadContributions]);
+  }, [captureJobId, distributeJobId, form.skillSlug, editingSlug, editForm, syncContributionFromJob]);
 
   async function saveDraft(): Promise<boolean> {
     setError("");
@@ -216,30 +378,9 @@ export default function ContributePage() {
       setError("Skill slug, title, and description are required.");
       return false;
     }
-    const triggers = form.triggers
-      .split("\n")
-      .map((t) => t.trim())
-      .filter(Boolean);
-    const extraTags = form.extraTags
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
-    const res = await fetch(`${ORCH}/jobs/skill-md`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        skillSlug: slug,
-        title: form.title,
-        description: form.description,
-        triggers,
-        extraTags,
-        expertiseSource: form.expertiseSource || undefined,
-        recordedAt: form.recordedAt ? new Date(form.recordedAt).toISOString() : undefined,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Failed to save draft");
+    const saved = await postSkillMd({ ...form, skillSlug: slug });
+    if (!saved.ok) {
+      setError(saved.error ?? "Failed to save draft");
       return false;
     }
     await fetch("/api/contributions", {
@@ -265,6 +406,7 @@ export default function ContributePage() {
     }
     setError("");
     distributeRequested.current = false;
+    recaptureDistributeRequested.current = false;
     setLogs(["Starting capture…"]);
     const res = await fetch(`${ORCH}/jobs/capture`, {
       method: "POST",
@@ -284,28 +426,200 @@ export default function ContributePage() {
     });
   }
 
-  async function viewSkill(slug: string) {
-    setSelectedSkill(slug);
-    const res = await fetch(`/api/catalog/${slug}`);
-    if (res.ok) setCatalogDetail(await res.json());
-    else setCatalogDetail(null);
+  async function openEdit(slug: string) {
+    setError("");
+    setSelectedSkill(null);
+    setCatalogDetail(null);
+    const res = await fetch(`${ORCH}/skills/${slug}/draft`);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError((data as { error?: string }).error ?? `Cannot load draft for ${slug}`);
+      return;
+    }
+    const { draft } = (await res.json()) as { draft: DraftPayload };
+    setEditDraftMeta(draft);
+    setEditForm(draftToForm(draft));
+    setEditingSlug(slug);
+  }
+
+  async function saveMetadataEdit() {
+    if (!editForm || !editingSlug) return;
+    setError("");
+    const saved = await postSkillMd(editForm);
+    if (!saved.ok) {
+      setError(saved.error ?? "Failed to update SKILL.md");
+      return;
+    }
+    setLogs(["Updating Arkiv catalog…"]);
+    const res = await fetch(`${ORCH}/jobs/update-catalog`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skillSlug: editingSlug }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error ?? "Failed to start catalog update");
+      return;
+    }
+    orchJobLabelRef.current = "update-catalog";
+    setOrchJobId(data.jobId);
+  }
+
+  async function startRecaptureRepublish() {
+    if (!editForm || !editingSlug) return;
+    const ok = window.confirm(
+      "Re-record & republish creates a new Story IP asset and CDR vault. Existing buyers keep access to the old vault; new buyers need the new listing. Continue?",
+    );
+    if (!ok) return;
+    setError("");
+    const saved = await postSkillMd(editForm);
+    if (!saved.ok) {
+      setError(saved.error ?? "Failed to save SKILL.md");
+      return;
+    }
+    distributeRequested.current = false;
+    recaptureDistributeRequested.current = true;
+    setLogs(["Starting re-capture…"]);
+    const res = await fetch(`${ORCH}/jobs/capture`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skillSlug: editingSlug }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error ?? "Capture failed to start");
+      recaptureDistributeRequested.current = false;
+      return;
+    }
+    setCaptureJobId(data.jobId);
+  }
+
+  async function fullRepublish(slug: string) {
+    const ok = window.confirm(
+      "Re-encrypt & republish runs full distribute (new IP + vault) without re-recording. Continue?",
+    );
+    if (!ok) return;
+    setError("");
+    setLogs(["Starting full republish…"]);
+    const res = await fetch(`${ORCH}/jobs/republish`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skillSlug: slug }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error ?? "Republish failed to start");
+      return;
+    }
+    orchJobLabelRef.current = "republish";
+    setOrchJobId(data.jobId);
   }
 
   async function archiveSkill(slug: string) {
-    await fetch(`${ORCH}/jobs/archive`, {
+    const ok = window.confirm(
+      `Remove "${slug}" from the marketplace? This archives the Arkiv listing (soft delete).`,
+    );
+    if (!ok) return;
+    setError("");
+    setLogs(["Archiving on Arkiv…"]);
+    const res = await fetch(`${ORCH}/jobs/archive`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ skillSlug: slug }),
     });
-    loadContributions();
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error ?? "Archive failed to start");
+      return;
+    }
+    orchJobLabelRef.current = "archive";
+    setOrchJobId(data.jobId);
   }
 
-  async function republishSkill(slug: string) {
-    await fetch(`${ORCH}/jobs/republish`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ skillSlug: slug }),
-    });
+  async function viewSkill(slug: string) {
+    setSelectedSkill(slug);
+    setCatalogDetail(null);
+    const res = await fetch(`/api/catalog/${encodeURIComponent(slug)}`);
+    if (res.ok) setCatalogDetail(await res.json());
+    else setCatalogDetail({ error: "Could not load full catalog entry" });
+  }
+
+  const visibleContributions = contributions.filter((c) => c.status !== "archived");
+
+  function renderMetadataFields(
+    value: MetadataForm,
+    onChange: (f: MetadataForm) => void,
+    slugReadOnly: boolean,
+  ) {
+    return (
+      <>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="text-sm">
+            Skill slug
+            <input
+              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 disabled:opacity-50"
+              value={value.skillSlug}
+              readOnly={slugReadOnly}
+              disabled={slugReadOnly}
+              onChange={(e) => onChange({ ...value, skillSlug: e.target.value })}
+            />
+          </label>
+          <label className="text-sm">
+            Title
+            <input
+              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"
+              value={value.title}
+              onChange={(e) => onChange({ ...value, title: e.target.value })}
+            />
+          </label>
+        </div>
+        <label className="text-sm">
+          Description
+          <textarea
+            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"
+            rows={3}
+            value={value.description}
+            onChange={(e) => onChange({ ...value, description: e.target.value })}
+          />
+        </label>
+        <label className="text-sm">
+          Triggers (one per line)
+          <textarea
+            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-xs"
+            rows={3}
+            value={value.triggers}
+            onChange={(e) => onChange({ ...value, triggers: e.target.value })}
+          />
+        </label>
+        <label className="text-sm">
+          Extra tags (comma-separated)
+          <input
+            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"
+            value={value.extraTags}
+            onChange={(e) => onChange({ ...value, extraTags: e.target.value })}
+          />
+        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="text-sm">
+            Expertise source
+            <input
+              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"
+              value={value.expertiseSource}
+              onChange={(e) => onChange({ ...value, expertiseSource: e.target.value })}
+            />
+          </label>
+          <label className="text-sm">
+            Recorded at
+            <input
+              type="datetime-local"
+              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"
+              value={value.recordedAt}
+              onChange={(e) => onChange({ ...value, recordedAt: e.target.value })}
+            />
+          </label>
+        </div>
+      </>
+    );
   }
 
   return (
@@ -316,8 +630,12 @@ export default function ContributePage() {
           className="rounded-lg border border-emerald-700 bg-emerald-950/60 px-4 py-3 text-emerald-200"
         >
           <p className="font-medium">
-            Skill &ldquo;{publishSuccess.slug}&rdquo; is listed on Arkiv.
+            {publishSuccess.message ??
+              `Skill "${publishSuccess.slug}" is listed on Arkiv.`}
           </p>
+          {publishSuccess.version != null && (
+            <p className="mt-1 text-xs text-emerald-400/90">Version {publishSuccess.version}</p>
+          )}
           {publishSuccess.listingKey && (
             <p className="mt-1 font-mono text-xs text-emerald-400/90">
               Listing: {publishSuccess.listingKey}
@@ -339,88 +657,11 @@ export default function ContributePage() {
         </p>
 
         <div className="mt-6 grid gap-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm">
-              Skill slug
-              <input
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"
-                value={form.skillSlug}
-                onChange={(e) => {
-                  setDraftSaved(false);
-                  setForm({ ...form, skillSlug: e.target.value });
-                }}
-              />
-            </label>
-            <label className="text-sm">
-              Title
-              <input
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"
-                value={form.title}
-                onChange={(e) => {
-                  setDraftSaved(false);
-                  setForm({ ...form, title: e.target.value });
-                }}
-              />
-            </label>
-          </div>
-          <label className="text-sm">
-            Description
-            <textarea
-              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"
-              rows={3}
-              value={form.description}
-              onChange={(e) => {
-                setDraftSaved(false);
-                setForm({ ...form, description: e.target.value });
-              }}
-            />
-          </label>
-          <label className="text-sm">
-            Triggers (one per line)
-            <textarea
-              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-xs"
-              rows={3}
-              value={form.triggers}
-              onChange={(e) => {
-                setDraftSaved(false);
-                setForm({ ...form, triggers: e.target.value });
-              }}
-            />
-          </label>
-          <label className="text-sm">
-            Extra tags (comma-separated)
-            <input
-              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"
-              value={form.extraTags}
-              onChange={(e) => {
-                setDraftSaved(false);
-                setForm({ ...form, extraTags: e.target.value });
-              }}
-            />
-          </label>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm">
-              Expertise source
-              <input
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"
-                value={form.expertiseSource}
-                onChange={(e) => setForm({ ...form, expertiseSource: e.target.value })}
-              />
-            </label>
-            <label className="text-sm">
-              Recorded at
-              <input
-                type="datetime-local"
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"
-                value={form.recordedAt}
-                onChange={(e) => setForm({ ...form, recordedAt: e.target.value })}
-              />
-            </label>
-          </div>
+          {renderMetadataFields(form, setForm, false)}
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={saveDraft}
+              onClick={() => void saveDraft()}
               className="rounded-lg bg-zinc-700 px-4 py-2 text-sm font-medium hover:bg-zinc-600"
             >
               Save draft
@@ -433,7 +674,8 @@ export default function ContributePage() {
                 !form.title.trim() ||
                 !form.description.trim() ||
                 !!captureJobId ||
-                !!distributeJobId
+                !!distributeJobId ||
+                !!orchJobId
               }
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500 disabled:opacity-40"
             >
@@ -443,20 +685,13 @@ export default function ContributePage() {
           {draftSaved && (
             <p className="text-xs text-emerald-400">Draft saved on device. Start recording when ready.</p>
           )}
-          {!draftSaved &&
-            form.skillSlug.trim() &&
-            form.title.trim() &&
-            form.description.trim() && (
-              <p className="text-xs text-zinc-500">
-                Start recording will save the draft on your device first, then open capture in the terminal.
-              </p>
-            )}
-          {(captureJobId || distributeJobId || (error && logs.length > 0)) && (
+          {(captureJobId || distributeJobId || orchJobId || (error && logs.length > 0)) && (
             <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-400 max-h-64 overflow-auto">
-              <p className="mb-2 text-amber-300">
-                Press Q in the <strong>orchestrator</strong> terminal (where npm run start runs) to stop
-                recording. Logs also appear there.
-              </p>
+              {captureJobId && (
+                <p className="mb-2 text-amber-300">
+                  Press Q in the <strong>orchestrator</strong> terminal to stop recording.
+                </p>
+              )}
               {logs.slice(-60).map((l, i) => (
                 <div key={i}>{l}</div>
               ))}
@@ -471,63 +706,131 @@ export default function ContributePage() {
         {contributionsError && (
           <p className="mt-2 text-sm text-amber-400">{contributionsError}</p>
         )}
-        {contributions.length === 0 && !contributionsError && (
+        {visibleContributions.length === 0 && !contributionsError && (
           <p className="mt-2 text-sm text-zinc-500">
-            No contributions yet. Save a draft or publish a skill — published skills on your device
+            No active contributions. Save a draft or publish a skill — published skills on your device
             sync here automatically.
           </p>
         )}
         <ul className="mt-4 space-y-2">
-          {contributions.map((c) => (
+          {visibleContributions.map((c) => (
             <li
               key={c.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-800 px-4 py-3"
+              className="rounded-lg border border-zinc-800 px-4 py-3"
             >
-              <div>
-                <span className="font-medium">{c.skill_slug}</span>
-                <span
-                  className={`ml-2 text-xs ${
-                    c.status === "published" ? "text-emerald-400" : "text-zinc-500"
-                  }`}
-                >
-                  {c.status}
-                </span>
-                {c.arkiv_listing_key && (
-                  <p className="mt-0.5 font-mono text-[10px] text-zinc-600 truncate max-w-md">
-                    {c.arkiv_listing_key}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="font-medium">{c.skill_slug}</span>
+                  <span
+                    className={`ml-2 text-xs ${
+                      c.status === "published" ? "text-emerald-400" : "text-zinc-500"
+                    }`}
+                  >
+                    {c.status}
+                    {c.arkiv_version != null && c.status === "published" && (
+                      <span className="text-zinc-500"> · v{c.arkiv_version}</span>
+                    )}
+                  </span>
+                  {c.arkiv_listing_key && (
+                    <p className="mt-0.5 font-mono text-[10px] text-zinc-600 truncate max-w-md">
+                      {c.arkiv_listing_key}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="text-xs text-sky-400 hover:underline"
+                    onClick={() => void openEdit(c.skill_slug)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="text-xs text-emerald-400 hover:underline"
+                    onClick={() => void viewSkill(c.skill_slug)}
+                  >
+                    View
+                  </button>
+                  {c.status === "published" && (
+                    <button
+                      type="button"
+                      className="text-xs text-zinc-400 hover:underline"
+                      onClick={() => void fullRepublish(c.skill_slug)}
+                      disabled={!!orchJobId || !!captureJobId}
+                    >
+                      Re-encrypt
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="text-xs text-red-400 hover:underline"
+                    onClick={() => void archiveSkill(c.skill_slug)}
+                    disabled={!!orchJobId}
+                  >
+                    Archive
+                  </button>
+                </div>
+              </div>
+              {editingSlug === c.skill_slug && editForm && (
+                <div className="mt-4 grid gap-4 border-t border-zinc-800 pt-4">
+                  <p className="text-sm text-zinc-400">
+                    Edit catalog metadata
+                    {editDraftMeta?.arkivVersion != null && (
+                      <span className="text-zinc-500"> (current Arkiv v{editDraftMeta.arkivVersion})</span>
+                    )}
                   </p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="text-xs text-emerald-400 hover:underline"
-                  onClick={() => viewSkill(c.skill_slug)}
-                >
-                  View
-                </button>
-                <button
-                  type="button"
-                  className="text-xs text-zinc-400 hover:underline"
-                  onClick={() => republishSkill(c.skill_slug)}
-                >
-                  Republish
-                </button>
-                <button
-                  type="button"
-                  className="text-xs text-red-400 hover:underline"
-                  onClick={() => archiveSkill(c.skill_slug)}
-                >
-                  Archive
-                </button>
-              </div>
+                  {renderMetadataFields(editForm, setEditForm, true)}
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500 disabled:opacity-40"
+                      onClick={() => void saveMetadataEdit()}
+                      disabled={!!orchJobId || !!captureJobId || !editForm.title.trim()}
+                    >
+                      Save metadata to Arkiv
+                    </button>
+                    {editDraftMeta?.arkivListingKey && (
+                      <button
+                        type="button"
+                        className="rounded-lg border border-amber-700/60 px-4 py-2 text-sm text-amber-200 hover:bg-amber-950/40 disabled:opacity-40"
+                        onClick={() => void startRecaptureRepublish()}
+                        disabled={!!orchJobId || !!captureJobId || !!distributeJobId}
+                      >
+                        Re-record &amp; republish
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="text-sm text-zinc-500 hover:text-zinc-300"
+                      onClick={() => {
+                        setEditingSlug(null);
+                        setEditForm(null);
+                        setEditDraftMeta(null);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </li>
           ))}
         </ul>
         {selectedSkill && catalogDetail && (
-          <pre className="mt-4 max-h-96 overflow-auto rounded-lg border border-zinc-800 bg-zinc-950 p-4 text-xs">
-            {JSON.stringify(catalogDetail, null, 2)}
-          </pre>
+          <div className="mt-4">
+            {catalogDetail.error ? (
+              <p className="text-sm text-red-400">{String(catalogDetail.error)}</p>
+            ) : (
+              <CatalogDetailPanel
+                detail={catalogDetail}
+                onClose={() => {
+                  setSelectedSkill(null);
+                  setCatalogDetail(null);
+                }}
+              />
+            )}
+          </div>
         )}
       </section>
     </div>

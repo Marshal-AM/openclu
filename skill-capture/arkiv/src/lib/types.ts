@@ -122,4 +122,12 @@ export interface QueryMatch {
   purchase: PurchaseInfo;
   listingKey: string;
   status: string;
+  /** Arkiv $owner (current wallet that can update/delete). */
+  owner?: string;
+  /** Arkiv $creator (immutable original writer). */
+  creator?: string;
+  /** Present when query requested full catalog rows. */
+  payload?: SkillListingPayload;
+  tags?: string[];
+  arkivVersion?: number;
 }

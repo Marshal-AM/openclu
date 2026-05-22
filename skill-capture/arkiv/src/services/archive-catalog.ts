@@ -7,6 +7,8 @@ import { listingOpsToPublishInput } from "../lib/ops-input.js";
 import { ListingOpsSchema } from "../lib/types.js";
 import { wrapArkivError } from "../lib/errors.js";
 import { fetchListings, fetchTagEntityKeysForListing } from "./query-catalog.js";
+import { writeManifestArkivFields } from "./publish-catalog.js";
+import { resolve } from "node:path";
 
 export async function archiveSkillCatalog(skillName: string): Promise<{ listingKey: string; txHash: string }> {
   const rows = await fetchListings({ skillSlug: skillName, limit: 1 });
@@ -14,7 +16,8 @@ export async function archiveSkillCatalog(skillName: string): Promise<{ listingK
     throw new Error(`No Arkiv listing for skill "${skillName}"`);
   }
   const listingKey = rows[0].entityKey as Hex;
-  const { manifest, skillMdPath } = loadManifestAndSkillMd(skillName);
+  const { manifest, skillMdPath, bundleDir } = loadManifestAndSkillMd(skillName);
+  const manifestPath = resolve(bundleDir, "cdr-manifest.json");
   const existingOps = rows[0].payload.ops
     ? listingOpsToPublishInput(ListingOpsSchema.parse(rows[0].payload.ops))
     : undefined;
@@ -37,6 +40,21 @@ export async function archiveSkillCatalog(skillName: string): Promise<{ listingK
     const { txHash } = await wallet.updateEntity(
       buildListingUpdate(listingKey, payload, LISTING_STATUS.archived),
     );
+
+    const version = manifest.arkivVersion ?? 0;
+    const arkivFields = {
+      arkivListingKey: listingKey,
+      arkivStatus: LISTING_STATUS.archived,
+      arkivVersion: version,
+    };
+    writeManifestArkivFields(manifestPath, arkivFields);
+    try {
+      const registryPath = resolve(bundleDir, "..", "registry", `${skillName}.json`);
+      writeManifestArkivFields(registryPath, arkivFields);
+    } catch {
+      /* registry optional */
+    }
+
     return { listingKey, txHash };
   } catch (err) {
     throw wrapArkivError(err);

@@ -212,7 +212,7 @@ export function startDistributeJob(skillSlug: string): Job {
 }
 
 export function startArkivJob(
-  script: "archive-skill" | "extend-skill" | "republish-skill",
+  script: "archive-skill" | "extend-skill" | "republish-skill" | "update-catalog",
   skillSlug: string,
 ): Job {
   const id = randomUUID();

@@ -24,7 +24,7 @@ export function loadManifestAndSkillMd(
     throw new Error(`Manifest skillName ${manifest.skillName} != ${skillName}`);
   }
   manifest.skillName = skillName;
-  return { manifest, skillMdPath: resolve(base, "SKILL.md") };
+  return { manifest, skillMdPath: resolve(base, "SKILL.md"), bundleDir: base };
 }
 
 export function buildListingPayload(

@@ -1,6 +1,8 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { SKILL_CAPTURE_ROOT } from "../../arkiv/src/lib/device-wallet.js";
+import { parseSkillFrontmatter } from "../../arkiv/src/lib/skill-md.js";
+import { readPublishResult } from "./skill-manifest.js";
 
 export interface SkillMetadataInput {
   skillSlug: string;
@@ -40,4 +42,39 @@ export function writeDraftSkillMd(input: SkillMetadataInput): string {
   const path = resolve(bundleDir, "SKILL.md");
   writeFileSync(path, buildSkillMd(input), "utf-8");
   return path;
+}
+
+export function readDraftSkill(slug: string): {
+  skillSlug: string;
+  title: string;
+  description: string;
+  triggers: string[];
+  extraTags: string[];
+  expertiseSource?: string;
+  recordedAt?: string;
+  arkivListingKey?: string;
+  arkivVersion?: number;
+  arkivStatus?: string;
+} | null {
+  const skillMdPath = resolve(SKILL_CAPTURE_ROOT, "skills", slug, "SKILL.md");
+  if (!existsSync(skillMdPath)) return null;
+
+  const content = readFileSync(skillMdPath, "utf-8");
+  const fm = parseSkillFrontmatter(content);
+  const title =
+    fm.name?.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) ?? slug;
+  const manifest = readPublishResult(slug);
+
+  return {
+    skillSlug: slug,
+    title,
+    description: fm.description ?? "",
+    triggers: fm.triggers.length ? fm.triggers : ["general"],
+    extraTags: fm.extraTags ?? [],
+    expertiseSource: fm.expertiseSource,
+    recordedAt: fm.recordedAt,
+    arkivListingKey: manifest?.arkivListingKey,
+    arkivVersion: manifest?.arkivVersion,
+    arkivStatus: manifest?.arkivStatus,
+  };
 }

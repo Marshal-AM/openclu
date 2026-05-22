@@ -58,8 +58,15 @@ export type CatalogQueryBody = {
   minScore?: number;
   skillSlug?: string;
   ownerAddress?: string;
+  createdByAddress?: string;
   scope?: "marketplace" | "mine";
+  /** Return full Arkiv payload per match (slower; for browse-all). */
+  full?: boolean;
 };
+
+export function getCatalogSkillDetail(skillName: string) {
+  return runCli<Record<string, unknown>>("get-detail", skillName);
+}
 
 export function queryCatalog(body: CatalogQueryBody) {
   return runCli<{ matchCount: number; matches: unknown[] }>("query", body);

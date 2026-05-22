@@ -104,6 +104,19 @@ npm run dev
 3. **Start recording** → press **Q** in the terminal when done.
 4. Orchestrator auto-runs distribute (Story + Helia + Arkiv, device key).
 
+### Edit, archive, and re-publish (Contribute UI)
+
+| Action | What it does |
+|--------|----------------|
+| **Edit → Save metadata to Arkiv** | Updates `SKILL.md` on device, then `POST /api/v1/jobs/update-catalog` (Arkiv listing full-replace + new `listingVersion`, same CDR vault/CID). |
+| **Re-record & republish** | New capture → distribute (new Story IP + vault + CID + Arkiv version). |
+| **Re-encrypt** | Full `republish` / distribute without re-recording (new IP + vault). |
+| **Archive** | Soft-delete: Arkiv `status: archived`, tags removed; hidden from marketplace browse. |
+
+Ownership: Arkiv writes use the device wallet as **`$owner`** (only that wallet can update/archive). Reads can filter **`.createdBy(deviceWallet)`** for tamper-proof publisher attribution.
+
+Orchestrator: `GET /api/v1/skills/:slug/draft` loads metadata for the edit form.
+
 ### CLI only (no UI)
 
 ```powershell
@@ -120,6 +133,17 @@ npm run skill -- my-workflow
 cd skill-capture\cli
 npm run distribute -- my-workflow
 ```
+
+### Metadata-only Arkiv update (no re-encrypt)
+
+After editing `skills/<slug>/SKILL.md`:
+
+```powershell
+cd skill-capture\arkiv
+npx tsx src/jobs/update-catalog.ts my-workflow
+```
+
+Or: `cd cdr && npm run index-arkiv -- my-workflow`
 
 ## Env (`skill-capture/.env`)
 
