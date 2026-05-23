@@ -7,6 +7,7 @@ import { Id } from '../../convex/_generated/dataModel';
 import { AgentChat } from '../components/chat/AgentChat';
 import { ActivityFeed } from '../components/chat/ActivityFeed';
 import { AgentSelector } from '../components/agents/AgentSelector';
+import { ThemeToggleButton } from '../components/theme/ThemeToggleButton';
 import { SHOW_CHAT_ACTIVITY_FEED } from '../config/productSurface';
 import { ChatPageSkeleton } from '../components/ui/skeletons';
 import {
@@ -105,6 +106,7 @@ export function ChatPage() {
               </span>
             ) : null}
           </div>
+          <ThemeToggleButton />
         </div>
       </header>
 

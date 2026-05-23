@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { OpenCluLogo } from '../components/syncboard/OpenCluLogo';
+import { ThemeToggleButton } from '../components/theme/ThemeToggleButton';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
@@ -41,6 +42,9 @@ export function SyncBoardLogin({ onLogin }: SyncBoardLoginProps) {
 
   return (
     <div className="login-page">
+      <div className="login-page-theme">
+        <ThemeToggleButton />
+      </div>
       <div className="login-container">
         <div className="login-header">
           <OpenCluLogo className="login-logo" />
@@ -77,6 +81,13 @@ export function SyncBoardLogin({ onLogin }: SyncBoardLoginProps) {
           justify-content: center;
           background: var(--bg-primary);
           padding: var(--space-4);
+          position: relative;
+        }
+
+        .login-page-theme {
+          position: absolute;
+          top: var(--space-4);
+          right: var(--space-4);
         }
 
         .login-container {

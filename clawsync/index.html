@@ -6,6 +6,22 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f3f3f3" />
+    <script>
+      (function () {
+        try {
+          var k = 'openclu-theme';
+          var t = localStorage.getItem(k);
+          if (t !== 'dark' && t !== 'light') {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          var root = document.documentElement;
+          root.classList.remove('light', 'dark');
+          root.classList.add(t);
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', t === 'dark' ? '#222222' : '#f3f3f3');
+        } catch (e) {}
+      })();
+    </script>
     <meta name="description" content="ClawSync - Open source AI agent platform. Deploy your personal AI agent with chat UI, skills system, and multi-model support." />
     <title>ClawSync - Open Source AI Agent Platform</title>
     <!-- Geist Fonts via CDN -->

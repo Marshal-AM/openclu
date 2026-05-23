@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ConvexProvider, ConvexReactClient } from 'convex/react';
 import { getConvexUrl } from '@convex-dev/self-static-hosting';
 import { App } from './App';
+import { ThemeProvider } from './components/theme/ThemeProvider';
 import './styles/global.css';
 
 /**
@@ -46,7 +47,9 @@ const convex = new ConvexReactClient(convexUrl);
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ConvexProvider client={convex}>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </ConvexProvider>
   </StrictMode>
 );

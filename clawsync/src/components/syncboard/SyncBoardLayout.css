@@ -122,6 +122,19 @@
   max-width: 80rem;
 }
 
+.page-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.page-header-bar .syncboard-breadcrumb-bar,
+.page-header-bar .syncboard-breadcrumb {
+  min-width: 0;
+  flex: 1;
+}
+
 .syncboard-breadcrumb-bar {
   display: flex;
   align-items: center;

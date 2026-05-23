@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { SyncBoardSidebar } from './SyncBoardSidebar';
 import { SyncBoardBreadcrumb } from './SyncBoardBreadcrumb';
 import { SyncBoardPageHeader } from './SyncBoardPageHeader';
+import { ThemeToggleButton } from '../theme/ThemeToggleButton';
 import { resolveSyncBoardPageMeta } from './syncboardPageMeta';
 import { resolveSyncBoardBreadcrumbs } from './syncboardBreadcrumbs';
 import './SyncBoardLayout.css';
@@ -32,8 +33,9 @@ export function SyncBoardLayout({
 
       <main className="syncboard-main">
         <header className="page-header">
-          <div className="page-header-inner">
+          <div className="page-header-inner page-header-bar">
             <SyncBoardBreadcrumb {...breadcrumb} />
+            <ThemeToggleButton />
           </div>
         </header>
         <div className="page-content">
