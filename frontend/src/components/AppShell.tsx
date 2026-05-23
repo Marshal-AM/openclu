@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3Icon, ChevronDownIcon, LogOutIcon, MonitorIcon, PenToolIcon, UserIcon } from "lucide-react";
+import { BarChart3Icon, ChevronDownIcon, LogOutIcon, MonitorIcon, MoonIcon, PenToolIcon, SunIcon, UserIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useCurrentWallet } from "@/components/auth/current-wallet";
 import { OpenCluLogo } from "@/components/OpenCluLogo";
@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/sidebar";
 import { shortAddress } from "@/lib/privy-user";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/theme/theme-provider";
 
 const NAV = [
   { href: "/contribute", label: "Contribute Skill", icon: PenToolIcon },
@@ -71,6 +72,7 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const { walletAddress, signOut } = useCurrentWallet();
+  const { theme, toggle: toggleTheme } = useTheme();
   const [profile, setProfile] = useState<HeaderProfile>({ displayName: null, avatarUrl: null });
 
   const activeWallet = walletAddress ?? wallet;
@@ -122,12 +124,11 @@ export function AppShell({
             aria-label="Skill Capture"
             className="flex h-24 w-full min-w-0 items-center justify-center overflow-hidden rounded-lg group-data-[collapsible=icon]:size-14"
           >
-            <OpenCluLogo
-              priority
-              className="h-20 w-full object-contain group-data-[collapsible=icon]:hidden"
-            />
+            <div className="flex w-full items-center justify-center group-data-[collapsible=icon]:hidden">
+              <OpenCluLogo priority className="h-20 w-full" />
+            </div>
             <span className="hidden size-14 shrink-0 overflow-hidden rounded-lg group-data-[collapsible=icon]:grid group-data-[collapsible=icon]:place-items-center">
-              <OpenCluLogo markOnly className="size-12 object-contain" />
+              <OpenCluLogo markOnly className="size-12" />
             </span>
           </Link>
         </SidebarHeader>
@@ -163,7 +164,6 @@ export function AppShell({
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur">
           <div className="flex min-w-0 items-center gap-3">
             <SidebarTrigger />
-            <OpenCluLogo className="h-6 w-auto md:hidden" />
           </div>
           <div className="hidden min-w-0 md:block">
             <p className="text-sm font-medium">Clu Dashboard</p>
@@ -194,6 +194,10 @@ export function AppShell({
                 <DropdownMenuItem onClick={() => router.push("/profile")}>
                   <UserIcon />
                   Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={toggleTheme}>
+                  {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+                  {theme === "dark" ? "Light mode" : "Dark mode"}
                 </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onClick={() => void logout()}>
                   <LogOutIcon />

@@ -1,4 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
+import "./OpenCluLogo.css";
+
 export function OpenCluLogo({
   className,
   markOnly = false,
@@ -17,13 +19,13 @@ export function OpenCluLogo({
         src={lightSrc}
         alt="OpenClu"
         loading={priority ? "eager" : "lazy"}
-        className={`object-contain dark:hidden ${className ?? ""}`}
+        className={`openclu-logo openclu-logo--light ${className ?? ""}`}
       />
       <img
         src={darkSrc}
         alt="OpenClu"
         loading={priority ? "eager" : "lazy"}
-        className={`hidden object-contain dark:block ${className ?? ""}`}
+        className={`openclu-logo openclu-logo--dark ${className ?? ""}`}
       />
     </>
   );
