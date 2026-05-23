@@ -12,6 +12,7 @@ import {
   runMarketplaceCliWithLogs,
   getPurchasedSkillsBaseDir,
 } from './lib/marketplaceCli';
+import { stripSkillPreviewContent } from './lib/skillMd';
 
 type SkillPurchasesInternal = {
   getPurchasedInternal: typeof internal.skillPurchasesInternal.getPurchasedInternal;
@@ -69,7 +70,8 @@ export const getSkillPreview = action({
     }
 
     const raw = readFileSync(skillPath, 'utf-8');
-    const excerpt = args.full ? raw : raw.split('\n').slice(0, 24).join('\n');
+    const body = stripSkillPreviewContent(raw);
+    const excerpt = args.full ? body : body.split('\n').slice(0, 24).join('\n');
     return { excerpt, found: true };
   },
 });

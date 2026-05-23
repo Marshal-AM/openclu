@@ -6,6 +6,7 @@ import { BarChart3Icon, ChevronDownIcon, LogOutIcon, MonitorIcon, PenToolIcon, U
 import { useEffect, useMemo, useState } from "react";
 import { useCurrentWallet } from "@/components/auth/current-wallet";
 import { OpenCluLogo } from "@/components/OpenCluLogo";
+import { WalletAddressChip } from "@/components/WalletAddressChip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -164,9 +165,7 @@ export function AppShell({
             <p className="text-sm font-medium">Clu Dashboard</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <div className="hidden rounded-full border bg-background px-3 py-1.5 font-mono text-xs text-muted-foreground sm:block">
-              {shortAddress(activeWallet)}
-            </div>
+            <WalletAddressChip address={activeWallet} className="hidden sm:block" />
 
             <DropdownMenu>
               <DropdownMenuTrigger

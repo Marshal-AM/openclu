@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown';
+import { stripSkillPreviewContent } from '../../lib/skill-md';
 import './SkillMarkdownPreview.css';
 
 type SkillMarkdownPreviewProps = {
@@ -12,7 +13,7 @@ export function SkillMarkdownPreview({
   variant = 'detail',
   emptyLabel = 'Skill content unavailable',
 }: SkillMarkdownPreviewProps) {
-  const trimmed = content.trim();
+  const trimmed = stripSkillPreviewContent(content).trim();
 
   return (
     <div className={`skill-markdown-preview skill-markdown-preview--${variant}`}>

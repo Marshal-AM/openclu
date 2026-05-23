@@ -1,9 +1,10 @@
 "use client";
 
-import { CheckIcon, UploadIcon, UserIcon } from "lucide-react";
+import { UploadIcon, UserIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCurrentWallet } from "@/components/auth/current-wallet";
+import { WalletAddressChip } from "@/components/WalletAddressChip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,7 +49,6 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const activeWallet = useMemo(
@@ -139,21 +139,8 @@ export default function ProfilePage() {
     }
   }
 
-  async function copyAddress() {
-    if (!activeWallet) return;
-    try {
-      await navigator.clipboard.writeText(activeWallet);
-      setCopied(true);
-      toast.success("Wallet address copied.");
-      window.setTimeout(() => setCopied(false), 1200);
-    } catch {
-      setCopied(false);
-      toast.error("Could not copy wallet address.");
-    }
-  }
-
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -161,127 +148,108 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Account</CardTitle>
-            <CardDescription>Your wallet-based identity.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col items-center gap-3">
-              <Avatar size="lg" className="size-20">
-                <AvatarImage src={profile?.avatarUrl ?? undefined} alt="Profile photo" />
-                <AvatarFallback>{initialsFromProfile(profile)}</AvatarFallback>
-              </Avatar>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={uploading || loading}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <UploadIcon data-icon="inline-start" />
-                {uploading ? "Uploading..." : "Upload photo"}
-              </Button>
-              <Input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) {
-                    void uploadAvatar(file);
-                  }
-                  event.target.value = "";
-                }}
-              />
-            </div>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Account</CardTitle>
+          <CardDescription>Your wallet-based identity.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-6">
+          <div className="flex flex-col items-start gap-4">
+            <Avatar className="size-24 shrink-0 text-2xl after:border-2">
+              <AvatarImage src={profile?.avatarUrl ?? undefined} alt="Profile photo" />
+              <AvatarFallback>{initialsFromProfile(profile)}</AvatarFallback>
+            </Avatar>
 
-            <div className="rounded-lg border bg-muted/30 p-3 text-sm">
-              <p className="text-muted-foreground">Wallet</p>
-              {activeWallet ? (
-                <button
-                  type="button"
-                  onClick={() => void copyAddress()}
-                  className="group mt-1 w-full text-left"
-                  title="Click to copy wallet address"
-                >
-                  <span className="break-all font-mono text-xs text-foreground transition-colors group-hover:text-primary">
-                    {activeWallet}
-                  </span>
-                  <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground group-hover:text-primary">
-                    {copied ? <CheckIcon className="size-3.5" /> : null}
-                    {copied ? "Copied" : "Click to copy"}
-                  </span>
-                </button>
-              ) : (
-                <p className="mt-1 text-xs text-muted-foreground">Not connected</p>
-              )}
-            </div>
+            <WalletAddressChip address={activeWallet} />
 
-            <div className="text-xs text-muted-foreground">
-              <p>
-                Member since:{" "}
-                {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "Unavailable"}
-              </p>
-              <p>
-                Last login:{" "}
-                {profile?.lastLoginAt ? new Date(profile.lastLoginAt).toLocaleString() : "Unavailable"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={uploading || loading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <UploadIcon data-icon="inline-start" />
+              {uploading ? "Uploading..." : "Upload photo"}
+            </Button>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile details</CardTitle>
-            <CardDescription>These details are stored in Supabase.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-5">
-            {loading ? (
-              <div className="text-sm text-muted-foreground">Loading profile...</div>
-            ) : (
-              <FieldGroup>
-                <Field>
-                  <FieldLabel>Display name</FieldLabel>
-                  <Input
-                    placeholder="Enter your display name"
-                    value={displayName}
-                    onChange={(event) => setDisplayName(event.target.value)}
-                    maxLength={80}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel>Email</FieldLabel>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel>Bio</FieldLabel>
-                  <Textarea
-                    rows={5}
-                    placeholder="Tell others what you work on."
-                    value={bio}
-                    onChange={(event) => setBio(event.target.value)}
-                    maxLength={320}
-                  />
-                </Field>
-              </FieldGroup>
-            )}
+          <Input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) {
+                void uploadAvatar(file);
+              }
+              event.target.value = "";
+            }}
+          />
 
-            <div className="flex justify-end">
-              <Button type="button" onClick={() => void saveProfile()} disabled={loading || saving}>
-                <UserIcon data-icon="inline-start" />
-                {saving ? "Saving..." : "Save profile"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <div className="grid gap-2 border-t pt-4 text-xs text-muted-foreground sm:grid-cols-2">
+            <p>
+              Member since:{" "}
+              {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "Unavailable"}
+            </p>
+            <p>
+              Last login:{" "}
+              {profile?.lastLoginAt ? new Date(profile.lastLoginAt).toLocaleString() : "Unavailable"}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Profile details</CardTitle>
+          <CardDescription>These details are stored in Supabase.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-5">
+          {loading ? (
+            <div className="text-sm text-muted-foreground">Loading profile...</div>
+          ) : (
+            <FieldGroup>
+              <Field>
+                <FieldLabel>Display name</FieldLabel>
+                <Input
+                  placeholder="Enter your display name"
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  maxLength={80}
+                />
+              </Field>
+              <Field>
+                <FieldLabel>Email</FieldLabel>
+                <Input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </Field>
+              <Field>
+                <FieldLabel>Bio</FieldLabel>
+                <Textarea
+                  rows={5}
+                  placeholder="Tell others what you work on."
+                  value={bio}
+                  onChange={(event) => setBio(event.target.value)}
+                  maxLength={320}
+                />
+              </Field>
+            </FieldGroup>
+          )}
+
+          <div className="flex justify-end">
+            <Button type="button" onClick={() => void saveProfile()} disabled={loading || saving}>
+              <UserIcon data-icon="inline-start" />
+              {saving ? "Saving..." : "Save profile"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

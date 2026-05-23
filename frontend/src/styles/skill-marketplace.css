@@ -161,6 +161,7 @@
   font-size: var(--text-sm);
 }
 
+.skill-marketplace-ui.modal-dialog-overlay,
 .skill-marketplace-ui .modal-dialog-overlay {
   position: fixed;
   inset: 0;

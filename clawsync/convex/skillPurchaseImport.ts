@@ -7,33 +7,10 @@ import { action } from './_generated/server';
 import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import { api, internal } from './_generated/api';
+import { parseSkillMd } from './lib/skillMd';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const skillInternal = (internal as any).skillPurchasesInternal;
-
-function parseSkillMd(raw: string): { name: string; description: string; body: string } {
-  const trimmed = raw.trim();
-  if (!trimmed.startsWith('---')) {
-    return { name: 'purchased-skill', description: trimmed.slice(0, 500), body: trimmed };
-  }
-  const end = trimmed.indexOf('---', 3);
-  if (end < 0) {
-    return { name: 'purchased-skill', description: '', body: trimmed };
-  }
-  const frontmatter = trimmed.slice(3, end).trim();
-  const body = trimmed.slice(end + 3).trim();
-  let name = 'purchased-skill';
-  let description = '';
-  for (const line of frontmatter.split('\n')) {
-    const m = line.match(/^([a-zA-Z_-]+):\s*(.+)$/);
-    if (!m) continue;
-    const key = m[1].toLowerCase();
-    const val = m[2].trim().replace(/^["']|["']$/g, '');
-    if (key === 'name') name = val;
-    if (key === 'description') description = val;
-  }
-  return { name, description: description || body.slice(0, 500), body };
-}
 
 export const importPurchasedSkill = action({
   args: {
