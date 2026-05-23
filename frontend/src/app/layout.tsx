@@ -12,7 +12,7 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 const themeInitScript = `(function(){try{var k='openclu-theme',t=localStorage.getItem(k);if(t!=='dark'&&t!=='light')t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.classList.toggle('dark',t==='dark');}catch(e){}})();`;
 
 export const metadata: Metadata = {
-  title: "Skill Capture",
+  title: "OpenClu Dashboard",
   description: "Contribute and manage agent skills",
   icons: {
     icon: [{ url: "/favicon.png", type: "image/png" }],
