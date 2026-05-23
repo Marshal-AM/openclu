@@ -4,6 +4,7 @@ create table if not exists public.users (
   wallet_address text primary key,
   display_name text,
   email text,
+  bio text,
   avatar_url text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

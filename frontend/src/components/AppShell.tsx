@@ -2,10 +2,21 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOutIcon, MonitorIcon, PenToolIcon } from "lucide-react";
+import { BarChart3Icon, ChevronDownIcon, LogOutIcon, MonitorIcon, PenToolIcon, UserIcon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useCurrentWallet } from "@/components/auth/current-wallet";
-import { Button } from "@/components/ui/button";
 import { OpenCluLogo } from "@/components/OpenCluLogo";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -26,8 +37,28 @@ import { shortAddress } from "@/lib/privy-user";
 
 const NAV = [
   { href: "/contribute", label: "Contribute Agent Skills", icon: PenToolIcon },
+  { href: "/contributions", label: "My Contributions", icon: BarChart3Icon },
   { href: "/devices", label: "My Devices", icon: MonitorIcon },
 ];
+
+type HeaderProfile = {
+  displayName: string | null;
+  avatarUrl: string | null;
+};
+
+function avatarFallbackLabel(displayName: string | null, wallet: string | null | undefined): string {
+  const trimmed = displayName?.trim();
+  if (trimmed) {
+    const parts = trimmed.split(/\s+/).slice(0, 2);
+    const letters = parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
+    if (letters) return letters;
+  }
+  const address = wallet?.trim();
+  if (address && address.startsWith("0x") && address.length >= 6) {
+    return address.slice(2, 4).toUpperCase();
+  }
+  return "U";
+}
 
 export function AppShell({
   children,
@@ -39,6 +70,42 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const { walletAddress, signOut } = useCurrentWallet();
+  const [profile, setProfile] = useState<HeaderProfile>({ displayName: null, avatarUrl: null });
+
+  const activeWallet = walletAddress ?? wallet;
+
+  const profileLabel = useMemo(() => {
+    if (profile.displayName?.trim()) return profile.displayName.trim();
+    return shortAddress(activeWallet);
+  }, [activeWallet, profile.displayName]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadProfileSummary() {
+      try {
+        const res = await fetch("/api/profile");
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        const payload = (data as { profile?: { displayName?: string | null; avatarUrl?: string | null } })
+          .profile;
+        if (!mounted || !payload) return;
+        setProfile({
+          displayName: payload.displayName ?? null,
+          avatarUrl: payload.avatarUrl ?? null,
+        });
+      } catch {
+        if (mounted) {
+          setProfile({ displayName: null, avatarUrl: null });
+        }
+      }
+    }
+
+    void loadProfileSummary();
+    return () => {
+      mounted = false;
+    };
+  }, [walletAddress]);
 
   async function logout() {
     await signOut();
@@ -94,16 +161,43 @@ export function AppShell({
             <OpenCluLogo className="h-6 w-auto md:hidden" />
           </div>
           <div className="hidden min-w-0 md:block">
-            <p className="text-sm font-medium">Agent Skills Dashboard</p>
-            <p className="truncate text-xs text-muted-foreground">Capture, publish, and manage your local skill contributions.</p>
+            <p className="text-sm font-medium">Clu Dashboard</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <div className="hidden rounded-full border bg-background px-3 py-1.5 font-mono text-xs text-muted-foreground sm:block">
-              {shortAddress(walletAddress ?? wallet)}
+              {shortAddress(activeWallet)}
             </div>
-            <Button type="button" variant="ghost" size="icon" onClick={logout} aria-label="Log out">
-              <LogOutIcon />
-            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button type="button" variant="ghost" className="h-auto gap-2 rounded-full px-1.5 py-1" />
+                }
+              >
+                <Avatar size="sm">
+                  <AvatarImage src={profile.avatarUrl ?? undefined} alt="Profile" />
+                  <AvatarFallback>{avatarFallbackLabel(profile.displayName, activeWallet)}</AvatarFallback>
+                </Avatar>
+                <ChevronDownIcon className="size-4 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="space-y-1">
+                    <p className="truncate text-sm font-medium text-foreground">{profileLabel}</p>
+                    <p className="truncate font-mono text-[11px] text-muted-foreground">{activeWallet ?? "Wallet"}</p>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push("/profile")}>
+                  <UserIcon />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={() => void logout()}>
+                  <LogOutIcon />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
         <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>

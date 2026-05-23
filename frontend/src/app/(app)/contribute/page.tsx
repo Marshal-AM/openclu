@@ -1,23 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { CatalogDetailPanel } from "@/components/CatalogDetailPanel";
-import { useOrchestratorJob } from "@/hooks/useOrchestratorJob";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { DeviceChooserDialog } from "@/components/DeviceChooserDialog";
 import { useDeviceInteractionStore } from "@/lib/device-interaction-store";
 import type { OwnedDevice } from "@/lib/device-types";
-import { cn } from "@/lib/utils";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { makeSkillSlug, randomSlugSuffix } from "@/lib/skill-slug";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +24,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 
 type MetadataForm = {
@@ -46,25 +36,11 @@ type MetadataForm = {
   recordedAt: string;
 };
 
-type Contribution = {
-  id: string;
-  skill_slug: string;
-  status: string;
-  title?: string | null;
-  description?: string | null;
-  arkiv_listing_key?: string;
-  arkiv_version?: number | null;
-};
-
 type DeviceSkill = {
   skillSlug: string;
-  skillName: string;
   arkivListingKey?: string;
   arkivVersion?: number;
   arkivStatus?: string;
-  cid?: string;
-  ipId?: string;
-  publishedAt?: string;
 };
 
 type PublishSuccess = {
@@ -74,20 +50,35 @@ type PublishSuccess = {
   message?: string;
 };
 
-type DraftPayload = {
-  skillSlug: string;
+const ORCH = "/api/orch";
+const DRAFT_STORAGE_KEY = "openclu:contribute-draft";
+
+function Stage({
+  step,
+  title,
+  description,
+  children,
+}: {
+  step: string;
   title: string;
   description: string;
-  triggers: string[];
-  extraTags: string[];
-  expertiseSource?: string;
-  recordedAt?: string;
-  arkivListingKey?: string;
-  arkivVersion?: number;
-  arkivStatus?: string;
-};
-
-const ORCH = "/api/orch";
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border bg-card p-5 shadow-sm">
+      <div className="mb-5 flex items-start gap-3">
+        <div className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+          {step}
+        </div>
+        <div>
+          <h2 className="text-base font-medium leading-none">{title}</h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
 
 function isPublishedOnDevice(s: DeviceSkill): boolean {
   return s.arkivStatus === "published" || !!s.arkivListingKey;
@@ -105,18 +96,14 @@ function emptyForm(): MetadataForm {
   };
 }
 
-function draftToForm(d: DraftPayload): MetadataForm {
-  return {
-    skillSlug: d.skillSlug,
-    title: d.title,
-    description: d.description,
-    triggers: d.triggers.join("\n"),
-    extraTags: d.extraTags.join(", "),
-    expertiseSource: d.expertiseSource ?? "",
-    recordedAt: d.recordedAt
-      ? new Date(d.recordedAt).toISOString().slice(0, 16)
-      : new Date().toISOString().slice(0, 16),
-  };
+function hasDraftProgress(form: MetadataForm): boolean {
+  return Boolean(
+    form.title.trim() ||
+      form.description.trim() ||
+      form.triggers.trim() ||
+      form.extraTags.trim() ||
+      form.expertiseSource.trim(),
+  );
 }
 
 function deviceHeaders(deviceId: string | null): HeadersInit {
@@ -155,59 +142,32 @@ async function postSkillMd(
 }
 
 export default function ContributePage() {
+  const router = useRouter();
   const [form, setForm] = useState<MetadataForm>(emptyForm);
+  const [slugSuffix, setSlugSuffix] = useState(() => randomSlugSuffix());
+  const [activeStage, setActiveStage] = useState(0);
+  const [hydratedDraft, setHydratedDraft] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
   const [captureJobId, setCaptureJobId] = useState<string | null>(null);
   const [distributeJobId, setDistributeJobId] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [error, setError] = useState("");
-  const [contributions, setContributions] = useState<Contribution[]>([]);
-  const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
-  const [selectedContribution, setSelectedContribution] = useState<Contribution | null>(null);
-  const [catalogDetail, setCatalogDetail] = useState<Record<string, unknown> | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<PublishSuccess | null>(null);
-  const [contributionsError, setContributionsError] = useState("");
   const [devices, setDevices] = useState<OwnedDevice[]>([]);
   const [devicePickerOpen, setDevicePickerOpen] = useState(false);
   const [deviceChoiceId, setDeviceChoiceId] = useState<string | null>(null);
+  const [syncWarning, setSyncWarning] = useState("");
+  const [quitHref, setQuitHref] = useState<string | null>(null);
 
   const selectedDeviceId = useDeviceInteractionStore((s) => s.selectedDeviceId);
   const chooseDevice = useDeviceInteractionStore((s) => s.chooseDevice);
   const clearDeviceSelection = useDeviceInteractionStore((s) => s.clearDeviceSelection);
 
-  const [editingSlug, setEditingSlug] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<MetadataForm | null>(null);
-  const [editDraftMeta, setEditDraftMeta] = useState<DraftPayload | null>(null);
-  const [orchJobId, setOrchJobId] = useState<string | null>(null);
-  const orchJobLabelRef = useRef("");
-
   const distributeRequested = useRef(false);
-  const recaptureDistributeRequested = useRef(false);
-  const editFormRef = useRef<MetadataForm | null>(null);
-  editFormRef.current = editForm;
+  const allowNavigationRef = useRef(false);
 
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId) ?? null;
-
-  const loadContributions = useCallback(async (deviceIdOverride?: string) => {
-    const deviceId = deviceIdOverride ?? selectedDeviceId;
-    if (!deviceId) {
-      setContributions([]);
-      return;
-    }
-    const res = await fetch(`/api/contributions?deviceId=${encodeURIComponent(deviceId)}`);
-    if (res.ok) {
-      const data = await res.json();
-      setContributions(data.contributions ?? []);
-      if (!contributionsError || contributionsError.includes("Could not load contributions")) {
-        setContributionsError("");
-      }
-    } else {
-      const data = await res.json().catch(() => ({}));
-      setContributionsError(
-        (data as { error?: string }).error ?? `Could not load contributions (${res.status})`,
-      );
-    }
-  }, [selectedDeviceId, contributionsError]);
+  const hasProgress = hasDraftProgress(form);
 
   const syncContributionFromJob = useCallback(
     async (
@@ -216,6 +176,7 @@ export default function ContributePage() {
       pr?: Partial<DeviceSkill>,
       meta?: { title?: string; description?: string },
     ) => {
+      if (!selectedDeviceId) return;
       await fetch("/api/contributions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -229,9 +190,8 @@ export default function ContributePage() {
           description: meta?.description,
         }),
       });
-      await loadContributions();
     },
-    [loadContributions, selectedDeviceId],
+    [selectedDeviceId],
   );
 
   const syncPublishedFromDevice = useCallback(
@@ -243,16 +203,10 @@ export default function ContributePage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        if (res.status === 404) {
-          setContributionsError(
-            "Device orchestrator is missing GET /api/v1/skills — restart orchestrator (npm run start) and refresh.",
-          );
-        } else {
-          setContributionsError(
-            (err as { error?: string }).error ??
-              `Cannot read skills from device (${res.status}). Is orchestrator running?`,
-          );
-        }
+        setSyncWarning(
+          (err as { error?: string }).error ??
+            `Cannot read skills from device (${res.status}). Is orchestrator running?`,
+        );
         return;
       }
       const data = await res.json();
@@ -270,7 +224,12 @@ export default function ContributePage() {
           body: JSON.stringify({
             deviceId,
             skillSlug: s.skillSlug,
-            status: s.arkivStatus === "archived" ? "archived" : isPublishedOnDevice(s) ? "published" : "draft",
+            status:
+              s.arkivStatus === "archived"
+                ? "archived"
+                : isPublishedOnDevice(s)
+                  ? "published"
+                  : "draft",
             arkivListingKey: s.arkivListingKey,
             arkivVersion: s.arkivVersion,
           }),
@@ -281,7 +240,7 @@ export default function ContributePage() {
         }
       }
       if (failures.length > 0) {
-        setContributionsError(`Failed to save to Supabase: ${failures.join("; ")}`);
+        setSyncWarning(`Failed to sync some skills to Supabase: ${failures.join("; ")}`);
       }
     },
     [selectedDeviceId],
@@ -291,9 +250,7 @@ export default function ContributePage() {
     const res = await fetch("/api/devices");
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setContributionsError(
-        (data as { error?: string }).error ?? `Could not load devices (${res.status})`,
-      );
+      setSyncWarning((data as { error?: string }).error ?? `Could not load devices (${res.status})`);
       setDevices([]);
       clearDeviceSelection();
       return;
@@ -302,15 +259,11 @@ export default function ContributePage() {
     setDevices(list);
     if (selectedDeviceId && !list.some((d) => d.id === selectedDeviceId)) {
       clearDeviceSelection();
-      setContributions([]);
-      setContributionsError("Previously selected device is no longer available.");
+      setSyncWarning("Previously selected device is no longer available.");
     }
     if (list.length === 0) {
       clearDeviceSelection();
-      setContributions([]);
-      setContributionsError(
-        "No devices registered yet. Register a device first, then return to contribute.",
-      );
+      setSyncWarning("No devices registered yet. Register a device first.");
     }
   }, [clearDeviceSelection, selectedDeviceId]);
 
@@ -320,13 +273,11 @@ export default function ContributePage() {
       setDevicePickerOpen(false);
       setDeviceChoiceId(null);
       setError("");
-      setContributionsError("");
-      setContributions([]);
+      setSyncWarning("");
       await syncPublishedFromDevice(deviceId);
-      await loadContributions(deviceId);
-      return true;
+      toast.success("Device selected.");
     },
-    [chooseDevice, loadContributions, syncPublishedFromDevice],
+    [chooseDevice, syncPublishedFromDevice],
   );
 
   function ensureDeviceSelected(): boolean {
@@ -338,9 +289,133 @@ export default function ContributePage() {
     return true;
   }
 
+  function updateTitle(title: string) {
+    const suffix = slugSuffix || randomSlugSuffix();
+    if (!slugSuffix) setSlugSuffix(suffix);
+    setForm((current) => ({
+      ...current,
+      title,
+      skillSlug: makeSkillSlug(title, suffix),
+    }));
+    if (draftSaved) setDraftSaved(false);
+  }
+
+  function persistDraft(nextStage = activeStage) {
+    window.localStorage.setItem(
+      DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        form,
+        slugSuffix,
+        activeStage: nextStage,
+        draftSaved,
+      }),
+    );
+  }
+
+  function clearPersistedDraft() {
+    window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+  }
+
+  function saveAndContinueFromBrief() {
+    if (!form.title.trim() || !form.description.trim()) {
+      toast.error("Title and description are required.");
+      return;
+    }
+    const nextStage = 1;
+    setActiveStage(nextStage);
+    persistDraft(nextStage);
+    toast.success("Skill brief saved.");
+  }
+
+  function saveAndContinueFromSetup() {
+    if (!selectedDeviceId) {
+      setDevicePickerOpen(true);
+      toast.error("Choose a device before continuing.");
+      return;
+    }
+    const nextStage = 2;
+    setActiveStage(nextStage);
+    persistDraft(nextStage);
+    toast.success("Recording setup saved.");
+  }
+
+  function confirmQuitProgress() {
+    if (!quitHref) return;
+    allowNavigationRef.current = true;
+    clearPersistedDraft();
+    setForm(emptyForm());
+    setSlugSuffix(randomSlugSuffix());
+    setActiveStage(0);
+    router.push(quitHref);
+  }
+
   useEffect(() => {
     void loadDevices();
   }, [loadDevices]);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) {
+      setHydratedDraft(true);
+      return;
+    }
+    try {
+      const saved = JSON.parse(raw) as {
+        form?: MetadataForm;
+        slugSuffix?: string;
+        activeStage?: number;
+        draftSaved?: boolean;
+      };
+      if (saved.form) setForm(saved.form);
+      if (saved.slugSuffix) setSlugSuffix(saved.slugSuffix);
+      if (typeof saved.activeStage === "number") {
+        setActiveStage(Math.min(Math.max(saved.activeStage, 0), 2));
+      }
+      if (typeof saved.draftSaved === "boolean") setDraftSaved(saved.draftSaved);
+    } catch {
+      clearPersistedDraft();
+    } finally {
+      setHydratedDraft(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydratedDraft || !hasProgress) return;
+    window.localStorage.setItem(
+      DRAFT_STORAGE_KEY,
+      JSON.stringify({ form, slugSuffix, activeStage, draftSaved }),
+    );
+  }, [activeStage, draftSaved, form, hasProgress, hydratedDraft, slugSuffix]);
+
+  useEffect(() => {
+    if (!hydratedDraft) return;
+
+    function handleDocumentClick(event: MouseEvent) {
+      if (!hasProgress || allowNavigationRef.current) return;
+      const target = event.target as HTMLElement | null;
+      const anchor = target?.closest("a[href]");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#")) return;
+      const nextUrl = new URL(href, window.location.href);
+      if (nextUrl.origin !== window.location.origin || nextUrl.pathname === "/contribute") return;
+      event.preventDefault();
+      event.stopPropagation();
+      setQuitHref(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+    }
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      if (!hasProgress) return;
+      event.preventDefault();
+    }
+
+    document.addEventListener("click", handleDocumentClick, true);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick, true);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [hasProgress, hydratedDraft]);
 
   useEffect(() => {
     if (devicePickerOpen) {
@@ -356,79 +431,43 @@ export default function ContributePage() {
 
   useEffect(() => {
     if (!selectedDeviceId) return;
-    void (async () => {
-      await syncPublishedFromDevice();
-      await loadContributions();
-    })();
-  }, [selectedDeviceId, syncPublishedFromDevice, loadContributions]);
-
-  const { logs: orchLogs } = useOrchestratorJob(orchJobId, selectedDeviceId, {
-    onPublished: async (job) => {
-      const slug = job.skillSlug;
-      const pr = job.publishResult;
-      const label = orchJobLabelRef.current;
-      orchJobLabelRef.current = "";
-      setOrchJobId(null);
-      setLogs([]);
-      if (label === "update-catalog") {
-        setPublishSuccess({
-          slug,
-          listingKey: pr?.arkivListingKey,
-          version: pr?.arkivVersion,
-          message: `Catalog updated on Arkiv (v${pr?.arkivVersion ?? "?"})`,
-        });
-        setEditingSlug(null);
-        setEditForm(null);
-        setEditDraftMeta(null);
-        await syncContributionFromJob(slug, "published", pr, {
-          title: editFormRef.current?.title,
-          description: editFormRef.current?.description,
-        });
-      } else if (label === "archive") {
-        setPublishSuccess({
-          slug,
-          message: `"${slug}" removed from marketplace (archived on Arkiv)`,
-        });
-        setEditingSlug(null);
-        setEditForm(null);
-        setEditDraftMeta(null);
-        await syncContributionFromJob(slug, "archived", pr);
-      } else if (label === "republish") {
-        setPublishSuccess({
-          slug,
-          listingKey: pr?.arkivListingKey,
-          version: pr?.arkivVersion,
-          message: `Re-encrypted and listed on Arkiv (v${pr?.arkivVersion ?? "?"})`,
-        });
-        setEditingSlug(null);
-        setEditForm(null);
-        setEditDraftMeta(null);
-        await syncContributionFromJob(slug, "published", pr);
-      }
-    },
-    onFailed: (job) => {
-      setError(job.error ?? `${orchJobLabelRef.current || "Job"} failed`);
-      setLogs(job.logs ?? []);
-      orchJobLabelRef.current = "";
-      setOrchJobId(null);
-    },
-  });
+    void syncPublishedFromDevice();
+  }, [selectedDeviceId, syncPublishedFromDevice]);
 
   useEffect(() => {
-    if (orchJobId && orchLogs.length > 0) setLogs(orchLogs);
-  }, [orchJobId, orchLogs]);
+    if (!syncWarning) return;
+    toast.warning("Sync warning", { description: syncWarning });
+  }, [syncWarning]);
+
+  useEffect(() => {
+    if (!error) return;
+    toast.error("Action failed", { description: error });
+  }, [error]);
+
+  useEffect(() => {
+    if (!publishSuccess) return;
+    toast.success(publishSuccess.message ?? `Skill "${publishSuccess.slug}" is listed on Arkiv.`, {
+      description:
+        publishSuccess.version != null
+          ? `Version ${publishSuccess.version}`
+          : publishSuccess.listingKey,
+    });
+  }, [publishSuccess]);
 
   useEffect(() => {
     if (!captureJobId && !distributeJobId) return;
+
     const id = setInterval(async () => {
       const jobId = distributeJobId ?? captureJobId;
       if (!jobId) return;
+
       const res = await fetch(`${ORCH}/jobs/${jobId}`, {
         headers: deviceHeaders(selectedDeviceId),
       });
       if (!res.ok) return;
       const job = await res.json();
       setLogs(job.logs ?? []);
+
       if (
         captureJobId &&
         !distributeJobId &&
@@ -437,14 +476,10 @@ export default function ContributePage() {
         job.status === "processing"
       ) {
         distributeRequested.current = true;
-        const slug =
-          editingSlug && recaptureDistributeRequested.current
-            ? editingSlug
-            : form.skillSlug;
         const dRes = await fetch(`${ORCH}/jobs/${captureJobId}/distribute`, {
           method: "POST",
           headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
-          body: JSON.stringify({ skillSlug: slug }),
+          body: JSON.stringify({ skillSlug: form.skillSlug }),
         });
         const d = await dRes.json();
         if (dRes.ok && d.jobId) {
@@ -453,737 +488,315 @@ export default function ContributePage() {
           if (d.logs?.length) setLogs(d.logs);
         } else {
           distributeRequested.current = false;
-          recaptureDistributeRequested.current = false;
           if (d.logs?.length) setLogs(d.logs);
           setError(d.error ?? "Failed to start distribute");
         }
       }
+
       if (distributeJobId && job.status === "failed") {
         setLogs(job.logs ?? []);
         setError(job.error ?? "Distribute failed");
         setDistributeJobId(null);
         distributeRequested.current = false;
-        recaptureDistributeRequested.current = false;
       }
+
       if (distributeJobId && job.status === "published") {
-        const wasRecapture = recaptureDistributeRequested.current;
-        const slug =
-          (job.skillSlug as string) ||
-          (wasRecapture ? editingSlug : null) ||
-          form.skillSlug ||
-          "";
+        const slug = (job.skillSlug as string) || form.skillSlug || "";
         const pr = job.publishResult as DeviceSkill | undefined;
         setPublishSuccess({
           slug,
           listingKey: pr?.arkivListingKey,
           version: pr?.arkivVersion,
-          message: wasRecapture
-            ? `Re-recorded and listed on Arkiv (v${pr?.arkivVersion ?? "?"})`
-            : undefined,
         });
         setCaptureJobId(null);
         setDistributeJobId(null);
         distributeRequested.current = false;
-        recaptureDistributeRequested.current = false;
-        const metaForm = wasRecapture ? editForm : form;
         await syncContributionFromJob(slug, "published", pr, {
-          title: metaForm?.title,
-          description: metaForm?.description,
+          title: form.title,
+          description: form.description,
         });
-        if (wasRecapture) {
-          setEditingSlug(null);
-          setEditForm(null);
-          setEditDraftMeta(null);
-        }
       }
+
       if (captureJobId && job.status === "failed") {
         setLogs(job.logs ?? []);
         setError(job.error ?? "Capture failed");
         setCaptureJobId(null);
-        recaptureDistributeRequested.current = false;
       }
     }, 2000);
+
     return () => clearInterval(id);
-  }, [captureJobId, distributeJobId, form, editingSlug, editForm, syncContributionFromJob, selectedDeviceId]);
+  }, [captureJobId, distributeJobId, form, selectedDeviceId, syncContributionFromJob]);
 
   async function saveDraft(): Promise<boolean> {
     if (!ensureDeviceSelected()) return false;
     setError("");
-    const slug = form.skillSlug.toLowerCase().replace(/\s+/g, "-");
+
+    const slug = form.skillSlug || makeSkillSlug(form.title, slugSuffix);
     if (!slug || !form.title.trim() || !form.description.trim()) {
-      setError("Skill slug, title, and description are required.");
+      setError("Title and description are required.");
       return false;
     }
+
     const saved = await postSkillMd({ ...form, skillSlug: slug }, selectedDeviceId);
     if (!saved.ok) {
       setError(saved.error ?? "Failed to save draft");
       return false;
     }
-    await fetch("/api/contributions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        deviceId: selectedDeviceId,
-        skillSlug: slug,
-        status: "draft",
-        title: form.title,
-        description: form.description,
-      }),
+
+    await syncContributionFromJob(slug, "draft", undefined, {
+      title: form.title,
+      description: form.description,
     });
+
     setDraftSaved(true);
     setForm((f) => ({ ...f, skillSlug: slug }));
-    loadContributions();
+    toast.success("Draft saved on device.");
     return true;
   }
 
   async function startCapture() {
     if (!ensureDeviceSelected()) return;
+    const captureSlug = form.skillSlug || makeSkillSlug(form.title, slugSuffix);
+    if (!form.skillSlug && captureSlug) {
+      setForm((current) => ({ ...current, skillSlug: captureSlug }));
+    }
+
     if (!draftSaved) {
       const ok = await saveDraft();
       if (!ok) return;
     }
+
     setError("");
     distributeRequested.current = false;
-    recaptureDistributeRequested.current = false;
     setLogs(["Starting capture…"]);
+
     const res = await fetch(`${ORCH}/jobs/capture`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
-      body: JSON.stringify({ skillSlug: form.skillSlug }),
+      body: JSON.stringify({ skillSlug: captureSlug }),
     });
     const data = await res.json();
     if (!res.ok) {
       setError(data.error ?? "Capture failed to start");
       return;
     }
+
     setCaptureJobId(data.jobId);
-    await fetch("/api/contributions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        deviceId: selectedDeviceId,
-        skillSlug: form.skillSlug,
-        status: "capturing",
-        jobId: data.jobId,
-      }),
-    });
-  }
 
-  async function openEdit(slug: string) {
-    if (!ensureDeviceSelected()) return;
-    setError("");
-    setSelectedSkill(null);
-    setCatalogDetail(null);
-    const res = await fetch(`${ORCH}/skills/${slug}/draft`, {
-      headers: deviceHeaders(selectedDeviceId),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError((data as { error?: string }).error ?? `Cannot load draft for ${slug}`);
-      return;
-    }
-    const { draft } = (await res.json()) as { draft: DraftPayload };
-    setEditDraftMeta(draft);
-    setEditForm(draftToForm(draft));
-    setEditingSlug(slug);
-  }
-
-  async function saveMetadataEdit() {
-    if (!editForm || !editingSlug) return;
-    if (!ensureDeviceSelected()) return;
-    setError("");
-    const saved = await postSkillMd(editForm, selectedDeviceId);
-    if (!saved.ok) {
-      setError(saved.error ?? "Failed to update SKILL.md");
-      return;
-    }
-    setLogs(["Updating Arkiv catalog…"]);
-    const res = await fetch(`${ORCH}/jobs/update-catalog`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
-      body: JSON.stringify({ skillSlug: editingSlug }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Failed to start catalog update");
-      return;
-    }
-    orchJobLabelRef.current = "update-catalog";
-    setOrchJobId(data.jobId);
-  }
-
-  async function startRecaptureRepublish() {
-    if (!editForm || !editingSlug) return;
-    if (!ensureDeviceSelected()) return;
-    const ok = window.confirm(
-      "Re-record & republish creates a new Story IP asset and CDR vault. Existing buyers keep access to the old vault; new buyers need the new listing. Continue?",
-    );
-    if (!ok) return;
-    setError("");
-    const saved = await postSkillMd(editForm, selectedDeviceId);
-    if (!saved.ok) {
-      setError(saved.error ?? "Failed to save SKILL.md");
-      return;
-    }
-    distributeRequested.current = false;
-    recaptureDistributeRequested.current = true;
-    setLogs(["Starting re-capture…"]);
-    const res = await fetch(`${ORCH}/jobs/capture`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
-      body: JSON.stringify({ skillSlug: editingSlug }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Capture failed to start");
-      recaptureDistributeRequested.current = false;
-      return;
-    }
-    setCaptureJobId(data.jobId);
-  }
-
-  async function fullRepublish(slug: string) {
-    if (!ensureDeviceSelected()) return;
-    const ok = window.confirm(
-      "Re-encrypt & republish runs full distribute (new IP + vault) without re-recording. Continue?",
-    );
-    if (!ok) return;
-    setError("");
-    setLogs(["Starting full republish…"]);
-    const res = await fetch(`${ORCH}/jobs/republish`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
-      body: JSON.stringify({ skillSlug: slug }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Republish failed to start");
-      return;
-    }
-    orchJobLabelRef.current = "republish";
-    setOrchJobId(data.jobId);
-  }
-
-  async function archiveSkill(slug: string) {
-    if (!ensureDeviceSelected()) return;
-    const ok = window.confirm(
-      `Remove "${slug}" from the marketplace? This archives the Arkiv listing (soft delete).`,
-    );
-    if (!ok) return;
-    setError("");
-    setLogs(["Archiving on Arkiv…"]);
-    const res = await fetch(`${ORCH}/jobs/archive`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
-      body: JSON.stringify({ skillSlug: slug }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Archive failed to start");
-      return;
-    }
-    orchJobLabelRef.current = "archive";
-    setOrchJobId(data.jobId);
-  }
-
-  async function viewSkill(slug: string) {
-    setSelectedSkill(slug);
-    setCatalogDetail(null);
-    const res = await fetch(`/api/catalog/${encodeURIComponent(slug)}`);
-    if (res.ok) setCatalogDetail(await res.json());
-    else setCatalogDetail({ error: "Could not load full catalog entry" });
-  }
-
-  async function openContributionDialog(contribution: Contribution) {
-    setSelectedContribution(contribution);
-    setSelectedSkill(contribution.skill_slug);
-    setCatalogDetail(null);
-    if (contribution.status === "published") {
-      await viewSkill(contribution.skill_slug);
-    }
-  }
-
-  const visibleContributions = contributions.filter((c) => c.status !== "archived");
-
-  function renderMetadataFields(
-    value: MetadataForm,
-    onChange: (f: MetadataForm) => void,
-    slugReadOnly: boolean,
-  ) {
-    return (
-      <FieldGroup>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field>
-            <FieldLabel>Skill slug</FieldLabel>
-            <Input
-              value={value.skillSlug}
-              readOnly={slugReadOnly}
-              disabled={slugReadOnly}
-              onChange={(e) => onChange({ ...value, skillSlug: e.target.value })}
-            />
-          </Field>
-          <Field>
-            <FieldLabel>Title</FieldLabel>
-            <Input
-              value={value.title}
-              onChange={(e) => onChange({ ...value, title: e.target.value })}
-            />
-          </Field>
-        </div>
-        <Field>
-          <FieldLabel>Description</FieldLabel>
-          <Textarea
-            rows={3}
-            value={value.description}
-            onChange={(e) => onChange({ ...value, description: e.target.value })}
-          />
-        </Field>
-        <Field>
-          <FieldLabel>Triggers</FieldLabel>
-          <Textarea
-            className="font-mono text-xs"
-            rows={3}
-            value={value.triggers}
-            onChange={(e) => onChange({ ...value, triggers: e.target.value })}
-          />
-          <FieldDescription>One trigger per line.</FieldDescription>
-        </Field>
-        <Field>
-          <FieldLabel>Extra tags</FieldLabel>
-          <Input
-            value={value.extraTags}
-            onChange={(e) => onChange({ ...value, extraTags: e.target.value })}
-          />
-          <FieldDescription>Comma-separated tags.</FieldDescription>
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field>
-            <FieldLabel>Expertise source</FieldLabel>
-            <Input
-              value={value.expertiseSource}
-              onChange={(e) => onChange({ ...value, expertiseSource: e.target.value })}
-            />
-          </Field>
-          <Field>
-            <FieldLabel>Recorded at</FieldLabel>
-            <Input
-              type="datetime-local"
-              value={value.recordedAt}
-              onChange={(e) => onChange({ ...value, recordedAt: e.target.value })}
-            />
-          </Field>
-        </div>
-      </FieldGroup>
-    );
+    await syncContributionFromJob(captureSlug, "capturing");
   }
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8">
-      {publishSuccess && (
-        <Alert>
-          <AlertTitle>
-            {publishSuccess.message ??
-              `Skill "${publishSuccess.slug}" is listed on Arkiv.`}
-          </AlertTitle>
-          <AlertDescription className="flex flex-col gap-2">
-          {publishSuccess.version != null && (
-            <span>Version {publishSuccess.version}</span>
-          )}
-          {publishSuccess.listingKey && (
-            <span className="break-all font-mono text-xs">
-              Listing: {publishSuccess.listingKey}
-            </span>
-          )}
-          <Button
-            type="button"
-            variant="link"
-            className="h-auto w-fit px-0"
-            onClick={() => setPublishSuccess(null)}
-          >
-            Dismiss
-          </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-      <section className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
           <h1 className="text-2xl font-semibold tracking-tight">Contribute Agent Skills</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Step 1: metadata. Step 2: record in terminal. Step 3: auto-publish.
+            Prepare the skill, choose a recording device, then publish the captured session.
           </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {selectedDevice ? (
-              <Badge variant="secondary">{selectedDevice.device_name}</Badge>
-            ) : (
-              <Badge variant="destructive">No device selected</Badge>
-            )}
-            <Button type="button" variant="outline" onClick={() => setDevicePickerOpen(true)}>
-              Choose device
+        </div>
+        <div className="flex items-center gap-2">
+          {selectedDevice ? (
+            <Badge variant="secondary">{selectedDevice.device_name}</Badge>
+          ) : (
+            <Badge variant="destructive">No device selected</Badge>
+          )}
+          <Button type="button" variant="outline" onClick={() => setDevicePickerOpen(true)}>
+            Choose device
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        {["Skill brief", "Recording setup", "Capture console"].map((label, index) => (
+          <Button
+            key={label}
+            type="button"
+            variant={activeStage === index ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setActiveStage(index)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      {activeStage === 0 ? (
+        <Stage
+          step="1"
+          title="Skill brief"
+          description="Name the skill and define how agents should discover it."
+        >
+          <FieldGroup>
+            <Field>
+              <FieldLabel>Title</FieldLabel>
+              <Input
+                value={form.title}
+                onChange={(e) => updateTitle(e.target.value)}
+                placeholder="Example: Debug a failing Next.js build"
+              />
+              {form.skillSlug ? (
+                <FieldDescription>Generated slug: {form.skillSlug}</FieldDescription>
+              ) : null}
+            </Field>
+            <Field>
+              <FieldLabel>Description</FieldLabel>
+              <Textarea
+                rows={4}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="What does this skill help another agent do?"
+              />
+            </Field>
+            <Field>
+              <FieldLabel>Triggers</FieldLabel>
+              <Textarea
+                className="font-mono text-xs"
+                rows={4}
+                value={form.triggers}
+                onChange={(e) => setForm({ ...form, triggers: e.target.value })}
+              />
+              <FieldDescription>One trigger per line.</FieldDescription>
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel>Extra tags</FieldLabel>
+                <Input
+                  value={form.extraTags}
+                  onChange={(e) => setForm({ ...form, extraTags: e.target.value })}
+                />
+                <FieldDescription>Comma-separated tags.</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel>Expertise source</FieldLabel>
+                <Input
+                  value={form.expertiseSource}
+                  onChange={(e) => setForm({ ...form, expertiseSource: e.target.value })}
+                />
+              </Field>
+            </div>
+          </FieldGroup>
+          <div className="mt-6 flex justify-end">
+            <Button type="button" onClick={saveAndContinueFromBrief}>
+              Save and continue
             </Button>
-            {selectedDeviceId ? (
+          </div>
+        </Stage>
+      ) : null}
+
+      {activeStage === 1 ? (
+        <Stage
+          step="2"
+          title="Recording setup"
+          description="Select the local device that will run the orchestrator."
+        >
+          <div className="flex max-w-xl flex-col gap-4">
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <p className="text-sm font-medium">
+                {selectedDevice ? selectedDevice.device_name : "No device selected"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {selectedDevice
+                  ? selectedDevice.orchestrator_url
+                    ? "Ready for orchestrator actions."
+                    : "Device is missing an orchestrator URL."
+                  : "Choose a device before recording."}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" variant="outline" onClick={() => setDevicePickerOpen(true)}>
+                Choose device
+              </Button>
+              <Button type="button" onClick={saveAndContinueFromSetup}>
+                Save and continue
+              </Button>
+            </div>
+          </div>
+        </Stage>
+      ) : null}
+
+      {activeStage === 2 ? (
+        <Stage
+          step="3"
+          title="Capture console"
+          description="Save the skill brief, then start the recording session."
+        >
+          <div className="flex max-w-2xl flex-col gap-4">
+            <Field>
+              <FieldLabel>Recorded at</FieldLabel>
+              <Input
+                type="datetime-local"
+                value={form.recordedAt}
+                onChange={(e) => setForm({ ...form, recordedAt: e.target.value })}
+              />
+            </Field>
+
+            <div className="flex flex-wrap gap-3">
               <Button
                 type="button"
-                variant="ghost"
-                disabled={!!captureJobId || !!distributeJobId || !!orchJobId}
-                onClick={() => {
-                  clearDeviceSelection();
-                  setContributions([]);
-                  setLogs([]);
-                }}
+                onClick={() => void saveDraft()}
+                variant="secondary"
+                disabled={!selectedDeviceId || !!captureJobId || !!distributeJobId}
               >
-                Clear context
+                Save draft
               </Button>
+              <Button
+                type="button"
+                onClick={() => void startCapture()}
+                disabled={
+                  !form.title.trim() ||
+                  !form.description.trim() ||
+                  !selectedDeviceId ||
+                  !!captureJobId ||
+                  !!distributeJobId
+                }
+              >
+                Start recording
+              </Button>
+            </div>
+
+            {captureJobId || distributeJobId || logs.length > 0 ? (
+              <div className="max-h-64 overflow-auto rounded-lg border bg-muted/50 p-3 font-mono text-xs text-muted-foreground">
+                {captureJobId ? (
+                  <p className="mb-2 text-foreground">
+                    Press Q in the <strong>orchestrator</strong> terminal to stop recording.
+                  </p>
+                ) : null}
+                {logs.slice(-60).map((line, index) => (
+                  <div key={`${line}-${index}`}>{line}</div>
+                ))}
+              </div>
             ) : null}
           </div>
-        </div>
+        </Stage>
+      ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Skill Metadata</CardTitle>
-            <CardDescription>Define the catalog entry before recording the skill session.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-5">
-          {renderMetadataFields(form, setForm, false)}
-          <div className="flex flex-wrap gap-3">
-            <Button
-              type="button"
-              onClick={() => void saveDraft()}
-              variant="secondary"
-              disabled={!selectedDeviceId || !!captureJobId || !!distributeJobId || !!orchJobId}
-            >
-              Save draft
-            </Button>
-            <Button
-              type="button"
-              onClick={() => void startCapture()}
-              disabled={
-                !form.skillSlug.trim() ||
-                !form.title.trim() ||
-                !form.description.trim() ||
-                !selectedDeviceId ||
-                !!captureJobId ||
-                !!distributeJobId ||
-                !!orchJobId
-              }
-            >
-              Start recording
-            </Button>
-          </div>
-          {draftSaved && (
-            <Badge variant="secondary" className="w-fit">Draft saved on device</Badge>
-          )}
-          {(captureJobId || distributeJobId || orchJobId || (error && logs.length > 0)) && (
-            <div className="max-h-64 overflow-auto rounded-lg border bg-muted/50 p-3 font-mono text-xs text-muted-foreground">
-              {captureJobId && (
-                <p className="mb-2 text-foreground">
-                  Press Q in the <strong>orchestrator</strong> terminal to stop recording.
-                </p>
-              )}
-              {logs.slice(-60).map((l, i) => (
-                <div key={i}>{l}</div>
-              ))}
-            </div>
-          )}
-          {error && (
-            <Alert variant="destructive">
-              <AlertTitle>Action failed</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-lg font-medium">My contributions</h2>
-          <p className="text-sm text-muted-foreground">Manage drafts, catalog metadata, and published Arkiv listings.</p>
-        </div>
-        {contributionsError && (
-          <Alert>
-            <AlertTitle>Sync warning</AlertTitle>
-            <AlertDescription>{contributionsError}</AlertDescription>
-          </Alert>
-        )}
-        {visibleContributions.length === 0 && !contributionsError && (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>No active contributions</EmptyTitle>
-              <EmptyDescription>
-                Save a draft or publish a skill. Published skills on your device sync here automatically.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        )}
-        <div className="flex flex-col gap-3">
-          {visibleContributions.map((c) => (
-            <Card
-              key={c.id}
-              size="sm"
-              role="button"
-              tabIndex={0}
-              className="cursor-pointer transition-colors hover:bg-muted/40"
-              onClick={() => void openContributionDialog(c)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  void openContributionDialog(c);
-                }
-              }}
-            >
-              <CardHeader>
-                <div>
-                  <CardTitle>{c.skill_slug}</CardTitle>
-                  <CardDescription>
-                    {c.status}
-                    {c.arkiv_version != null && c.status === "published" ? ` · v${c.arkiv_version}` : ""}
-                  </CardDescription>
-                  {c.arkiv_listing_key && (
-                    <p className="mt-1 max-w-md truncate font-mono text-[10px] text-muted-foreground">
-                      {c.arkiv_listing_key}
-                    </p>
-                  )}
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      <Dialog
+      <DeviceChooserDialog
         open={devicePickerOpen}
         onOpenChange={setDevicePickerOpen}
-      >
-        <DialogContent className="max-h-[92svh] overflow-auto sm:max-w-6xl">
+        devices={devices}
+        selectedDeviceId={selectedDeviceId}
+        deviceChoiceId={deviceChoiceId}
+        onChoiceChange={setDeviceChoiceId}
+        onSelect={selectDevice}
+      />
+
+      <Dialog open={!!quitHref} onOpenChange={(open) => !open && setQuitHref(null)}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Choose device for orchestrator actions</DialogTitle>
+            <DialogTitle>Quit contribution?</DialogTitle>
             <DialogDescription>
-              Pick a device only when you are about to run orchestrator jobs. This context is in-app
-              only and is not persisted in cookies.
+              All progress in this contribution flow will be deleted.
             </DialogDescription>
           </DialogHeader>
-          {devices.length === 0 ? (
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>No devices available</EmptyTitle>
-                <EmptyDescription>
-                  Register a device first, then return to contribution flow.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <div className="grid max-h-[64svh] grid-cols-1 gap-4 overflow-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
-              {devices.map((device) => {
-                const isSelected = device.id === selectedDeviceId;
-                const isChoice = device.id === deviceChoiceId;
-                const missingOrchestrator = !device.orchestrator_url;
-                return (
-                  <Card
-                    key={device.id}
-                    size="sm"
-                    role="button"
-                    tabIndex={0}
-                    className={cn(
-                      "cursor-pointer transition-all",
-                      isChoice
-                        ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                        : "hover:bg-muted/40",
-                    )}
-                    onClick={() => setDeviceChoiceId(device.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        setDeviceChoiceId(device.id);
-                      }
-                    }}
-                  >
-                    <CardHeader>
-                      <CardTitle>{device.device_name}</CardTitle>
-                      <CardDescription className="flex items-center gap-2">
-                        {isSelected ? <Badge variant="secondary">Current</Badge> : null}
-                        {missingOrchestrator ? (
-                          <Badge variant="destructive">Missing orchestrator URL</Badge>
-                        ) : null}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-3 text-xs text-muted-foreground">
-                      <span className="break-all font-mono">{device.wallet_address}</span>
-                      <span className="break-all font-mono">
-                        {device.orchestrator_url ?? "No orchestrator URL"}
-                      </span>
-                    </CardContent>
-                    <CardFooter>
-                      {isChoice ? (
-                        <Button
-                          type="button"
-                          className="w-full"
-                          onClick={() => void selectDevice(device.id)}
-                        >
-                          {isSelected ? "Keep as selected device" : "Select this device"}
-                        </Button>
-                      ) : null}
-                    </CardFooter>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!!captureJobId || !!distributeJobId || !!orchJobId}
-              onClick={() => {
-                clearDeviceSelection();
-                setDeviceChoiceId(null);
-                setDevicePickerOpen(false);
-                setContributions([]);
-                setLogs([]);
-              }}
-            >
-              Clear current context
+            <Button type="button" variant="ghost" onClick={() => setQuitHref(null)}>
+              Stay here
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setDeviceChoiceId(selectedDeviceId);
-                setDevicePickerOpen(false);
-              }}
-            >
-              Close
+            <Button type="button" variant="destructive" onClick={confirmQuitProgress}>
+              Quit and delete progress
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={!!selectedContribution}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedContribution(null);
-            setSelectedSkill(null);
-            setCatalogDetail(null);
-            setEditingSlug(null);
-            setEditForm(null);
-            setEditDraftMeta(null);
-          }
-        }}
-      >
-        <DialogContent className="max-h-[90svh] overflow-auto sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{selectedContribution?.skill_slug ?? "Contribution"}</DialogTitle>
-            <DialogDescription>Contribution details and management actions.</DialogDescription>
-          </DialogHeader>
-
-          {selectedContribution ? (
-            <div className="flex flex-col gap-5">
-              <dl className="grid gap-4 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="text-muted-foreground">Status</dt>
-                  <dd>{selectedContribution.status}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Arkiv version</dt>
-                  <dd>{selectedContribution.arkiv_version ?? "Unavailable"}</dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-muted-foreground">Title</dt>
-                  <dd>{selectedContribution.title ?? "Unavailable"}</dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-muted-foreground">Description</dt>
-                  <dd>{selectedContribution.description ?? "Unavailable"}</dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-muted-foreground">Listing key</dt>
-                  <dd className="break-all font-mono text-xs">
-                    {selectedContribution.arkiv_listing_key ?? "Unavailable"}
-                  </dd>
-                </div>
-              </dl>
-
-              {editingSlug === selectedContribution.skill_slug && editForm ? (
-                <div className="flex flex-col gap-4">
-                  <Separator />
-                  <p className="text-sm text-muted-foreground">
-                    Edit catalog metadata
-                    {editDraftMeta?.arkivVersion != null ? ` (current Arkiv v${editDraftMeta.arkivVersion})` : ""}
-                  </p>
-                  {renderMetadataFields(editForm, setEditForm, true)}
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      type="button"
-                      onClick={() => void saveMetadataEdit()}
-                      disabled={!!orchJobId || !!captureJobId || !editForm.title.trim()}
-                    >
-                      Save metadata to Arkiv
-                    </Button>
-                    {editDraftMeta?.arkivListingKey ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => void startRecaptureRepublish()}
-                        disabled={!!orchJobId || !!captureJobId || !!distributeJobId}
-                      >
-                        Re-record &amp; republish
-                      </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => {
-                        setEditingSlug(null);
-                        setEditForm(null);
-                        setEditDraftMeta(null);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-
-              {selectedSkill && catalogDetail ? (
-                catalogDetail.error ? (
-                  <Alert variant="destructive">
-                    <AlertTitle>Could not load catalog entry</AlertTitle>
-                    <AlertDescription>{String(catalogDetail.error)}</AlertDescription>
-                  </Alert>
-                ) : (
-                  <CatalogDetailPanel detail={catalogDetail} />
-                )
-              ) : null}
-            </div>
-          ) : null}
-
-          {selectedContribution ? (
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => void openEdit(selectedContribution.skill_slug)}>
-                Edit
-              </Button>
-              {selectedContribution.status === "published" ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void fullRepublish(selectedContribution.skill_slug)}
-                  disabled={!!orchJobId || !!captureJobId}
-                >
-                  Re-encrypt
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => void archiveSkill(selectedContribution.skill_slug)}
-                disabled={!!orchJobId}
-              >
-                Archive
-              </Button>
-            </DialogFooter>
-          ) : null}
         </DialogContent>
       </Dialog>
     </div>

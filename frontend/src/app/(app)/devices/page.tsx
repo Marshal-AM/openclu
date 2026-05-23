@@ -1,16 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { CalendarClockIcon, FingerprintIcon, IdCardIcon, WalletIcon } from "lucide-react";
+import { toast } from "sonner";
 import { useDeviceInteractionStore } from "@/lib/device-interaction-store";
 import type { OwnedDevice } from "@/lib/device-types";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -18,7 +17,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -31,7 +29,6 @@ export default function DevicesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const selectedDeviceId = useDeviceInteractionStore((s) => s.selectedDeviceId);
-  const chooseDevice = useDeviceInteractionStore((s) => s.chooseDevice);
   const clearDeviceSelection = useDeviceInteractionStore((s) => s.clearDeviceSelection);
 
   const loadDevices = useCallback(async () => {
@@ -57,9 +54,10 @@ export default function DevicesPage() {
     void loadDevices();
   }, [loadDevices]);
 
-  function selectDevice(deviceId: string) {
-    chooseDevice(deviceId);
-  }
+  useEffect(() => {
+    if (!error) return;
+    toast.error("Could not load devices", { description: error });
+  }, [error]);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
@@ -70,13 +68,6 @@ export default function DevicesPage() {
           one you want to use for capture/publish actions.
         </p>
       </div>
-
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not load devices</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
 
       {loading ? (
         <Card>
@@ -143,74 +134,53 @@ export default function DevicesPage() {
                   </div>
                 </dl>
               </CardContent>
-              <CardFooter>
-                <Button
-                  type="button"
-                  variant={isSelected ? "secondary" : "outline"}
-                  className="w-full"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    selectDevice(device.id);
-                  }}
-                >
-                  {isSelected ? "Currently selected" : "Use this device"}
-                </Button>
-              </CardFooter>
             </Card>
           );
         })}
       </div>
 
       <Dialog open={!!selectedDevice} onOpenChange={(open) => !open && setSelectedDevice(null)}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>{selectedDevice?.device_name ?? "Device"}</DialogTitle>
             <DialogDescription>Registered device details.</DialogDescription>
           </DialogHeader>
           {selectedDevice ? (
-            <dl className="grid gap-5 text-sm">
-              <div>
-                <dt className="text-muted-foreground">Device row ID</dt>
+            <dl className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border bg-muted/25 p-4">
+                <dt className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <FingerprintIcon className="size-4" />
+                  Device Row ID
+                </dt>
                 <dd className="break-all font-mono text-xs">{selectedDevice.id}</dd>
               </div>
-              <div>
-                <dt className="text-muted-foreground">Device ID</dt>
+              <div className="rounded-xl border bg-muted/25 p-4">
+                <dt className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <IdCardIcon className="size-4" />
+                  Device ID
+                </dt>
                 <dd className="break-all font-mono text-xs">{selectedDevice.device_id}</dd>
               </div>
-              <div>
-                <dt className="text-muted-foreground">Device wallet</dt>
+              <div className="rounded-xl border bg-muted/25 p-4">
+                <dt className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <WalletIcon className="size-4" />
+                  Device Wallet
+                </dt>
                 <dd className="break-all font-mono text-xs">{selectedDevice.wallet_address}</dd>
               </div>
-              <div>
-                <dt className="text-muted-foreground">Orchestrator tunnel</dt>
-                <dd className="break-all font-mono text-xs">
-                  {selectedDevice.orchestrator_url ?? "Unavailable"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Registered</dt>
-                <dd>
+              <div className="rounded-xl border bg-muted/25 p-4">
+                <dt className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <CalendarClockIcon className="size-4" />
+                  Registered
+                </dt>
+                <dd className="text-sm">
                   {selectedDevice.registered_at
                     ? new Date(selectedDevice.registered_at).toLocaleString()
                     : "Unavailable"}
                 </dd>
               </div>
-              <div>
-                <Button
-                  type="button"
-                  className="w-full sm:w-auto"
-                  onClick={() => selectDevice(selectedDevice.id)}
-                >
-                  Use this device for contribution flow
-                </Button>
-              </div>
             </dl>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => clearDeviceSelection()}>
-              Clear selected context
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
