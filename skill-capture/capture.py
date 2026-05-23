@@ -12,7 +12,6 @@ load_dotenv(Path(__file__).resolve().parent / ".env")
 
 import pyaudio
 import mss
-import keyboard
 from PIL import Image
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -100,6 +99,28 @@ def save_outputs(run_dir: Path):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def wait_for_terminal_quit():
+    """Block until the orchestrator forwards q + Enter on stdin."""
+    quit_event = threading.Event()
+
+    def read_stdin():
+        while not quit_event.is_set():
+            try:
+                line = sys.stdin.readline()
+            except (KeyboardInterrupt, EOFError):
+                quit_event.set()
+                break
+            if line == "":
+                break
+            if line.strip().lower() == "q":
+                quit_event.set()
+                break
+
+    reader = threading.Thread(target=read_stdin, daemon=True)
+    reader.start()
+    quit_event.wait()
+    reader.join(timeout=1)
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python capture.py <skill-name> [--no-distribute]")
@@ -117,7 +138,7 @@ def main():
     print(f"Output dir: {run_dir}")
     print("\nStarting in 3 seconds...")
     time.sleep(3)
-    print("\nRecording! Press Q to stop.\n")
+    print("\nRecording! Type q and press Enter in the orchestrator terminal to stop.\n", flush=True)
 
     audio_thread = threading.Thread(target=record_audio, daemon=True)
     screen_thread = threading.Thread(target=record_screen, daemon=True)
@@ -125,7 +146,7 @@ def main():
     screen_thread.start()
 
     start_time = time.time()
-    keyboard.wait("q")
+    wait_for_terminal_quit()
     duration = time.time() - start_time
     stop_flag.set()
 

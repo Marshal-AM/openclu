@@ -13,6 +13,12 @@ const PUBLIC_FILE = /\.(.*)$/;
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const session = req.cookies.get(SESSION_COOKIE)?.value?.toLowerCase();
+
+  if (pathname.startsWith("/login") && session) {
+    return NextResponse.redirect(new URL("/contribute", req.url));
+  }
+
   if (
     PUBLIC.some((p) => pathname.startsWith(p)) ||
     pathname.startsWith("/_next") ||
@@ -22,7 +28,6 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const session = req.cookies.get(SESSION_COOKIE)?.value?.toLowerCase();
   if (!session && !pathname.startsWith("/api/")) {
     return NextResponse.redirect(new URL("/login", req.url));
   }

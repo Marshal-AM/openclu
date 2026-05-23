@@ -11,6 +11,7 @@ import {
   spawnVenvPython,
 } from "../../lib/spawn-util.js";
 import { readPublishResult, type PublishResult } from "./skill-manifest.js";
+import { startCaptureQuitListener, stopCaptureQuitListener } from "./capture-quit-listener.js";
 
 export type JobStatus =
   | "queued"
@@ -80,6 +81,7 @@ function attachChildHandlers(
   });
 
   child.on("close", (code) => {
+    stopCaptureQuitListener();
     job.exitCode = code ?? 1;
     if (code === 0) {
       onSuccess();
@@ -104,7 +106,7 @@ export function startCaptureJob(skillSlug: string): Job {
     skillSlug,
     status: "capturing",
     logs: [
-      `Starting capture for "${skillSlug}" - press Q in this orchestrator terminal to stop.`,
+      `Starting capture for "${skillSlug}" - type q and press Enter in this terminal to stop.`,
       `Python: ${resolveVenvPython()}`,
     ],
     exitCode: null,
@@ -134,8 +136,9 @@ export function startCaptureJob(skillSlug: string): Job {
     const child = spawnVenvPython(
       resolve(SKILL_CAPTURE_ROOT, "capture.py"),
       [skillSlug, "--no-distribute"],
-      { env: captureEnv() },
+      { env: captureEnv(), stdio: ["pipe", "pipe", "pipe"] },
     );
+    startCaptureQuitListener(child);
     attachChildHandlers(
       job,
       child,

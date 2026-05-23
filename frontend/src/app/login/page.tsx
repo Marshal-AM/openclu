@@ -2,11 +2,13 @@
 
 import { useLogin, usePrivy } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { syncWalletSession } from "@/components/auth/backend-session-sync";
 import { useCurrentWallet } from "@/components/auth/current-wallet";
 import { OpenCluLogo } from "@/components/OpenCluLogo";
 import { Button } from "@/components/ui/button";
+
+const HOME_PATH = "/contribute";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,26 +16,30 @@ export default function LoginPage() {
   const { login } = useLogin();
   const { authenticated, walletAddress } = useCurrentWallet();
   const [syncing, setSyncing] = useState(false);
+  const redirectStarted = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
+    if (!ready || !authenticated || !walletAddress || redirectStarted.current) return;
 
-    async function completeLogin() {
-      if (!authenticated || !walletAddress || syncing) return;
-      setSyncing(true);
+    redirectStarted.current = true;
+    let mounted = true;
+    setSyncing(true);
+
+    void (async () => {
       try {
         await syncWalletSession(walletAddress);
-        if (mounted) router.replace("/contribute");
       } finally {
-        if (mounted) setSyncing(false);
+        if (mounted) {
+          setSyncing(false);
+          router.replace(HOME_PATH);
+        }
       }
-    }
+    })();
 
-    void completeLogin();
     return () => {
       mounted = false;
     };
-  }, [authenticated, router, syncing, walletAddress]);
+  }, [authenticated, ready, router, walletAddress]);
 
   const canLogin = ready && !authenticated && !syncing;
 

@@ -39,7 +39,11 @@ export function resolveTsxCli(...searchDirs: string[]): string {
 export function spawnVenvPython(
   scriptAbs: string,
   args: string[],
-  opts: { cwd?: string; env?: NodeJS.ProcessEnv } = {},
+  opts: {
+    cwd?: string;
+    env?: NodeJS.ProcessEnv;
+    stdio?: SpawnOptions["stdio"];
+  } = {},
 ): ChildProcess {
   return spawn(resolveVenvPython(), [scriptAbs, ...args], {
     cwd: opts.cwd ?? SKILL_CAPTURE_ROOT,
@@ -51,6 +55,7 @@ export function spawnVenvPython(
     },
     shell: false,
     windowsHide: true,
+    ...(opts.stdio !== undefined ? { stdio: opts.stdio } : {}),
   } as SpawnOptions);
 }
 

@@ -750,7 +750,7 @@ export default function ContributePage() {
               <div className="max-h-64 overflow-auto rounded-lg border bg-muted/50 p-3 font-mono text-xs text-muted-foreground">
                 {captureJobId ? (
                   <p className="mb-2 text-foreground">
-                    Press Q in the <strong>portal</strong> terminal to stop recording.
+                    Type <strong>q</strong> and press Enter in the <strong>orchestrator</strong> terminal to stop recording.
                   </p>
                 ) : null}
                 {logs.slice(-60).map((line, index) => (
