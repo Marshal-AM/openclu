@@ -13,8 +13,15 @@ import {
   getPurchasedSkillsBaseDir,
 } from './lib/marketplaceCli';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const skillInternal = (internal as any).skillPurchasesInternal;
+type SkillPurchasesInternal = {
+  getPurchasedInternal: typeof internal.skillPurchasesInternal.getPurchasedInternal;
+  findByRegistryId: typeof internal.skillPurchasesInternal.findByRegistryId;
+  findBySkillName: typeof internal.skillPurchasesInternal.findBySkillName;
+  insertPurchased: typeof internal.skillPurchasesInternal.insertPurchased;
+};
+
+const skillInternal = (internal as unknown as { skillPurchasesInternal: SkillPurchasesInternal })
+  .skillPurchasesInternal;
 
 export const getWalletStatus = action({
   args: {},
@@ -26,19 +33,44 @@ export const getWalletStatus = action({
 });
 
 export const getSkillPreview = action({
-  args: { id: v.id('purchasedSkills') },
-  handler: async (ctx, args) => {
-    const row = await ctx.runQuery(skillInternal.getPurchasedInternal, {
-      id: args.id,
-    });
+  args: {
+    id: v.optional(v.id('purchasedSkills')),
+    registryId: v.optional(v.id('skillRegistry')),
+    full: v.optional(v.boolean()),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ excerpt: string; found: boolean }> => {
+    if (!args.id && !args.registryId) {
+      throw new Error('Provide id or registryId');
+    }
+
+    type PurchasedRow = {
+      localPath: string;
+      description: string;
+    };
+
+    let row: PurchasedRow | null = null;
+
+    if (args.id) {
+      row = await ctx.runQuery(skillInternal.getPurchasedInternal, { id: args.id });
+    } else if (args.registryId) {
+      row = await ctx.runQuery(skillInternal.findByRegistryId, {
+        registryId: args.registryId,
+      });
+    }
+
     if (!row) throw new Error('Purchase not found');
+
     const skillPath = resolve(row.localPath, 'SKILL.md');
     if (!existsSync(skillPath)) {
-      return { excerpt: '', found: false };
+      return { excerpt: row.description, found: false };
     }
+
     const raw = readFileSync(skillPath, 'utf-8');
-    const lines = raw.split('\n').slice(0, 24);
-    return { excerpt: lines.join('\n'), found: true };
+    const excerpt = args.full ? raw : raw.split('\n').slice(0, 24).join('\n');
+    return { excerpt, found: true };
   },
 });
 

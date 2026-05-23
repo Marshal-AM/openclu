@@ -91,7 +91,7 @@ export function SyncBoardSouls() {
 
   return (
     <SyncBoardLayout>
-      <div style={{ padding: 'var(--space-4)' }}>
+      <div style={{ width: '100%' }}>
         {/* Header */}
         <div
           style={{

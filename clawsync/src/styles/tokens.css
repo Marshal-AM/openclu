@@ -5,7 +5,9 @@
  * Never hardcode color values.
  */
 
-:root {
+:root,
+.light {
+  color-scheme: light;
   --background: oklch(0.9818 0.0054 95.0986);
   --foreground: oklch(0.3438 0.0269 95.7226);
   --card: oklch(0.9665 0.0067 97.3521);
@@ -123,6 +125,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.2679 0.0036 106.6427);
   --foreground: oklch(0.9576 0.0027 106.4494);
   --card: oklch(0.2928 0.0018 106.5092);
@@ -146,10 +149,4 @@
   --sidebar-primary: oklch(0.3250 0 0);
   --sidebar-accent: oklch(0.1680 0.0020 106.6177);
   --sidebar-accent-foreground: oklch(0.8074 0.0142 93.0137);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: light;
-  }
 }

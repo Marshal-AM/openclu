@@ -86,7 +86,7 @@ export function SyncBoardAgentMail() {
   };
 
   return (
-    <SyncBoardLayout title="AgentMail">
+    <SyncBoardLayout>
       <div className="agentmail-page">
         {/* Enable/Disable Toggle */}
         <section className="config-section">
@@ -331,7 +331,7 @@ export function SyncBoardAgentMail() {
 
       <style>{`
         .agentmail-page {
-          max-width: 800px;
+          width: 100%;
         }
 
         .config-section {

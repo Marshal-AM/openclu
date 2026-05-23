@@ -3,6 +3,7 @@ import { useAction, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import { CatalogDetailPanel } from '../components/syncboard/CatalogDetailPanel';
 import './SyncBoardPurchaseSkills.css';
 
@@ -200,14 +201,18 @@ export function SyncBoardPurchaseSkills() {
     : undefined;
 
   return (
-    <SyncBoardLayout title="Purchase Agent Skills">
-      <div className="purchase-skills-page">
-        <p className="description">
-          Browse the Arkiv catalog. Detail view shows full metadata, purchase block, ops, tags, and
-          version. Purchases use your AGENT_PRIVATE_KEY wallet on Story Aeneid (local Convex dev).
-          Purchased skills are registered in Skills and assigned to the selected agent automatically.
-          Run <code>npm run cdr-storage</code> in a second terminal before buying.
-        </p>
+    <SyncBoardLayout>
+      <div className="purchase-skills-page syncboard-page">
+        <SyncBoardPageToolbar
+          description={
+            <p>
+              Browse the Arkiv catalog. Detail view shows full metadata, purchase block, ops, tags, and
+              version. Purchases use your AGENT_PRIVATE_KEY wallet on Story Aeneid (local Convex dev).
+              Purchased skills are registered in Skills and assigned to the selected agent automatically.
+              Run <code>npm run cdr-storage</code> in a second terminal before buying.
+            </p>
+          }
+        />
 
         <div className="purchase-target-agent">
           <label htmlFor="purchase-target-agent">Add purchased skills to</label>

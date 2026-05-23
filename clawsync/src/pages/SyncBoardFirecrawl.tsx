@@ -51,7 +51,7 @@ export function SyncBoardFirecrawl() {
   };
 
   return (
-    <SyncBoardLayout title="Firecrawl">
+    <SyncBoardLayout>
       <div style={{ maxWidth: 900 }}>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
           Scrape web pages and convert them to clean markdown with durable caching.

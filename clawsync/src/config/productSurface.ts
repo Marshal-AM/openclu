@@ -1,4 +1,4 @@
-export const PRODUCT_HOME_PATH = '/syncboard/skills/purchase';
+export const PRODUCT_HOME_PATH = '/syncboard/agents';
 export const SHOW_CHAT_ACTIVITY_FEED = false;
 
 const MARKETPLACE_PRODUCT_ROUTES = [
@@ -17,14 +17,12 @@ const MARKETPLACE_PRODUCT_ROUTES = [
 ] as const;
 
 export const marketplaceProductNavPaths = new Set<string>([
-  '/syncboard',
   '/syncboard/agents',
   '/syncboard/agent-feed',
   '/syncboard/models',
   '/syncboard/skills',
   '/syncboard/skills/purchase',
   '/syncboard/skills/purchased',
-  '/syncboard/api',
 ]);
 
 export function isMarketplaceProductRoute(pathname: string): boolean {

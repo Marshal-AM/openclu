@@ -24,7 +24,7 @@ export function SyncBoardMcp() {
   };
 
   return (
-    <SyncBoardLayout title="MCP Servers">
+    <SyncBoardLayout>
       <div className="mcp-page">
         <div className="page-description">
           <p>
@@ -139,7 +139,7 @@ export function SyncBoardMcp() {
 
       <style>{`
         .mcp-page {
-          max-width: 800px;
+          width: 100%;
         }
 
         .page-description {
@@ -151,7 +151,6 @@ export function SyncBoardMcp() {
 
         .page-description p {
           color: var(--text-secondary);
-          max-width: 500px;
         }
 
         .add-form {

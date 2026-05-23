@@ -52,7 +52,7 @@ export function DeviceChooserDialog({
                 </EmptyHeader>
               </Empty>
             ) : (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,320px))] justify-start gap-4 overflow-y-auto p-1">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,280px))] justify-start gap-3 overflow-y-auto p-1">
                 {devices.map((device) => {
                   const isSelected = device.id === selectedDeviceId;
                   const isChoice = device.id === deviceChoiceId;

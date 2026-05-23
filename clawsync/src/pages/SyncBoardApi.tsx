@@ -63,7 +63,7 @@ export function SyncBoardApi() {
   };
 
   return (
-    <SyncBoardLayout title="API Keys">
+    <SyncBoardLayout>
       <div className="api-page">
         <div className="page-header">
           <div>
@@ -264,7 +264,7 @@ export function SyncBoardApi() {
 
       <style>{`
         .api-page {
-          max-width: 900px;
+          width: 100%;
         }
 
         .page-header {
@@ -276,7 +276,7 @@ export function SyncBoardApi() {
 
         .description {
           color: var(--text-secondary);
-          max-width: 500px;
+        }
         }
 
         .modal-overlay {

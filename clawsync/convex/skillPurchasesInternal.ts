@@ -8,6 +8,14 @@ export const getPurchasedInternal = internalQuery({
   },
 });
 
+export const findByRegistryId = internalQuery({
+  args: { registryId: v.id('skillRegistry') },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db.query('purchasedSkills').collect();
+    return rows.find((row) => row.skillRegistryId === args.registryId) ?? null;
+  },
+});
+
 export const findBySkillName = internalQuery({
   args: {
     skillName: v.string(),

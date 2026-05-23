@@ -54,7 +54,7 @@ export function SyncBoardMedia() {
   };
 
   return (
-    <SyncBoardLayout title="Media">
+    <SyncBoardLayout>
       <div style={{ maxWidth: 900 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-6)' }}>
           <p style={{ color: 'var(--text-secondary)', maxWidth: 500 }}>

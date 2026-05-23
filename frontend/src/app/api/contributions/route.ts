@@ -21,26 +21,52 @@ async function resolveOwnedDeviceId(
   return { ok: true, deviceId: device.id };
 }
 
+type ContributionRow = Record<string, unknown> & {
+  devices?: { id: string; device_name: string; device_id: string } | null;
+};
+
+function mapContributionRow(row: ContributionRow) {
+  const { devices, ...rest } = row;
+  return {
+    ...rest,
+    device_name: devices?.device_name ?? null,
+  };
+}
+
 export async function GET(req: Request) {
   try {
     const wallet = getSessionWalletFromRequest(req);
     if (!wallet) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const deviceId = new URL(req.url).searchParams.get("deviceId")?.trim() ?? null;
-    if (!deviceId) return NextResponse.json({ contributions: [] });
 
     const sb = getSupabaseAdmin();
-    const resolved = await resolveOwnedDeviceId(sb, wallet, deviceId);
-    if (!resolved.ok) {
-      return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+
+    if (deviceId) {
+      const resolved = await resolveOwnedDeviceId(sb, wallet, deviceId);
+      if (!resolved.ok) {
+        return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+      }
+
+      const { data, error } = await sb
+        .from("skill_contributions")
+        .select("*, devices!inner(id, device_name, device_id)")
+        .eq("device_id", resolved.deviceId)
+        .order("updated_at", { ascending: false });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({
+        contributions: (data ?? []).map((row) => mapContributionRow(row as ContributionRow)),
+      });
     }
 
     const { data, error } = await sb
       .from("skill_contributions")
-      .select("*")
-      .eq("device_id", resolved.deviceId)
+      .select("*, devices!inner(id, device_name, device_id, owner_wallet_address)")
+      .eq("devices.owner_wallet_address", wallet.toLowerCase())
       .order("updated_at", { ascending: false });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ contributions: data ?? [] });
+    return NextResponse.json({
+      contributions: (data ?? []).map((row) => mapContributionRow(row as ContributionRow)),
+    });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : String(e) },

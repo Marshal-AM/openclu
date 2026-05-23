@@ -63,7 +63,7 @@ export function SyncBoardConfig() {
   };
 
   return (
-    <SyncBoardLayout title="Configuration">
+    <SyncBoardLayout>
       <div className="config-page">
         <section className="config-section">
           <h3>Agent Settings</h3>
@@ -199,7 +199,7 @@ export function SyncBoardConfig() {
 
       <style>{`
         .config-page {
-          max-width: 700px;
+          width: 100%;
         }
 
         .config-section {

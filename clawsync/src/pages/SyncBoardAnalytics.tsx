@@ -21,7 +21,7 @@ export function SyncBoardAnalytics() {
   };
 
   return (
-    <SyncBoardLayout title="AI Analytics">
+    <SyncBoardLayout>
       <div style={{ maxWidth: 900 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-6)' }}>
           <p style={{ color: 'var(--text-secondary)', maxWidth: 500 }}>

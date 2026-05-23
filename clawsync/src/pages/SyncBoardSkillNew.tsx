@@ -69,7 +69,7 @@ export function SyncBoardSkillNew() {
   };
 
   return (
-    <SyncBoardLayout title="Add New Skill">
+    <SyncBoardLayout>
       <div className="skill-new-page">
         <div className="skill-type-selector">
           <button
@@ -198,7 +198,7 @@ export function SyncBoardSkillNew() {
 
       <style>{`
         .skill-new-page {
-          max-width: 700px;
+          width: 100%;
         }
 
         .skill-type-selector {

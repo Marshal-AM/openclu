@@ -4,13 +4,12 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import { AgentControls } from '../components/agents/AgentControls';
 import { AgentFeedItem } from '../components/agents/AgentFeedItem';
 import {
-  ArrowLeft,
   Trash,
   FloppyDisk,
-  Robot,
 } from '@phosphor-icons/react';
 
 /**
@@ -64,9 +63,9 @@ export function SyncBoardAgentDetail() {
 
   if (!agent) {
     return (
-      <SyncBoardLayout>
-        <div style={{ padding: 'var(--space-4)', color: 'var(--text-secondary)' }}>
-          Loading agent...
+      <SyncBoardLayout dynamicLabel="Agent">
+        <div className="syncboard-page">
+          <p className="syncboard-page-description">Loading agent...</p>
         </div>
       </SyncBoardLayout>
     );
@@ -126,73 +125,16 @@ export function SyncBoardAgentDetail() {
   };
 
   return (
-    <SyncBoardLayout>
-      <div style={{ padding: 'var(--space-4)' }}>
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-3)',
-            marginBottom: 'var(--space-4)',
-            flexWrap: 'wrap',
-          }}
-        >
-          <button
-            onClick={() => navigate('/syncboard/agents')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-1)',
-              padding: '6px 10px',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-primary)',
-              color: 'var(--text-secondary)',
-              fontSize: 'var(--text-sm)',
-              cursor: 'pointer',
-            }}
-          >
-            <ArrowLeft size={14} />
-            Back
-          </button>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 'var(--radius-md)',
-              background: agent.avatar || 'var(--text-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--bg-primary)',
-            }}
-          >
-            <Robot size={16} weight="fill" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <h1
-              style={{
-                fontSize: 'var(--text-lg)',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                margin: 0,
-              }}
-            >
-              {agent.name}
-            </h1>
-            <span
-              style={{
-                fontSize: 'var(--text-xs)',
-                color: 'var(--text-secondary)',
-                fontFamily: 'var(--font-mono)',
-              }}
-            >
+    <SyncBoardLayout dynamicLabel={agent.name}>
+      <div className="syncboard-page">
+        <SyncBoardPageToolbar
+          description={
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
               {agent.modelProvider}/{agent.model}
             </span>
-          </div>
-          <AgentControls agentId={agentId} status={agent.status} mode={agent.mode} />
-        </div>
+          }
+          actions={<AgentControls agentId={agentId} status={agent.status} mode={agent.mode} />}
+        />
 
         {/* Tabs */}
         <div

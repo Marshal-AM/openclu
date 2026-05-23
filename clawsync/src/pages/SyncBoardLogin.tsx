@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { OpenCluLogo } from '../components/syncboard/OpenCluLogo';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
@@ -8,7 +8,6 @@ interface SyncBoardLoginProps {
 }
 
 export function SyncBoardLogin({ onLogin }: SyncBoardLoginProps) {
-  const navigate = useNavigate();
   const login = useMutation(api.syncboardAuth.login);
 
   const [password, setPassword] = useState('');
@@ -44,7 +43,7 @@ export function SyncBoardLogin({ onLogin }: SyncBoardLoginProps) {
     <div className="login-page">
       <div className="login-container">
         <div className="login-header">
-          <img src="/clawsync-logo.svg" alt="ClawSync" className="login-logo" onError={(e) => { e.currentTarget.src = '/clawsync-logo.png'; }} />
+          <OpenCluLogo className="login-logo" />
           <p className="subtitle">SyncBoard Admin</p>
         </div>
 
@@ -68,12 +67,6 @@ export function SyncBoardLogin({ onLogin }: SyncBoardLoginProps) {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        <div className="login-footer">
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/chat')}>
-            &larr; Back to Chat
-          </button>
-        </div>
       </div>
 
       <style>{`
@@ -104,6 +97,12 @@ export function SyncBoardLogin({ onLogin }: SyncBoardLoginProps) {
           height: 40px;
           width: auto;
           margin-bottom: var(--space-2);
+        }
+
+        .login-logo.openclu-logo--light,
+        .login-logo.openclu-logo--dark {
+          height: 40px;
+          width: auto;
         }
 
         .subtitle {

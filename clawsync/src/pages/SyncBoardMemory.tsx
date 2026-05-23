@@ -52,7 +52,7 @@ export function SyncBoardMemory() {
   };
 
   return (
-    <SyncBoardLayout title="Memory">
+    <SyncBoardLayout>
       <div style={{ maxWidth: 900 }}>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
           Persistent agent memory powered by Supermemory. The agent remembers context across

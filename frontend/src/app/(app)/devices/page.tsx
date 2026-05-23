@@ -3,16 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { CalendarClockIcon, FingerprintIcon, IdCardIcon, WalletIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useDeviceInteractionStore } from "@/lib/device-interaction-store";
+import { DeviceOptionCard } from "@/components/DeviceOptionCard";
 import type { OwnedDevice } from "@/lib/device-types";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -28,8 +20,6 @@ export default function DevicesPage() {
   const [selectedDevice, setSelectedDevice] = useState<OwnedDevice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const selectedDeviceId = useDeviceInteractionStore((s) => s.selectedDeviceId);
-  const clearDeviceSelection = useDeviceInteractionStore((s) => s.clearDeviceSelection);
 
   const loadDevices = useCallback(async () => {
     setLoading(true);
@@ -37,18 +27,14 @@ export default function DevicesPage() {
       const res = await fetch("/api/devices");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not load devices");
-      const list = (data.devices ?? []) as OwnedDevice[];
-      setDevices(list);
-      if (selectedDeviceId && !list.some((d) => d.id === selectedDeviceId)) {
-        clearDeviceSelection();
-      }
+      setDevices((data.devices ?? []) as OwnedDevice[]);
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [clearDeviceSelection, selectedDeviceId]);
+  }, []);
 
   useEffect(() => {
     void loadDevices();
@@ -60,25 +46,21 @@ export default function DevicesPage() {
   }, [error]);
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">My Devices</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Devices registered via <code className="text-foreground">register.sh</code>. Choose the
-          one you want to use for capture/publish actions.
+          Devices registered via <code className="text-foreground">register.sh</code>. Select a
+          card to view device details.
         </p>
       </div>
 
       {loading ? (
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-4 w-64" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-40 w-full" />
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-36 w-full rounded-xl" />
+          ))}
+        </div>
       ) : null}
 
       {!loading && devices.length === 0 && !error ? (
@@ -92,52 +74,19 @@ export default function DevicesPage() {
         </Empty>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {devices.map((device) => {
-          const isSelected = selectedDeviceId === device.id;
-          return (
-            <Card
+      {!loading && devices.length > 0 ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {devices.map((device) => (
+            <DeviceOptionCard
               key={device.id}
-              role="button"
-              tabIndex={0}
-              className="cursor-pointer transition-colors hover:bg-muted/40"
-              onClick={() => setSelectedDevice(device)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  setSelectedDevice(device);
-                }
-              }}
-            >
-              <CardHeader>
-                <CardTitle>{device.device_name}</CardTitle>
-                <CardDescription className="flex items-center gap-2">
-                  {isSelected ? <Badge variant="secondary">Selected for recording</Badge> : null}
-                  {!device.orchestrator_url ? (
-                    <Badge variant="destructive">Missing orchestrator URL</Badge>
-                  ) : null}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <dl className="grid gap-3 text-sm">
-                  <div>
-                    <dt className="text-muted-foreground">Device wallet</dt>
-                    <dd className="truncate font-mono text-xs">{device.wallet_address}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Registered</dt>
-                    <dd>
-                      {device.registered_at
-                        ? new Date(device.registered_at).toLocaleString()
-                        : "Unavailable"}
-                    </dd>
-                  </div>
-                </dl>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+              device={device}
+              size="lg"
+              mode="static"
+              onChoose={() => setSelectedDevice(device)}
+            />
+          ))}
+        </div>
+      ) : null}
 
       <Dialog open={!!selectedDevice} onOpenChange={(open) => !open && setSelectedDevice(null)}>
         <DialogContent className="sm:max-w-4xl">

@@ -3,9 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CatalogDetailPanel } from "@/components/CatalogDetailPanel";
-import { DeviceChooserDialog } from "@/components/DeviceChooserDialog";
 import { useOrchestratorJob } from "@/hooks/useOrchestratorJob";
-import { useDeviceInteractionStore } from "@/lib/device-interaction-store";
 import type { OwnedDevice } from "@/lib/device-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +45,8 @@ type MetadataForm = {
 
 type Contribution = {
   id: string;
+  device_id: string;
+  device_name?: string | null;
   skill_slug: string;
   status: string;
   title?: string | null;
@@ -108,7 +108,7 @@ function deviceHeaders(deviceId: string | null): HeadersInit {
 
 async function postSkillMd(
   form: MetadataForm,
-  selectedDeviceId: string | null,
+  deviceId: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
   const slug = form.skillSlug.toLowerCase().replace(/\s+/g, "-");
   const triggers = form.triggers
@@ -122,7 +122,7 @@ async function postSkillMd(
 
   const res = await fetch(`${ORCH}/jobs/skill-md`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
+    headers: { "Content-Type": "application/json", ...deviceHeaders(deviceId) },
     body: JSON.stringify({
       skillSlug: slug,
       title: form.title,
@@ -130,7 +130,7 @@ async function postSkillMd(
       triggers: triggers.length ? triggers : ["general"],
       extraTags,
       expertiseSource: form.expertiseSource || undefined,
-      recordedAt: form.recordedAt ? new Date(form.recordedAt).toISOString() : undefined,
+      recordedAt: new Date().toISOString(),
     }),
   });
 
@@ -146,13 +146,7 @@ export default function ContributionsPage() {
   const [catalogDetail, setCatalogDetail] = useState<Record<string, unknown> | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<PublishSuccess | null>(null);
   const [contributionsError, setContributionsError] = useState("");
-  const [devices, setDevices] = useState<OwnedDevice[]>([]);
-  const [devicePickerOpen, setDevicePickerOpen] = useState(false);
-  const [deviceChoiceId, setDeviceChoiceId] = useState<string | null>(null);
-
-  const selectedDeviceId = useDeviceInteractionStore((s) => s.selectedDeviceId);
-  const chooseDevice = useDeviceInteractionStore((s) => s.chooseDevice);
-  const clearDeviceSelection = useDeviceInteractionStore((s) => s.clearDeviceSelection);
+  const [loading, setLoading] = useState(true);
 
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<MetadataForm | null>(null);
@@ -167,36 +161,28 @@ export default function ContributionsPage() {
   const recaptureDistributeRequested = useRef(false);
   const distributeRequested = useRef(false);
   const editFormRef = useRef<MetadataForm | null>(null);
+  const actionDeviceIdRef = useRef<string | null>(null);
   editFormRef.current = editForm;
 
-  const selectedDevice = devices.find((d) => d.id === selectedDeviceId) ?? null;
+  const actionDeviceId = selectedContribution?.device_id ?? actionDeviceIdRef.current;
 
-  const loadContributions = useCallback(
-    async (deviceIdOverride?: string) => {
-      const deviceId = deviceIdOverride ?? selectedDeviceId;
-      if (!deviceId) {
-        setContributions([]);
-        return;
-      }
-      const res = await fetch(`/api/contributions?deviceId=${encodeURIComponent(deviceId)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setContributions(data.contributions ?? []);
-        if (!contributionsError || contributionsError.includes("Could not load contributions")) {
-          setContributionsError("");
-        }
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setContributionsError(
-          (data as { error?: string }).error ?? `Could not load contributions (${res.status})`,
-        );
-      }
-    },
-    [selectedDeviceId, contributionsError],
-  );
+  const loadContributions = useCallback(async () => {
+    const res = await fetch("/api/contributions");
+    if (res.ok) {
+      const data = await res.json();
+      setContributions((data.contributions ?? []) as Contribution[]);
+      setContributionsError("");
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setContributionsError(
+        (data as { error?: string }).error ?? `Could not load contributions (${res.status})`,
+      );
+    }
+  }, []);
 
   const syncContributionFromJob = useCallback(
     async (
+      deviceId: string,
       slug: string,
       status: string,
       pr?: Partial<DeviceSkill>,
@@ -206,7 +192,7 @@ export default function ContributionsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          deviceId: selectedDeviceId,
+          deviceId,
           skillSlug: slug,
           status,
           arkivListingKey: pr?.arkivListingKey,
@@ -217,143 +203,106 @@ export default function ContributionsPage() {
       });
       await loadContributions();
     },
-    [loadContributions, selectedDeviceId],
+    [loadContributions],
   );
 
-  const syncPublishedFromDevice = useCallback(
-    async (deviceIdOverride?: string) => {
-      const deviceId = deviceIdOverride ?? selectedDeviceId;
-      if (!deviceId) return;
+  const syncPublishedFromDevice = useCallback(async (deviceId: string) => {
+    const res = await fetch(`${ORCH}/skills`, {
+      headers: deviceHeaders(deviceId),
+    });
 
-      const res = await fetch(`${ORCH}/skills`, {
-        headers: deviceHeaders(deviceId),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        if (res.status === 404) {
-          setContributionsError(
-            "Device orchestrator is missing GET /api/v1/skills — restart orchestrator (npm run start) and refresh.",
-          );
-        } else {
-          setContributionsError(
-            (err as { error?: string }).error ??
-              `Cannot read skills from device (${res.status}). Is orchestrator running?`,
-          );
-        }
-        return;
-      }
-
-      const data = await res.json();
-      const skills = (data.skills ?? []) as DeviceSkill[];
-      const onDevice = skills.filter(
-        (s) => isPublishedOnDevice(s) || s.arkivStatus === "archived",
-      );
-      if (onDevice.length === 0) return;
-
-      const failures: string[] = [];
-      for (const skill of onDevice) {
-        const postRes = await fetch("/api/contributions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            deviceId,
-            skillSlug: skill.skillSlug,
-            status:
-              skill.arkivStatus === "archived"
-                ? "archived"
-                : isPublishedOnDevice(skill)
-                  ? "published"
-                  : "draft",
-            arkivListingKey: skill.arkivListingKey,
-            arkivVersion: skill.arkivVersion,
-          }),
-        });
-        if (!postRes.ok) {
-          const err = await postRes.json().catch(() => ({}));
-          failures.push(`${skill.skillSlug}: ${(err as { error?: string }).error ?? postRes.status}`);
-        }
-      }
-
-      if (failures.length > 0) {
-        setContributionsError(`Failed to save to Supabase: ${failures.join("; ")}`);
-      }
-    },
-    [selectedDeviceId],
-  );
-
-  const loadDevices = useCallback(async () => {
-    const res = await fetch("/api/devices");
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setContributionsError((data as { error?: string }).error ?? `Could not load devices (${res.status})`);
-      setDevices([]);
-      clearDeviceSelection();
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 404) {
+        setContributionsError(
+          "A device orchestrator is missing GET /api/v1/skills — restart orchestrator (npm run start) and refresh.",
+        );
+      } else {
+        setContributionsError(
+          (err as { error?: string }).error ??
+            `Cannot read skills from a device (${res.status}). Is orchestrator running?`,
+        );
+      }
       return;
     }
-    const list = ((data as { devices?: OwnedDevice[] }).devices ?? []) as OwnedDevice[];
-    setDevices(list);
-    if (selectedDeviceId && !list.some((d) => d.id === selectedDeviceId)) {
-      clearDeviceSelection();
-      setContributions([]);
-      setContributionsError("Previously selected device is no longer available.");
-    }
-    if (list.length === 0) {
-      clearDeviceSelection();
-      setContributions([]);
-      setContributionsError(
-        "No devices registered yet. Register a device first, then return to contributions.",
-      );
-    }
-  }, [clearDeviceSelection, selectedDeviceId]);
 
-  const selectDevice = useCallback(
-    async (deviceId: string) => {
-      chooseDevice(deviceId);
-      setDevicePickerOpen(false);
-      setDeviceChoiceId(null);
-      setError("");
-      setContributionsError("");
-      setContributions([]);
-      await syncPublishedFromDevice(deviceId);
-      await loadContributions(deviceId);
-      toast.success("Device selected.");
+    const data = await res.json();
+    const skills = (data.skills ?? []) as DeviceSkill[];
+    const onDevice = skills.filter(
+      (s) => isPublishedOnDevice(s) || s.arkivStatus === "archived",
+    );
+    if (onDevice.length === 0) return;
+
+    const failures: string[] = [];
+    for (const skill of onDevice) {
+      const postRes = await fetch("/api/contributions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deviceId,
+          skillSlug: skill.skillSlug,
+          status:
+            skill.arkivStatus === "archived"
+              ? "archived"
+              : isPublishedOnDevice(skill)
+                ? "published"
+                : "draft",
+          arkivListingKey: skill.arkivListingKey,
+          arkivVersion: skill.arkivVersion,
+        }),
+      });
+      if (!postRes.ok) {
+        const err = await postRes.json().catch(() => ({}));
+        failures.push(`${skill.skillSlug}: ${(err as { error?: string }).error ?? postRes.status}`);
+      }
+    }
+
+    if (failures.length > 0) {
+      setContributionsError(`Failed to save to Supabase: ${failures.join("; ")}`);
+    }
+  }, []);
+
+  const syncAllDevices = useCallback(
+    async (deviceList: OwnedDevice[]) => {
+      for (const device of deviceList) {
+        await syncPublishedFromDevice(device.id);
+      }
     },
-    [chooseDevice, loadContributions, syncPublishedFromDevice],
+    [syncPublishedFromDevice],
   );
 
-  function ensureDeviceSelected(): boolean {
-    if (!selectedDeviceId) {
-      setDevicePickerOpen(true);
-      setError("Select a device before running orchestrator actions.");
-      return false;
+  const refreshAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/devices");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setContributionsError((data as { error?: string }).error ?? `Could not load devices (${res.status})`);
+        setContributions([]);
+        return;
+      }
+      const list = ((data as { devices?: OwnedDevice[] }).devices ?? []) as OwnedDevice[];
+      if (list.length > 0) {
+        await syncAllDevices(list);
+      }
+      await loadContributions();
+    } finally {
+      setLoading(false);
     }
-    return true;
+  }, [loadContributions, syncAllDevices]);
+
+  function requireDeviceId(): string | null {
+    const deviceId = selectedContribution?.device_id ?? actionDeviceIdRef.current;
+    if (!deviceId) {
+      setError("Contribution device is unavailable.");
+      return null;
+    }
+    return deviceId;
   }
 
   useEffect(() => {
-    void loadDevices();
-  }, [loadDevices]);
-
-  useEffect(() => {
-    if (devicePickerOpen) {
-      setDeviceChoiceId(selectedDeviceId);
-    }
-  }, [devicePickerOpen, selectedDeviceId]);
-
-  useEffect(() => {
-    return () => {
-      clearDeviceSelection();
-    };
-  }, [clearDeviceSelection]);
-
-  useEffect(() => {
-    if (!selectedDeviceId) return;
-    void (async () => {
-      await syncPublishedFromDevice();
-      await loadContributions();
-    })();
-  }, [selectedDeviceId, syncPublishedFromDevice, loadContributions]);
+    void refreshAll();
+  }, [refreshAll]);
 
   useEffect(() => {
     if (!publishSuccess) return;
@@ -375,14 +324,17 @@ export default function ContributionsPage() {
     toast.error("Action failed", { description: error });
   }, [error]);
 
-  const { logs: orchLogs } = useOrchestratorJob(orchJobId, selectedDeviceId, {
+  const { logs: orchLogs } = useOrchestratorJob(orchJobId, actionDeviceId, {
     onPublished: async (job) => {
       const slug = job.skillSlug;
       const pr = job.publishResult;
       const label = orchJobLabelRef.current;
+      const deviceId = actionDeviceIdRef.current;
       orchJobLabelRef.current = "";
       setOrchJobId(null);
       setLogs([]);
+      if (!deviceId) return;
+
       if (label === "update-catalog") {
         setPublishSuccess({
           slug,
@@ -393,7 +345,7 @@ export default function ContributionsPage() {
         setEditingSlug(null);
         setEditForm(null);
         setEditDraftMeta(null);
-        await syncContributionFromJob(slug, "published", pr, {
+        await syncContributionFromJob(deviceId, slug, "published", pr, {
           title: editFormRef.current?.title,
           description: editFormRef.current?.description,
         });
@@ -405,7 +357,7 @@ export default function ContributionsPage() {
         setEditingSlug(null);
         setEditForm(null);
         setEditDraftMeta(null);
-        await syncContributionFromJob(slug, "archived", pr);
+        await syncContributionFromJob(deviceId, slug, "archived", pr);
       } else if (label === "republish") {
         setPublishSuccess({
           slug,
@@ -416,7 +368,7 @@ export default function ContributionsPage() {
         setEditingSlug(null);
         setEditForm(null);
         setEditDraftMeta(null);
-        await syncContributionFromJob(slug, "published", pr);
+        await syncContributionFromJob(deviceId, slug, "published", pr);
       }
     },
     onFailed: (job) => {
@@ -436,9 +388,11 @@ export default function ContributionsPage() {
 
     const id = setInterval(async () => {
       const jobId = distributeJobId ?? captureJobId;
-      if (!jobId) return;
+      const deviceId = actionDeviceIdRef.current;
+      if (!jobId || !deviceId) return;
+
       const res = await fetch(`${ORCH}/jobs/${jobId}`, {
-        headers: deviceHeaders(selectedDeviceId),
+        headers: deviceHeaders(deviceId),
       });
       if (!res.ok) return;
       const job = await res.json();
@@ -455,7 +409,7 @@ export default function ContributionsPage() {
         const slug = editingSlug ?? "";
         const dRes = await fetch(`${ORCH}/jobs/${captureJobId}/distribute`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
+          headers: { "Content-Type": "application/json", ...deviceHeaders(deviceId) },
           body: JSON.stringify({ skillSlug: slug }),
         });
         const d = await dRes.json();
@@ -492,7 +446,7 @@ export default function ContributionsPage() {
         setDistributeJobId(null);
         distributeRequested.current = false;
         recaptureDistributeRequested.current = false;
-        await syncContributionFromJob(slug, "published", pr, {
+        await syncContributionFromJob(deviceId, slug, "published", pr, {
           title: editForm?.title,
           description: editForm?.description,
         });
@@ -510,22 +464,16 @@ export default function ContributionsPage() {
     }, 2000);
 
     return () => clearInterval(id);
-  }, [
-    captureJobId,
-    distributeJobId,
-    editingSlug,
-    editForm,
-    selectedDeviceId,
-    syncContributionFromJob,
-  ]);
+  }, [captureJobId, distributeJobId, editingSlug, editForm, syncContributionFromJob]);
 
   async function openEdit(slug: string) {
-    if (!ensureDeviceSelected()) return;
+    const deviceId = requireDeviceId();
+    if (!deviceId) return;
     setError("");
     setSelectedSkill(null);
     setCatalogDetail(null);
     const res = await fetch(`${ORCH}/skills/${slug}/draft`, {
-      headers: deviceHeaders(selectedDeviceId),
+      headers: deviceHeaders(deviceId),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -540,9 +488,10 @@ export default function ContributionsPage() {
 
   async function saveMetadataEdit() {
     if (!editForm || !editingSlug) return;
-    if (!ensureDeviceSelected()) return;
+    const deviceId = requireDeviceId();
+    if (!deviceId) return;
     setError("");
-    const saved = await postSkillMd(editForm, selectedDeviceId);
+    const saved = await postSkillMd(editForm, deviceId);
     if (!saved.ok) {
       setError(saved.error ?? "Failed to update SKILL.md");
       return;
@@ -550,7 +499,7 @@ export default function ContributionsPage() {
     setLogs(["Updating Arkiv catalog…"]);
     const res = await fetch(`${ORCH}/jobs/update-catalog`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
+      headers: { "Content-Type": "application/json", ...deviceHeaders(deviceId) },
       body: JSON.stringify({ skillSlug: editingSlug }),
     });
     const data = await res.json();
@@ -558,29 +507,32 @@ export default function ContributionsPage() {
       setError(data.error ?? "Failed to start catalog update");
       return;
     }
+    actionDeviceIdRef.current = deviceId;
     orchJobLabelRef.current = "update-catalog";
     setOrchJobId(data.jobId);
   }
 
   async function startRecaptureRepublish() {
     if (!editForm || !editingSlug) return;
-    if (!ensureDeviceSelected()) return;
+    const deviceId = requireDeviceId();
+    if (!deviceId) return;
     const ok = window.confirm(
       "Re-record & republish creates a new Story IP asset and CDR vault. Existing buyers keep access to the old vault; new buyers need the new listing. Continue?",
     );
     if (!ok) return;
     setError("");
-    const saved = await postSkillMd(editForm, selectedDeviceId);
+    const saved = await postSkillMd(editForm, deviceId);
     if (!saved.ok) {
       setError(saved.error ?? "Failed to save SKILL.md");
       return;
     }
     distributeRequested.current = false;
     recaptureDistributeRequested.current = true;
+    actionDeviceIdRef.current = deviceId;
     setLogs(["Starting re-capture…"]);
     const res = await fetch(`${ORCH}/jobs/capture`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
+      headers: { "Content-Type": "application/json", ...deviceHeaders(deviceId) },
       body: JSON.stringify({ skillSlug: editingSlug }),
     });
     const data = await res.json();
@@ -593,7 +545,8 @@ export default function ContributionsPage() {
   }
 
   async function fullRepublish(slug: string) {
-    if (!ensureDeviceSelected()) return;
+    const deviceId = requireDeviceId();
+    if (!deviceId) return;
     const ok = window.confirm(
       "Re-encrypt & republish runs full distribute (new IP + vault) without re-recording. Continue?",
     );
@@ -602,7 +555,7 @@ export default function ContributionsPage() {
     setLogs(["Starting full republish…"]);
     const res = await fetch(`${ORCH}/jobs/republish`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
+      headers: { "Content-Type": "application/json", ...deviceHeaders(deviceId) },
       body: JSON.stringify({ skillSlug: slug }),
     });
     const data = await res.json();
@@ -610,12 +563,14 @@ export default function ContributionsPage() {
       setError(data.error ?? "Republish failed to start");
       return;
     }
+    actionDeviceIdRef.current = deviceId;
     orchJobLabelRef.current = "republish";
     setOrchJobId(data.jobId);
   }
 
   async function archiveSkill(slug: string) {
-    if (!ensureDeviceSelected()) return;
+    const deviceId = requireDeviceId();
+    if (!deviceId) return;
     const ok = window.confirm(
       `Remove "${slug}" from the marketplace? This archives the Arkiv listing (soft delete).`,
     );
@@ -624,7 +579,7 @@ export default function ContributionsPage() {
     setLogs(["Archiving on Arkiv…"]);
     const res = await fetch(`${ORCH}/jobs/archive`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
+      headers: { "Content-Type": "application/json", ...deviceHeaders(deviceId) },
       body: JSON.stringify({ skillSlug: slug }),
     });
     const data = await res.json();
@@ -632,6 +587,7 @@ export default function ContributionsPage() {
       setError(data.error ?? "Archive failed to start");
       return;
     }
+    actionDeviceIdRef.current = deviceId;
     orchJobLabelRef.current = "archive";
     setOrchJobId(data.jobId);
   }
@@ -645,6 +601,7 @@ export default function ContributionsPage() {
   }
 
   async function openContributionDialog(contribution: Contribution) {
+    actionDeviceIdRef.current = contribution.device_id;
     setSelectedContribution(contribution);
     setSelectedSkill(contribution.skill_slug);
     setCatalogDetail(null);
@@ -706,23 +663,13 @@ export default function ContributionsPage() {
           />
           <FieldDescription>Comma-separated tags.</FieldDescription>
         </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field>
-            <FieldLabel>Expertise source</FieldLabel>
-            <Input
-              value={value.expertiseSource}
-              onChange={(e) => onChange({ ...value, expertiseSource: e.target.value })}
-            />
-          </Field>
-          <Field>
-            <FieldLabel>Recorded at</FieldLabel>
-            <Input
-              type="datetime-local"
-              value={value.recordedAt}
-              onChange={(e) => onChange({ ...value, recordedAt: e.target.value })}
-            />
-          </Field>
-        </div>
+        <Field>
+          <FieldLabel>Expertise source</FieldLabel>
+          <Input
+            value={value.expertiseSource}
+            onChange={(e) => onChange({ ...value, expertiseSource: e.target.value })}
+          />
+        </Field>
       </FieldGroup>
     );
   }
@@ -730,23 +677,11 @@ export default function ContributionsPage() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8">
       <section className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">My contributions</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Manage drafts, catalog metadata, and published Arkiv listings.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {selectedDevice ? (
-              <Badge variant="secondary">{selectedDevice.device_name}</Badge>
-            ) : (
-              <Badge variant="destructive">No device selected</Badge>
-            )}
-            <Button type="button" variant="outline" onClick={() => setDevicePickerOpen(true)}>
-              Choose device
-            </Button>
-          </div>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">My contributions</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            All skills across your registered devices — drafts, catalog metadata, and published listings.
+          </p>
         </div>
 
         {logs.length > 0 ? (
@@ -757,12 +692,12 @@ export default function ContributionsPage() {
           </div>
         ) : null}
 
-        {visibleContributions.length === 0 && !contributionsError ? (
+        {!loading && visibleContributions.length === 0 && !contributionsError ? (
           <Empty>
             <EmptyHeader>
               <EmptyTitle>No active contributions</EmptyTitle>
               <EmptyDescription>
-                Save a draft or publish a skill. Published skills on your device sync here automatically.
+                Save a draft or publish a skill from any device. Contributions sync here automatically.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -793,6 +728,9 @@ export default function ContributionsPage() {
                       ? ` · v${contribution.arkiv_version}`
                       : ""}
                   </CardDescription>
+                  <div className="mt-2">
+                    <Badge variant="outline">{contribution.device_name ?? "Unknown device"}</Badge>
+                  </div>
                   {contribution.arkiv_listing_key ? (
                     <p className="mt-1 max-w-md truncate font-mono text-[10px] text-muted-foreground">
                       {contribution.arkiv_listing_key}
@@ -810,16 +748,6 @@ export default function ContributionsPage() {
           ))}
         </div>
       </section>
-
-      <DeviceChooserDialog
-        open={devicePickerOpen}
-        onOpenChange={setDevicePickerOpen}
-        devices={devices}
-        selectedDeviceId={selectedDeviceId}
-        deviceChoiceId={deviceChoiceId}
-        onChoiceChange={setDeviceChoiceId}
-        onSelect={selectDevice}
-      />
 
       <Dialog
         open={!!selectedContribution}
@@ -843,6 +771,10 @@ export default function ContributionsPage() {
           {selectedContribution ? (
             <div className="flex flex-col gap-5">
               <dl className="grid gap-4 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-muted-foreground">Device</dt>
+                  <dd>{selectedContribution.device_name ?? "Unavailable"}</dd>
+                </div>
                 <div>
                   <dt className="text-muted-foreground">Status</dt>
                   <dd>{selectedContribution.status}</dd>

@@ -133,7 +133,7 @@ async function postSkillMd(
       triggers: triggers.length ? triggers : ["general"],
       extraTags,
       expertiseSource: form.expertiseSource || undefined,
-      recordedAt: form.recordedAt ? new Date(form.recordedAt).toISOString() : undefined,
+      recordedAt: new Date().toISOString(),
     }),
   });
   const data = await res.json();
@@ -722,15 +722,6 @@ export default function ContributePage() {
           description="Save the skill brief, then start the recording session."
         >
           <div className="flex max-w-2xl flex-col gap-4">
-            <Field>
-              <FieldLabel>Recorded at</FieldLabel>
-              <Input
-                type="datetime-local"
-                value={form.recordedAt}
-                onChange={(e) => setForm({ ...form, recordedAt: e.target.value })}
-              />
-            </Field>
-
             <div className="flex flex-wrap gap-3">
               <Button
                 type="button"

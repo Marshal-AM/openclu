@@ -4,6 +4,7 @@ import { useQuery, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import './SyncBoardPurchasedSkills.css';
 
 type PurchasedSkillRow = {
@@ -57,17 +58,23 @@ export function SyncBoardPurchasedSkills() {
   }
 
   return (
-    <SyncBoardLayout title="My Purchased Skills">
-      <div className="purchased-skills-page">
-        <p className="description">
-          Skills you bought from the Arkiv marketplace. Purchases are automatically registered in
-          Skills and enabled on the default agent.
-        </p>
-        <p className="description">
-          <Link to="/syncboard/skills/purchase" className="link">
-            Browse marketplace →
-          </Link>
-        </p>
+    <SyncBoardLayout>
+      <div className="purchased-skills-page syncboard-page">
+        <SyncBoardPageToolbar
+          description={
+            <>
+              <p>
+                Skills you bought from the Arkiv marketplace. Purchases are automatically registered in
+                Skills and enabled on the default agent.
+              </p>
+              <p>
+                <Link to="/syncboard/skills/purchase" className="link">
+                  Browse marketplace →
+                </Link>
+              </p>
+            </>
+          }
+        />
 
         {error && <p className="purchased-error">{error}</p>}
 

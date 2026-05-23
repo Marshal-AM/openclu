@@ -36,7 +36,7 @@ export function SyncBoardActivity() {
   };
 
   return (
-    <SyncBoardLayout title="Activity Log">
+    <SyncBoardLayout>
       <div className="activity-page">
         <div className="activity-sections">
           <section className="activity-section">
@@ -130,7 +130,7 @@ export function SyncBoardActivity() {
 
       <style>{`
         .activity-page {
-          max-width: 1000px;
+          width: 100%;
         }
 
         .activity-sections {

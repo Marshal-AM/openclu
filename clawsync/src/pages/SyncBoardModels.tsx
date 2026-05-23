@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 
 const PROVIDERS = [
   { id: 'anthropic', name: 'Anthropic', models: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-sonnet-20241022'] },
@@ -60,11 +61,13 @@ export function SyncBoardModels() {
   };
 
   return (
-    <SyncBoardLayout title="Model Configuration">
-      <div className="models-config">
-        <p className="description">
-          Configure which AI model powers your agent. Model changes take effect on the next message.
-        </p>
+    <SyncBoardLayout>
+      <div className="syncboard-page models-config">
+        <SyncBoardPageToolbar
+          description={
+            <p>Configure which AI model powers your agent. Model changes take effect on the next message.</p>
+          }
+        />
 
         <section className="config-section">
           <h3>Primary Model</h3>
@@ -159,7 +162,7 @@ export function SyncBoardModels() {
 
       <style>{`
         .models-config {
-          max-width: 600px;
+          width: 100%;
         }
 
         .description {

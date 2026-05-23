@@ -1,80 +1,20 @@
-.syncboard {
-  display: flex;
-  min-height: 100vh;
+@import '../components/syncboard/SyncBoardLayout.css';
+
+/* Dashboard overview (SyncBoard.tsx) */
+
+.dashboard {
+  width: 100%;
 }
 
-.syncboard-sidebar {
-  width: 260px;
-  background-color: var(--bg-secondary);
-  border-right: 1px solid var(--border);
-  padding: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.sidebar-header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-bottom: var(--space-6);
-}
-
-.sidebar-title {
-  font-size: var(--text-xl);
-  font-weight: 700;
-  color: var(--interactive);
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-lg);
-  color: var(--text-primary);
-  text-decoration: none;
-  transition: background-color var(--transition-fast);
-}
-
-.nav-item:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.nav-item.active {
-  background-color: var(--interactive);
-  color: white;
-}
-
-.nav-icon {
-  font-size: var(--text-lg);
-}
-
-.syncboard-main {
-  flex: 1;
-  margin-left: 260px;
-  padding: var(--space-6);
-}
-
-/* Dashboard */
 .dashboard h2 {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-4);
-  margin-bottom: var(--space-8);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
 }
 
 .stat-card {
@@ -99,11 +39,11 @@
 }
 
 .dashboard-section {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
 }
 
 .dashboard-section h3 {
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .activity-list-compact {
@@ -143,21 +83,4 @@
   display: flex;
   gap: var(--space-3);
   flex-wrap: wrap;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .syncboard-sidebar {
-    width: 100%;
-    position: relative;
-    height: auto;
-  }
-
-  .syncboard-main {
-    margin-left: 0;
-  }
-
-  .syncboard {
-    flex-direction: column;
-  }
 }

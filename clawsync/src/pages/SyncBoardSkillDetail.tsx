@@ -1,14 +1,30 @@
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
+import { SkillMarkdownPreview } from '../components/syncboard/SkillMarkdownPreview';
 import { Id } from '../../convex/_generated/dataModel';
+import { Crown } from '@phosphor-icons/react';
+import '../components/syncboard/PremiumSkillCard.css';
+
+type PurchasedSkill = {
+  _id: Id<'purchasedSkills'>;
+  title: string;
+  skillName: string;
+  purchasedAt: number;
+  mintingFeeIp: string;
+  skillRegistryId?: Id<'skillRegistry'>;
+};
 
 export function SyncBoardSkillDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const skillId = id as Id<'skillRegistry'>;
 
-  const skill = useQuery(api.skillRegistry.get, { id: id as Id<'skillRegistry'> });
+  const skill = useQuery(api.skillRegistry.get, { id: skillId });
+  const purchased = useQuery(api.skillPurchases.listPurchased) as PurchasedSkill[] | undefined;
   const invocations = useQuery(api.skillInvocations.listBySkill, {
     skillName: skill?.name ?? '',
     limit: 20,
@@ -20,11 +36,47 @@ export function SyncBoardSkillDetail() {
   const approveSkill = useMutation(api.skillRegistry.approve);
   const updateSkill = useMutation(api.skillRegistry.update);
   const deleteSkill = useMutation(api.skillRegistry.remove);
+  const getSkillPreview = useAction(api.skillPurchaseActions.getSkillPreview);
+
+  const [markdown, setMarkdown] = useState('');
+  const [markdownLoading, setMarkdownLoading] = useState(false);
+
+  const purchase = purchased?.find((row) => row.skillRegistryId === skillId);
+
+  useEffect(() => {
+    if (!skill) return;
+
+    if (!purchase) {
+      setMarkdown(skill.description);
+      return;
+    }
+
+    let cancelled = false;
+    setMarkdownLoading(true);
+
+    void getSkillPreview({ registryId: skillId, full: true })
+      .then((result) => {
+        if (cancelled) return;
+        setMarkdown(result.found ? result.excerpt : skill.description);
+      })
+      .catch(() => {
+        if (!cancelled) setMarkdown(skill.description);
+      })
+      .finally(() => {
+        if (!cancelled) setMarkdownLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getSkillPreview, purchase, skill, skillId]);
 
   if (!skill) {
     return (
-      <SyncBoardLayout title="Skill Details">
-        <p>Loading...</p>
+      <SyncBoardLayout dynamicLabel="Skill">
+        <div className="syncboard-page">
+          <p className="syncboard-page-description">Loading...</p>
+        </div>
       </SyncBoardLayout>
     );
   }
@@ -43,39 +95,91 @@ export function SyncBoardSkillDetail() {
     }
   };
 
+  if (purchase) {
+    return (
+      <SyncBoardLayout dynamicLabel={skill.name}>
+        <div className="syncboard-page premium-skill-detail-page">
+          <div className="premium-skill-detail">
+            <aside className="premium-skill-detail-aside">
+              <div className="premium-skill-detail-badge">
+                <Crown size={16} weight="fill" />
+                <span>Purchased skill</span>
+              </div>
+
+              <h1 className="premium-skill-detail-title">{skill.name}</h1>
+
+              <div className="premium-skill-detail-price-block">
+                <span className="premium-skill-detail-price-label">Amount paid</span>
+                <span className="premium-skill-detail-price-value">{purchase.mintingFeeIp} IP</span>
+              </div>
+
+              <dl className="premium-skill-detail-meta">
+                <div>
+                  <dt>Marketplace title</dt>
+                  <dd>{purchase.title}</dd>
+                </div>
+                <div>
+                  <dt>Acquired</dt>
+                  <dd>{new Date(purchase.purchasedAt).toLocaleString()}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{skill.status === 'active' ? 'Active on agents' : 'Inactive'}</dd>
+                </div>
+              </dl>
+
+              <div className="premium-skill-detail-admin">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => void handleToggleStatus()}>
+                  {skill.status === 'active' ? 'Deactivate' : 'Activate'}
+                </button>
+              </div>
+            </aside>
+
+            <section className="premium-skill-detail-content">
+              <h2 className="premium-skill-detail-content-label">Skill content</h2>
+              {markdownLoading ? (
+                <p className="syncboard-page-description">Loading skill content…</p>
+              ) : (
+                <SkillMarkdownPreview content={markdown} variant="detail" />
+              )}
+            </section>
+          </div>
+        </div>
+      </SyncBoardLayout>
+    );
+  }
+
   return (
-    <SyncBoardLayout title={skill.name}>
-      <div className="skill-detail">
+    <SyncBoardLayout dynamicLabel={skill.name}>
+      <div className="skill-detail syncboard-page">
+        <SyncBoardPageToolbar
+          description={<p>{skill.description}</p>}
+          actions={
+            <>
+              {!skill.approved && (
+                <button type="button" className="btn btn-primary" onClick={() => void approveSkill({ id: skill._id })}>
+                  Approve
+                </button>
+              )}
+              <button type="button" className="btn btn-secondary" onClick={() => void handleToggleStatus()}>
+                {skill.status === 'active' ? 'Deactivate' : 'Activate'}
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => void handleDelete()}>
+                Delete
+              </button>
+            </>
+          }
+        />
+
         <div className="skill-header-section">
           <div className="skill-info">
             <span className={`badge ${skill.approved ? 'badge-success' : 'badge-warning'}`}>
               {skill.approved ? 'Approved' : 'Pending Approval'}
             </span>
-            <span className={`badge ${skill.status === 'active' ? 'badge-success' : ''}`}>
-              {skill.status}
-            </span>
+            <span className={`badge ${skill.status === 'active' ? 'badge-success' : ''}`}>{skill.status}</span>
             <span className="badge">{skill.skillType}</span>
           </div>
-
-          <div className="skill-actions">
-            {!skill.approved && (
-              <button
-                className="btn btn-primary"
-                onClick={() => approveSkill({ id: skill._id })}
-              >
-                Approve
-              </button>
-            )}
-            <button className="btn btn-secondary" onClick={handleToggleStatus}>
-              {skill.status === 'active' ? 'Deactivate' : 'Activate'}
-            </button>
-            <button className="btn btn-ghost" onClick={handleDelete}>
-              Delete
-            </button>
-          </div>
         </div>
-
-        <p className="skill-description">{skill.description}</p>
 
         {summary && (
           <div className="stats-section">
@@ -147,7 +251,7 @@ export function SyncBoardSkillDetail() {
 
       <style>{`
         .skill-detail {
-          max-width: 900px;
+          width: 100%;
         }
 
         .skill-header-section {
@@ -160,16 +264,6 @@ export function SyncBoardSkillDetail() {
         .skill-info {
           display: flex;
           gap: var(--space-2);
-        }
-
-        .skill-actions {
-          display: flex;
-          gap: var(--space-2);
-        }
-
-        .skill-description {
-          color: var(--text-secondary);
-          margin-bottom: var(--space-6);
         }
 
         .stats-section,
@@ -232,6 +326,12 @@ export function SyncBoardSkillDetail() {
           font-weight: 500;
           color: var(--text-secondary);
           font-size: var(--text-sm);
+        }
+
+        .premium-skill-detail-admin {
+          display: flex;
+          gap: var(--space-2);
+          margin-top: auto;
         }
       `}</style>
     </SyncBoardLayout>

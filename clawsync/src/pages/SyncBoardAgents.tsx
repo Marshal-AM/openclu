@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import { AgentCard } from '../components/agents/AgentCard';
 import { Plus } from '@phosphor-icons/react';
 
@@ -38,60 +39,20 @@ export function SyncBoardAgents() {
 
   return (
     <SyncBoardLayout>
-      <div style={{ padding: 'var(--space-4)' }}>
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 'var(--space-4)',
-            flexWrap: 'wrap',
-            gap: 'var(--space-2)',
-          }}
-        >
-          <div>
-            <h1
-              style={{
-                fontSize: 'var(--text-xl)',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                margin: 0,
-              }}
-            >
-              Agents
-            </h1>
-            <p
-              style={{
-                fontSize: 'var(--text-sm)',
-                color: 'var(--text-secondary)',
-                margin: 0,
-                marginTop: 'var(--space-1)',
-              }}
-            >
+      <div className="syncboard-page">
+        <SyncBoardPageToolbar
+          description={
+            <p>
               {agents?.length ?? 0} agent{agents?.length !== 1 ? 's' : ''} configured
             </p>
-          </div>
-          <button
-            onClick={() => setShowCreate(!showCreate)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--text-primary)',
-              color: 'var(--bg-primary)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
-            <Plus size={16} weight="bold" />
-            New Agent
-          </button>
-        </div>
+          }
+          actions={
+            <button type="button" className="btn btn-primary" onClick={() => setShowCreate(!showCreate)}>
+              <Plus size={16} weight="bold" />
+              New Agent
+            </button>
+          }
+        />
 
         {/* Create form */}
         {showCreate && (

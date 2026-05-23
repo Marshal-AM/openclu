@@ -44,7 +44,7 @@ export function SyncBoardChannels() {
   };
 
   return (
-    <SyncBoardLayout title="Channels">
+    <SyncBoardLayout>
       <div className="channels-page">
         <div className="page-description">
           <p>
@@ -117,7 +117,7 @@ export function SyncBoardChannels() {
 
       <style>{`
         .channels-page {
-          max-width: 900px;
+          width: 100%;
         }
 
         .page-description {

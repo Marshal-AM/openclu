@@ -9,10 +9,12 @@ import { Card } from "@/components/ui/card";
 
 type DeviceOptionCardProps = {
   device: OwnedDevice;
-  isCurrent: boolean;
-  isChosen: boolean;
-  onChoose: () => void;
-  onSelect: () => Promise<void> | void;
+  size?: "sm" | "lg";
+  mode?: "select" | "static";
+  isCurrent?: boolean;
+  isChosen?: boolean;
+  onChoose?: () => void;
+  onSelect?: () => Promise<void> | void;
 };
 
 function shortWallet(address: string): string {
@@ -21,60 +23,84 @@ function shortWallet(address: string): string {
 
 export function DeviceOptionCard({
   device,
-  isCurrent,
-  isChosen,
+  size = "sm",
+  mode = "select",
+  isCurrent = false,
+  isChosen = false,
   onChoose,
   onSelect,
 }: DeviceOptionCardProps) {
   const missingOrchestrator = !device.orchestrator_url;
+  const isLarge = size === "lg";
+  const interactive = Boolean(onChoose);
 
   return (
     <Card
       size="sm"
-      role="button"
-      tabIndex={0}
+      tabIndex={interactive ? 0 : undefined}
       className={cn(
-        "grid h-[140px] w-full cursor-pointer grid-rows-[1fr_auto] rounded-xl bg-card p-4 shadow-sm ring-1 ring-border/80 transition-all",
-        isChosen ? "bg-primary/15 ring-primary/40 shadow-md" : "hover:bg-muted/35",
+        "flex w-full min-h-0 flex-col overflow-visible rounded-xl bg-card shadow-sm ring-1 ring-border/80 transition-all",
+        isLarge ? "gap-2.5 p-5" : "gap-1.5 p-3",
+        interactive && "cursor-pointer",
+        isChosen ? "bg-primary/15 ring-primary/40 shadow-md" : interactive && "hover:bg-muted/35",
       )}
       onClick={onChoose}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onChoose();
-        }
-      }}
+      onKeyDown={
+        interactive
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onChoose?.();
+              }
+            }
+          : undefined
+      }
     >
-      <div className="flex min-w-0 flex-col items-center justify-center self-center text-center">
-        <div className="grid size-10 place-items-center rounded-lg bg-muted text-muted-foreground">
-          <SmartphoneIcon className="size-5" />
+      <div className="flex min-w-0 items-center gap-2.5 text-left">
+        <div
+          className={cn(
+            "grid shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground",
+            isLarge ? "size-12" : "size-8",
+          )}
+        >
+          <SmartphoneIcon className={isLarge ? "size-6" : "size-4"} />
         </div>
-        <div className="mt-3 min-w-0 max-w-full">
-          <p className="truncate text-base font-semibold leading-5">{device.device_name}</p>
-          <p className="mt-1 truncate text-xs leading-4 text-muted-foreground">
+        <div className="min-w-0 flex-1">
+          <p className={cn("truncate font-semibold leading-tight", isLarge ? "text-base" : "text-sm")}>
+            {device.device_name}
+          </p>
+          <p className={cn("truncate text-muted-foreground", isLarge ? "mt-1 text-xs" : "mt-0.5 text-[11px]")}>
             Wallet {shortWallet(device.wallet_address)}
           </p>
-          <div className="mt-2 flex min-h-5 flex-wrap justify-center gap-1.5">
-            {isCurrent ? <Badge variant="secondary">Current</Badge> : null}
-            {missingOrchestrator ? <Badge variant="destructive">Missing URL</Badge> : null}
-          </div>
+          {(isCurrent || missingOrchestrator) && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {isCurrent ? <Badge variant="secondary">Current</Badge> : null}
+              {missingOrchestrator ? <Badge variant="destructive">Missing URL</Badge> : null}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="mt-3 h-7">
-        <Button
-          type="button"
-          size="sm"
-          className="h-7 w-full"
-          disabled={missingOrchestrator}
-          onClick={(event) => {
-            event.stopPropagation();
-            void onSelect();
-          }}
-        >
-          {isCurrent ? "Selected" : isChosen ? "Use this device" : "Select device"}
-        </Button>
-      </div>
+      {mode === "select" && isChosen ? (
+        <div className="shrink-0 pt-0.5">
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            className={cn(
+              "w-full bg-primary text-primary-foreground hover:bg-primary/90",
+              isLarge ? "h-9" : "h-7",
+            )}
+            disabled={missingOrchestrator || isCurrent}
+            onClick={(event) => {
+              event.stopPropagation();
+              void onSelect?.();
+            }}
+          >
+            {isCurrent ? "Selected" : "Select"}
+          </Button>
+        </div>
+      ) : null}
     </Card>
   );
 }

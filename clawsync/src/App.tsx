@@ -6,12 +6,9 @@ import { api } from '../convex/_generated/api';
 import { ChatPage } from './pages/ChatPage';
 import { SetupWizard } from './pages/SetupWizard';
 import { SyncBoardLogin } from './pages/SyncBoardLogin';
-import { SyncBoard } from './pages/SyncBoard';
 import { SyncBoardModels } from './pages/SyncBoardModels';
 import { SyncBoardSkills } from './pages/SyncBoardSkills';
-import { SyncBoardSkillNew } from './pages/SyncBoardSkillNew';
 import { SyncBoardSkillDetail } from './pages/SyncBoardSkillDetail';
-import { SyncBoardApi } from './pages/SyncBoardApi';
 import { SyncBoardAgents } from './pages/SyncBoardAgents';
 import { SyncBoardAgentDetail } from './pages/SyncBoardAgentDetail';
 import { SyncBoardAgentFeed } from './pages/SyncBoardAgentFeed';
@@ -174,20 +171,20 @@ export function App() {
           <Route path="/chat" element={<ChatPage />} />
 
           {/* SyncBoard routes (admin) - protected by password auth */}
-          <Route path="/syncboard" element={<SyncBoardAuthGuard><SyncBoard /></SyncBoardAuthGuard>} />
+          <Route path="/syncboard" element={<Navigate to="/syncboard/agents" replace />} />
           <Route path="/syncboard/soul" element={hiddenRoute} />
           <Route path="/syncboard/models" element={<SyncBoardAuthGuard><SyncBoardModels /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills" element={<SyncBoardAuthGuard><SyncBoardSkills /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills/purchase" element={<SyncBoardAuthGuard><SyncBoardPurchaseSkills /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills/purchased" element={<SyncBoardAuthGuard><SyncBoardPurchasedSkills /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/skills/new" element={<SyncBoardAuthGuard><SyncBoardSkillNew /></SyncBoardAuthGuard>} />
+          <Route path="/syncboard/skills/new" element={hiddenRoute} />
           <Route path="/syncboard/skills/:id" element={<SyncBoardAuthGuard><SyncBoardSkillDetail /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/mcp" element={hiddenRoute} />
           <Route path="/syncboard/channels" element={hiddenRoute} />
           <Route path="/syncboard/threads" element={hiddenRoute} />
           <Route path="/syncboard/activity" element={hiddenRoute} />
           <Route path="/syncboard/config" element={hiddenRoute} />
-          <Route path="/syncboard/api" element={<SyncBoardAuthGuard><SyncBoardApi /></SyncBoardAuthGuard>} />
+          <Route path="/syncboard/api" element={hiddenRoute} />
           <Route path="/syncboard/x" element={hiddenRoute} />
           <Route path="/syncboard/agentmail" element={hiddenRoute} />
           <Route path="/syncboard/media" element={hiddenRoute} />

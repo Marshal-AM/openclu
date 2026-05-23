@@ -2,7 +2,7 @@ import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 
 export function SyncBoardThreads() {
   return (
-    <SyncBoardLayout title="Threads">
+    <SyncBoardLayout>
       <div className="threads-page">
         <div className="page-description">
           <p>
@@ -33,7 +33,7 @@ export function SyncBoardThreads() {
 
       <style>{`
         .threads-page {
-          max-width: 800px;
+          width: 100%;
         }
 
         .page-description {

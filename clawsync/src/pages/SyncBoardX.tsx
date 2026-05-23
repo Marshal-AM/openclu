@@ -63,7 +63,7 @@ export function SyncBoardX() {
   };
 
   return (
-    <SyncBoardLayout title="X (Twitter)">
+    <SyncBoardLayout>
       <div className="x-page">
         <div className="page-description">
           <p>
@@ -248,7 +248,7 @@ export function SyncBoardX() {
 
       <style>{`
         .x-page {
-          max-width: 800px;
+          width: 100%;
         }
 
         .page-description {

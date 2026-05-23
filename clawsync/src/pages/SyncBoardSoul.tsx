@@ -39,7 +39,7 @@ export function SyncBoardSoul() {
   };
 
   return (
-    <SyncBoardLayout title="Soul Document">
+    <SyncBoardLayout>
       <div className="soul-editor">
         <p className="description">
           The soul document defines your agent's identity, knowledge, communication style,
@@ -101,7 +101,7 @@ I will not..."
 
       <style>{`
         .soul-editor {
-          max-width: 800px;
+          width: 100%;
         }
 
         .description {

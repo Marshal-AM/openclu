@@ -63,7 +63,7 @@ export function SyncBoardStagehand() {
   };
 
   return (
-    <SyncBoardLayout title="Stagehand">
+    <SyncBoardLayout>
       <div style={{ maxWidth: 900 }}>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
           AI-powered browser automation via Browserbase. Extract data, perform actions,
