@@ -587,7 +587,7 @@ export default function ContributePage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8">
+    <div className="flex w-full flex-col gap-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Contribute Agent Skills</h1>

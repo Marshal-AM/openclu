@@ -709,7 +709,7 @@ export default function ContributionsPage() {
   }
 
   return (
-    <div className="skill-marketplace-ui mx-auto flex max-w-6xl flex-col gap-6">
+    <div className="skill-marketplace-ui flex w-full flex-col gap-6">
       <header className="skill-page-toolbar">
         <h1>My contributions</h1>
         <p>

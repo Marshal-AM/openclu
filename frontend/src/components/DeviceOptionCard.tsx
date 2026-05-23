@@ -77,7 +77,7 @@ export function DeviceOptionCard({
         type="button"
         variant="default"
         size="sm"
-        className="h-8 w-full bg-primary text-primary-foreground hover:bg-primary/90"
+        className="h-9 w-full bg-primary text-primary-foreground hover:bg-primary/90"
         disabled={missingPortal || isCurrent}
         onClick={(event) => {
           event.stopPropagation();

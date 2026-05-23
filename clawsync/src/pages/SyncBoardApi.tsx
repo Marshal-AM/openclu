@@ -64,20 +64,14 @@ export function SyncBoardApi() {
   };
 
   return (
-    <SyncBoardLayout>
+    <SyncBoardLayout
+      pageActions={
+        <button className="btn btn-primary" onClick={() => setIsCreating(true)}>
+          + Create API Key
+        </button>
+      }
+    >
       <div className="api-page">
-        <div className="page-header">
-          <div>
-            <p className="description">
-              Manage API keys for external access to your agent. Keys are hashed
-              before storage - you will only see the full key once.
-            </p>
-          </div>
-          <button className="btn btn-primary" onClick={() => setIsCreating(true)}>
-            + Create API Key
-          </button>
-        </div>
-
         {/* Generated Key Modal */}
         {generatedKey && (
           <div className="modal-overlay">
@@ -268,18 +262,6 @@ export function SyncBoardApi() {
       <style>{`
         .api-page {
           width: 100%;
-        }
-
-        .page-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: var(--space-6);
-        }
-
-        .description {
-          color: var(--text-secondary);
-        }
         }
 
         .modal-overlay {

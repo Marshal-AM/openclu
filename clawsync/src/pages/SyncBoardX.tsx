@@ -66,13 +66,6 @@ export function SyncBoardX() {
   return (
     <SyncBoardLayout>
       <div className="x-page">
-        <div className="page-description">
-          <p>
-            Connect your agent to X (Twitter) to read tweets, reply to mentions, and post updates.
-            Agent tweets can optionally be displayed on your landing page.
-          </p>
-        </div>
-
         {/* Configuration Section */}
         <div className="config-section card">
           <h3>Configuration</h3>
@@ -258,14 +251,6 @@ export function SyncBoardX() {
       <style>{`
         .x-page {
           width: 100%;
-        }
-
-        .page-description {
-          margin-bottom: var(--space-6);
-        }
-
-        .page-description p {
-          color: var(--text-secondary);
         }
 
         .config-section,

@@ -4,7 +4,6 @@ import { useAction, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
-import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import {
   CatalogSearchPanel,
   defaultCatalogSearchFilters,
@@ -225,16 +224,6 @@ export function SyncBoardPurchaseSkills() {
   return (
     <SyncBoardLayout>
       <div className="purchase-skills-page syncboard-page">
-        <SyncBoardPageToolbar
-          description={
-            <p>
-              Browse the Arkiv catalog. Open a skill to view full metadata and purchase. Purchases use
-              your AGENT_PRIVATE_KEY wallet on Story Aeneid and are registered on the default agent
-              automatically. Run <code>npm run cdr-storage</code> in a second terminal before buying.
-            </p>
-          }
-        />
-
         <CatalogSearchPanel
           filters={filters}
           onChange={setFilters}

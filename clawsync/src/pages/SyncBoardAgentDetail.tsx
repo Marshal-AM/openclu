@@ -4,7 +4,6 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
-import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import { AgentControls } from '../components/agents/AgentControls';
 import { AgentFeedItem } from '../components/agents/AgentFeedItem';
 import {
@@ -128,29 +127,24 @@ export function SyncBoardAgentDetail() {
   };
 
   return (
-    <SyncBoardLayout dynamicLabel={agent.name}>
+    <SyncBoardLayout
+      dynamicLabel={agent.name}
+      pageSubtitle={`${agent.modelProvider}/${agent.model}`}
+      pageActions={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate(openChatWithAgent(agentId, true))}
+          >
+            <ChatCircle size={16} />
+            Chat with agent
+          </button>
+          <AgentControls agentId={agentId} status={agent.status} mode={agent.mode} />
+        </div>
+      }
+    >
       <div className="syncboard-page">
-        <SyncBoardPageToolbar
-          description={
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
-              {agent.modelProvider}/{agent.model}
-            </span>
-          }
-          actions={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => navigate(openChatWithAgent(agentId, true))}
-              >
-                <ChatCircle size={16} />
-                Chat with agent
-              </button>
-              <AgentControls agentId={agentId} status={agent.status} mode={agent.mode} />
-            </div>
-          }
-        />
-
         {/* Tabs */}
         <div
           style={{

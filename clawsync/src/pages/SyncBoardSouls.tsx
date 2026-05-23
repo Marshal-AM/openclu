@@ -93,65 +93,24 @@ export function SyncBoardSouls() {
   };
 
   return (
-    <SyncBoardLayout>
-      <div style={{ width: '100%' }}>
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 'var(--space-4)',
-            flexWrap: 'wrap',
-            gap: 'var(--space-2)',
-          }}
-        >
-          <div>
-            <h1
-              style={{
-                fontSize: 'var(--text-xl)',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                margin: 0,
-              }}
-            >
-              Souls
-            </h1>
-            <p
-              style={{
-                fontSize: 'var(--text-sm)',
-                color: 'var(--text-secondary)',
-                margin: 0,
-                marginTop: 'var(--space-1)',
-              }}
-            >
-              Shared soul documents for your agents
-            </p>
-          </div>
+    <SyncBoardLayout
+      pageActions={
+        !showCreate && !editingId ? (
           <button
+            type="button"
+            className="btn btn-primary"
             onClick={() => {
               resetForm();
               setShowCreate(true);
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--text-primary)',
-              color: 'var(--bg-primary)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 500,
-              cursor: 'pointer',
             }}
           >
             <Plus size={16} weight="bold" />
             New Soul
           </button>
-        </div>
-
+        ) : null
+      }
+    >
+      <div style={{ width: '100%' }}>
         {/* Create/edit form */}
         {(showCreate || editingId) && (
           <div

@@ -42,11 +42,6 @@ export function SyncBoardSoul() {
   return (
     <SyncBoardLayout>
       <div className="soul-editor">
-        <p className="description">
-          The soul document defines your agent's identity, knowledge, communication style,
-          and boundaries. This content is loaded into the agent's system prompt at runtime.
-        </p>
-
         {!config ? (
           <FormSectionSkeleton rows={4} />
         ) : (

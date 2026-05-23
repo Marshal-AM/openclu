@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
-import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import { AgentCard } from '../components/agents/AgentCard';
 import { AgentCardGridSkeleton } from '../components/ui/skeletons';
 import { Plus } from '@phosphor-icons/react';
@@ -39,21 +38,18 @@ export function SyncBoardAgents() {
   };
 
   return (
-    <SyncBoardLayout>
+    <SyncBoardLayout
+      pageActions={
+        <button type="button" className="btn btn-primary" onClick={() => setShowCreate(!showCreate)}>
+          <Plus size={16} weight="bold" />
+          New Agent
+        </button>
+      }
+    >
       <div className="syncboard-page">
-        <SyncBoardPageToolbar
-          description={
-            <p>
-              {agents?.length ?? 0} agent{agents?.length !== 1 ? 's' : ''} configured
-            </p>
-          }
-          actions={
-            <button type="button" className="btn btn-primary" onClick={() => setShowCreate(!showCreate)}>
-              <Plus size={16} weight="bold" />
-              New Agent
-            </button>
-          }
-        />
+        <p className="syncboard-page-summary">
+          {agents?.length ?? 0} agent{agents?.length !== 1 ? 's' : ''} configured
+        </p>
 
         {/* Create form */}
         {showCreate && (

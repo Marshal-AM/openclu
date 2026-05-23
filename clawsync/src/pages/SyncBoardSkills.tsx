@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
-import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import { PremiumSkillCard } from '../components/syncboard/PremiumSkillCard';
 import { SkillCardGridSkeleton } from '../components/ui/skeletons';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -74,22 +73,14 @@ export function SyncBoardSkills() {
     }) ?? [];
 
   return (
-    <SyncBoardLayout>
+    <SyncBoardLayout
+      pageActions={
+        <Link to="/syncboard/skills/purchase" className="btn btn-primary">
+          Purchase Skills
+        </Link>
+      }
+    >
       <div className="syncboard-page">
-        <SyncBoardPageToolbar
-          description={
-            <p>
-              One registry for every skill your agents can use. Marketplace purchases appear here
-              after purchase.
-            </p>
-          }
-          actions={
-            <Link to="/syncboard/skills/purchase" className="btn btn-primary">
-              Purchase Skills
-            </Link>
-          }
-        />
-
         {importError ? <p className="syncboard-page-description" style={{ color: 'var(--error)' }}>{importError}</p> : null}
 
         {syncingPurchases.length > 0 && (

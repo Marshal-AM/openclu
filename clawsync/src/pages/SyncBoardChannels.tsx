@@ -47,13 +47,6 @@ export function SyncBoardChannels() {
   return (
     <SyncBoardLayout>
       <div className="channels-page">
-        <div className="page-description">
-          <p>
-            Connect messaging channels to let your agent respond on multiple platforms.
-            Each channel requires platform-specific configuration.
-          </p>
-        </div>
-
         {!channels ? (
           <ListCardStackSkeleton count={4} />
         ) : channels.length === 0 ? (
@@ -121,14 +114,6 @@ export function SyncBoardChannels() {
       <style>{`
         .channels-page {
           width: 100%;
-        }
-
-        .page-description {
-          margin-bottom: var(--space-6);
-        }
-
-        .page-description p {
-          color: var(--text-secondary);
         }
 
         .empty-state {

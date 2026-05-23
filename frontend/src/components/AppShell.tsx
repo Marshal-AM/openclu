@@ -28,16 +28,16 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
   SidebarSeparator,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { shortAddress } from "@/lib/privy-user";
+import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/contribute", label: "Contribute Agent Skills", icon: PenToolIcon },
+  { href: "/contribute", label: "Contribute Skill", icon: PenToolIcon },
   { href: "/contributions", label: "My Contributions", icon: BarChart3Icon },
   { href: "/devices", label: "My Devices", icon: MonitorIcon },
 ];
@@ -131,23 +131,27 @@ export function AppShell({
             </span>
           </Link>
         </SidebarHeader>
-        <SidebarContent className="gap-2 px-2 group-data-[collapsible=icon]:px-0">
+        <SidebarContent className="gap-2 px-2 group-data-[collapsible=icon]:px-2">
           <SidebarGroup className="group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0">
             <SidebarGroupLabel>Workspace</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
-                {NAV.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      tooltip={item.label}
-                      isActive={pathname === item.href}
-                      render={<Link href={item.href} />}
-                    >
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+              <SidebarMenu className="app-sidebar-nav">
+                {NAV.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={cn("app-sidebar-nav-item", isActive && "is-active")}
+                      >
+                        <span className="app-sidebar-nav-icon">
+                          <item.icon />
+                        </span>
+                        <span className="app-sidebar-nav-label">{item.label}</span>
+                      </Link>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -199,7 +203,9 @@ export function AppShell({
             </DropdownMenu>
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

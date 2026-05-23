@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
-import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import { SkillMarkdownPreview } from '../components/syncboard/SkillMarkdownPreview';
 import { Id } from '../../convex/_generated/dataModel';
 import '../components/syncboard/PremiumSkillCard.css';
@@ -97,7 +96,7 @@ export function SyncBoardSkillDetail() {
 
   if (purchase) {
     return (
-      <SyncBoardLayout dynamicLabel={skill.name}>
+      <SyncBoardLayout dynamicLabel={skill.name} hidePageHeader>
         <div className="syncboard-page premium-skill-detail-page">
           <div className="premium-skill-detail">
             <aside className="premium-skill-detail-card">
@@ -144,27 +143,26 @@ export function SyncBoardSkillDetail() {
   }
 
   return (
-    <SyncBoardLayout dynamicLabel={skill.name}>
+    <SyncBoardLayout
+      dynamicLabel={skill.name}
+      pageSubtitle={skill.description}
+      pageActions={
+        <>
+          {!skill.approved && (
+            <button type="button" className="btn btn-primary" onClick={() => void approveSkill({ id: skill._id })}>
+              Approve
+            </button>
+          )}
+          <button type="button" className="btn btn-secondary" onClick={() => void handleToggleStatus()}>
+            {skill.status === 'active' ? 'Deactivate' : 'Activate'}
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => void handleDelete()}>
+            Delete
+          </button>
+        </>
+      }
+    >
       <div className="skill-detail syncboard-page">
-        <SyncBoardPageToolbar
-          description={<p>{skill.description}</p>}
-          actions={
-            <>
-              {!skill.approved && (
-                <button type="button" className="btn btn-primary" onClick={() => void approveSkill({ id: skill._id })}>
-                  Approve
-                </button>
-              )}
-              <button type="button" className="btn btn-secondary" onClick={() => void handleToggleStatus()}>
-                {skill.status === 'active' ? 'Deactivate' : 'Activate'}
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={() => void handleDelete()}>
-                Delete
-              </button>
-            </>
-          }
-        />
-
         <div className="skill-header-section">
           <div className="skill-info">
             <span className={`badge ${skill.approved ? 'badge-success' : 'badge-warning'}`}>

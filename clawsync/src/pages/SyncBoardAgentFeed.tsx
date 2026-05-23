@@ -3,7 +3,6 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 // Multi-agent feed page
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
-import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import { AgentFeedItem } from '../components/agents/AgentFeedItem';
 import { ChipRowSkeleton, FeedListSkeleton } from '../components/ui/skeletons';
 
@@ -44,10 +43,6 @@ export function SyncBoardAgentFeed() {
   return (
     <SyncBoardLayout>
       <div className="syncboard-page">
-        <SyncBoardPageToolbar
-          description={<p>Combined activity from all agents</p>}
-        />
-
         {/* Agent filter chips */}
         {!agents ? (
           <div style={{ marginBottom: 'var(--space-4)' }}>

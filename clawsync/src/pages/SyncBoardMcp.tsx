@@ -25,18 +25,14 @@ export function SyncBoardMcp() {
   };
 
   return (
-    <SyncBoardLayout>
+    <SyncBoardLayout
+      pageActions={
+        <button type="button" className="btn btn-primary" onClick={() => setShowForm(true)}>
+          + Add MCP Server
+        </button>
+      }
+    >
       <div className="mcp-page">
-        <div className="page-description">
-          <p>
-            Connect to external MCP servers to give your agent access to additional tools.
-            MCP servers require approval before their tools can be used.
-          </p>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-            + Add MCP Server
-          </button>
-        </div>
-
         {showForm && (
           <div className="add-form card">
             <h3>Add MCP Server</h3>
@@ -143,17 +139,6 @@ export function SyncBoardMcp() {
       <style>{`
         .mcp-page {
           width: 100%;
-        }
-
-        .page-description {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: var(--space-6);
-        }
-
-        .page-description p {
-          color: var(--text-secondary);
         }
 
         .add-form {

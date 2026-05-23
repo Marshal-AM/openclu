@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
-import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 
 import { FormSectionSkeleton } from '../components/ui/skeletons';
 
@@ -65,12 +64,6 @@ export function SyncBoardModels() {
   return (
     <SyncBoardLayout>
       <div className="syncboard-page models-config">
-        <SyncBoardPageToolbar
-          description={
-            <p>Configure which AI model powers your agent. Model changes take effect on the next message.</p>
-          }
-        />
-
         {!config ? (
           <FormSectionSkeleton rows={4} />
         ) : (

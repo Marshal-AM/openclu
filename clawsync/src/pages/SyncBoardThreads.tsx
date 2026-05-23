@@ -4,13 +4,6 @@ export function SyncBoardThreads() {
   return (
     <SyncBoardLayout>
       <div className="threads-page">
-        <div className="page-description">
-          <p>
-            View and manage conversation threads from all channels.
-            Threads are created automatically when users start chatting.
-          </p>
-        </div>
-
         <div className="threads-placeholder">
           <p>Thread management coming in Phase 2.</p>
           <p className="hint">
@@ -34,14 +27,6 @@ export function SyncBoardThreads() {
       <style>{`
         .threads-page {
           width: 100%;
-        }
-
-        .page-description {
-          margin-bottom: var(--space-6);
-        }
-
-        .page-description p {
-          color: var(--text-secondary);
         }
 
         .threads-placeholder {
