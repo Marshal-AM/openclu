@@ -14,9 +14,9 @@ export async function GET(
         : await getCatalogSkillDetail(skillName);
     return NextResponse.json(listing);
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : String(e) },
-      { status: 404 },
-    );
+    const message = e instanceof Error ? e.message : String(e);
+    const status =
+      message.includes("tsx missing") || message.includes("npm install") ? 503 : 404;
+    return NextResponse.json({ error: message }, { status });
   }
 }

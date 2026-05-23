@@ -1,117 +1,123 @@
 "use client";
 
-import { XIcon } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-
 type CatalogDetail = Record<string, unknown>;
 
-export function CatalogDetailPanel({
-  detail,
-  onClose,
-}: {
-  detail: CatalogDetail;
-  onClose?: () => void;
-}) {
+function collectTags(detail: CatalogDetail, payload?: Record<string, unknown>): string[] {
+  const fromPayload = Array.isArray(payload?.triggers) ? (payload.triggers as string[]) : [];
+  const fromListing = Array.isArray(detail.tags) ? (detail.tags as string[]) : [];
+  return [...new Set([...fromPayload, ...fromListing].filter(Boolean))];
+}
+
+export function CatalogDetailPanel({ detail }: { detail: CatalogDetail }) {
   const payload = detail.payload as Record<string, unknown> | undefined;
+  const description = payload?.description ? String(payload.description) : "";
+  const tags = collectTags(detail, payload);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Full Arkiv Catalog Entry</CardTitle>
-        <CardDescription>Complete metadata, ownership, tags, and listing payload.</CardDescription>
-        {onClose ? (
-          <CardAction>
-            <Button type="button" variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close catalog detail">
-              <XIcon />
-            </Button>
-          </CardAction>
-        ) : null}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
-        {payload ? (
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-medium">Metadata</h3>
-              {detail.status != null ? <Badge variant="secondary">{String(detail.status)}</Badge> : null}
-            </div>
-            <dl className="grid gap-4 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-muted-foreground">Title</dt>
-                <dd>{String(payload.title ?? "")}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Skill slug</dt>
-                <dd className="font-mono text-xs">{String(payload.skillName ?? "")}</dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="text-muted-foreground">Description</dt>
-                <dd>{String(payload.description ?? "")}</dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="text-muted-foreground">Triggers</dt>
-                <dd className="font-mono text-xs">
-                  {Array.isArray(payload.triggers) ? (payload.triggers as string[]).join(", ") : "Unavailable"}
-                </dd>
-              </div>
-            </dl>
-          </section>
-        ) : null}
-
-        <Separator />
-
-        <section className="grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
-          {detail.entityKey != null ? (
-            <p>
-              Entity key: <span className="break-all font-mono text-foreground">{String(detail.entityKey)}</span>
-            </p>
-          ) : null}
-          {detail.arkivVersion != null ? <p>Arkiv version: {String(detail.arkivVersion)}</p> : null}
-          {detail.owner != null ? (
-            <p>
-              Owner: <span className="break-all font-mono text-foreground">{String(detail.owner)}</span>
-            </p>
-          ) : null}
-          {detail.creator != null ? (
-            <p>
-              Creator: <span className="break-all font-mono text-foreground">{String(detail.creator)}</span>
-            </p>
-          ) : null}
-          {Array.isArray(detail.tags) ? (
-            <p className="sm:col-span-2">Tags: {(detail.tags as string[]).join(", ")}</p>
-          ) : null}
+    <div className="catalog-detail-panel flex flex-col gap-5">
+      {description ? (
+        <section>
+          <h3 className="catalog-detail-section-heading mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Description
+          </h3>
+          <p className="catalog-detail-description m-0 text-base leading-relaxed text-foreground">{description}</p>
         </section>
+      ) : null}
 
-        <details className="group">
-          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
-            Raw JSON
-          </summary>
-          <pre className="mt-2 max-h-[32rem] overflow-auto rounded-lg border bg-muted/50 p-3 text-[11px] leading-relaxed">
-            {JSON.stringify(
-              {
-                entityKey: detail.entityKey,
-                status: detail.status,
-                owner: detail.owner,
-                creator: detail.creator,
-                arkivVersion: detail.arkivVersion,
-                tags: detail.tags,
-                payload: detail.payload,
-              },
-              null,
-              2,
-            )}
-          </pre>
-        </details>
-      </CardContent>
-    </Card>
+      {tags.length > 0 ? (
+        <section>
+          <h3 className="catalog-detail-section-heading mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Tags
+          </h3>
+          <ul className="catalog-detail-tag-list m-0 flex flex-wrap gap-2 p-0 list-none">
+            {tags.map((tag) => (
+              <li key={tag}>
+                <span className="catalog-detail-tag-badge inline-flex rounded-full bg-secondary px-2 py-1 text-xs text-muted-foreground">
+                  {tag}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <details className="catalog-detail-raw">
+        <summary className="cursor-pointer text-xs text-muted-foreground">Raw JSON</summary>
+        <pre className="mt-2 max-h-[32rem] overflow-auto rounded-md border border-border bg-background p-3 text-[11px]">
+          {JSON.stringify(
+            {
+              entityKey: detail.entityKey,
+              status: detail.status,
+              owner: detail.owner,
+              creator: detail.creator,
+              arkivVersion: detail.arkivVersion,
+              tags: detail.tags,
+              payload: detail.payload,
+            },
+            null,
+            2,
+          )}
+        </pre>
+      </details>
+    </div>
+  );
+}
+
+type ContributionMeta = {
+  deviceName?: string | null;
+  status?: string;
+  arkivVersion?: number | null;
+  listingKey?: string | null;
+};
+
+export function ContributionDraftPanel({
+  title,
+  description,
+  contributionMeta,
+}: {
+  title?: string | null;
+  description?: string | null;
+  contributionMeta: ContributionMeta;
+}) {
+  return (
+    <div className="catalog-detail-panel flex flex-col gap-5">
+      <dl className="catalog-detail-meta-grid grid grid-cols-2 gap-3">
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Device</dt>
+          <dd className="mt-1 text-sm text-foreground">{contributionMeta.deviceName ?? "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Status</dt>
+          <dd className="mt-1 text-sm text-foreground">{contributionMeta.status ?? "Unavailable"}</dd>
+        </div>
+        {contributionMeta.arkivVersion != null ? (
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Arkiv version</dt>
+            <dd className="mt-1 text-sm text-foreground">{contributionMeta.arkivVersion}</dd>
+          </div>
+        ) : null}
+        {contributionMeta.listingKey ? (
+          <div className="col-span-2">
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Listing key</dt>
+            <dd className="mt-1 break-all font-mono text-xs text-foreground">{contributionMeta.listingKey}</dd>
+          </div>
+        ) : null}
+        {title ? (
+          <div className="col-span-2">
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Title</dt>
+            <dd className="mt-1 text-sm text-foreground">{title}</dd>
+          </div>
+        ) : null}
+      </dl>
+
+      {description ? (
+        <section>
+          <h3 className="catalog-detail-section-heading mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Description
+          </h3>
+          <p className="catalog-detail-description m-0 text-base leading-relaxed text-foreground">{description}</p>
+        </section>
+      ) : null}
+    </div>
   );
 }

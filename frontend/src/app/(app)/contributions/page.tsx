@@ -2,27 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CatalogDetailPanel } from "@/components/CatalogDetailPanel";
+import {
+  CatalogDetailPanel,
+  ContributionDraftPanel,
+} from "@/components/CatalogDetailPanel";
+import { ContributionListingCard } from "@/components/skills/ContributionListingCard";
+import { SkillModalDialog } from "@/components/skills/SkillModalDialog";
+import { CatalogDetailSkeleton, SkillCardGridSkeleton } from "@/components/skills/skill-skeletons";
 import { useOrchestratorJob } from "@/hooks/useOrchestratorJob";
 import type { OwnedDevice } from "@/lib/device-types";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Field,
   FieldDescription,
@@ -144,6 +133,8 @@ export default function ContributionsPage() {
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const [selectedContribution, setSelectedContribution] = useState<Contribution | null>(null);
   const [catalogDetail, setCatalogDetail] = useState<Record<string, unknown> | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<PublishSuccess | null>(null);
   const [contributionsError, setContributionsError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -595,9 +586,25 @@ export default function ContributionsPage() {
   async function viewSkill(slug: string) {
     setSelectedSkill(slug);
     setCatalogDetail(null);
-    const res = await fetch(`/api/catalog/${encodeURIComponent(slug)}`);
-    if (res.ok) setCatalogDetail(await res.json());
-    else toast.error("Could not load catalog entry.");
+    setCatalogError(null);
+    setCatalogLoading(true);
+    try {
+      const res = await fetch(`/api/catalog/${encodeURIComponent(slug)}`);
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (res.ok) {
+        setCatalogDetail(data as Record<string, unknown>);
+        return;
+      }
+      const message = data.error ?? "Could not load catalog entry";
+      setCatalogError(message);
+      if (message.includes("tsx missing") || message.includes("npm install")) {
+        toast.error("Catalog CLI not installed", {
+          description: "Run: cd skill-capture/arkiv && npm install",
+        });
+      }
+    } finally {
+      setCatalogLoading(false);
+    }
   }
 
   async function openContributionDialog(contribution: Contribution) {
@@ -611,6 +618,33 @@ export default function ContributionsPage() {
   }
 
   const visibleContributions = contributions.filter((c) => c.status !== "archived");
+
+  const dialogTitle =
+    (catalogDetail?.payload as Record<string, unknown> | undefined)?.title != null
+      ? String((catalogDetail?.payload as Record<string, unknown>).title)
+      : selectedContribution?.title ?? selectedContribution?.skill_slug ?? "Contribution";
+
+  const dialogSubtitle = selectedContribution?.skill_slug;
+
+  const contributionMeta = selectedContribution
+    ? {
+        deviceName: selectedContribution.device_name,
+        status: selectedContribution.status,
+        arkivVersion: selectedContribution.arkiv_version,
+        listingKey: selectedContribution.arkiv_listing_key,
+      }
+    : undefined;
+
+  function closeContributionDialog() {
+    setSelectedContribution(null);
+    setSelectedSkill(null);
+    setCatalogDetail(null);
+    setCatalogError(null);
+    setCatalogLoading(false);
+    setEditingSlug(null);
+    setEditForm(null);
+    setEditDraftMeta(null);
+  }
 
   function renderMetadataFields(
     value: MetadataForm,
@@ -675,179 +709,59 @@ export default function ContributionsPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8">
-      <section className="flex flex-col gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">My contributions</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            All skills across your registered devices — drafts, catalog metadata, and published listings.
-          </p>
-        </div>
+    <div className="skill-marketplace-ui mx-auto flex max-w-6xl flex-col gap-6">
+      <header className="skill-page-toolbar">
+        <h1>My contributions</h1>
+        <p>
+          All skills across your registered devices — drafts, catalog metadata, and published listings.
+        </p>
+      </header>
 
-        {logs.length > 0 ? (
-          <div className="max-h-64 overflow-auto rounded-lg border bg-muted/50 p-3 font-mono text-xs text-muted-foreground">
-            {logs.slice(-80).map((line, index) => (
-              <div key={`${line}-${index}`}>{line}</div>
-            ))}
-          </div>
-        ) : null}
-
-        {!loading && visibleContributions.length === 0 && !contributionsError ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>No active contributions</EmptyTitle>
-              <EmptyDescription>
-                Save a draft or publish a skill from any device. Contributions sync here automatically.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : null}
-
-        <div className="flex flex-col gap-3">
-          {visibleContributions.map((contribution) => (
-            <Card
-              key={contribution.id}
-              size="sm"
-              role="button"
-              tabIndex={0}
-              className="cursor-pointer transition-colors hover:bg-muted/40"
-              onClick={() => void openContributionDialog(contribution)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  void openContributionDialog(contribution);
-                }
-              }}
-            >
-              <CardHeader>
-                <div>
-                  <CardTitle>{contribution.skill_slug}</CardTitle>
-                  <CardDescription>
-                    {contribution.status}
-                    {contribution.arkiv_version != null && contribution.status === "published"
-                      ? ` · v${contribution.arkiv_version}`
-                      : ""}
-                  </CardDescription>
-                  <div className="mt-2">
-                    <Badge variant="outline">{contribution.device_name ?? "Unknown device"}</Badge>
-                  </div>
-                  {contribution.arkiv_listing_key ? (
-                    <p className="mt-1 max-w-md truncate font-mono text-[10px] text-muted-foreground">
-                      {contribution.arkiv_listing_key}
-                    </p>
-                  ) : null}
-                </div>
-              </CardHeader>
-              {(contribution.title || contribution.description) ? (
-                <CardContent className="space-y-1 text-xs text-muted-foreground">
-                  {contribution.title ? <p className="font-medium text-foreground">{contribution.title}</p> : null}
-                  {contribution.description ? <p className="line-clamp-2">{contribution.description}</p> : null}
-                </CardContent>
-              ) : null}
-            </Card>
+      {logs.length > 0 ? (
+        <div className="skill-job-log">
+          {logs.slice(-80).map((line, index) => (
+            <div key={`${line}-${index}`}>{line}</div>
           ))}
         </div>
-      </section>
+      ) : null}
 
-      <Dialog
+      {loading ? <SkillCardGridSkeleton count={6} /> : null}
+
+      {!loading && visibleContributions.length === 0 && !contributionsError ? (
+        <div className="skill-empty-state">
+          <p>No active contributions. Save a draft or publish a skill from any device.</p>
+        </div>
+      ) : null}
+
+      {!loading && visibleContributions.length > 0 ? (
+        <>
+          <p className="text-sm text-muted-foreground">
+            {visibleContributions.length} contribution{visibleContributions.length === 1 ? "" : "s"}
+          </p>
+          <div className="premium-skill-grid grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {visibleContributions.map((contribution) => (
+              <ContributionListingCard
+                key={contribution.id}
+                title={contribution.title ?? contribution.skill_slug}
+                description={contribution.description ?? "No description available"}
+                status={contribution.status}
+                deviceName={contribution.device_name}
+                version={contribution.arkiv_version}
+                onClick={() => void openContributionDialog(contribution)}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      <SkillModalDialog
         open={!!selectedContribution}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedContribution(null);
-            setSelectedSkill(null);
-            setCatalogDetail(null);
-            setEditingSlug(null);
-            setEditForm(null);
-            setEditDraftMeta(null);
-          }
-        }}
-      >
-        <DialogContent className="max-h-[90svh] overflow-auto sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{selectedContribution?.skill_slug ?? "Contribution"}</DialogTitle>
-            <DialogDescription>Contribution details and management actions.</DialogDescription>
-          </DialogHeader>
-
-          {selectedContribution ? (
-            <div className="flex flex-col gap-5">
-              <dl className="grid gap-4 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="text-muted-foreground">Device</dt>
-                  <dd>{selectedContribution.device_name ?? "Unavailable"}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Status</dt>
-                  <dd>{selectedContribution.status}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Arkiv version</dt>
-                  <dd>{selectedContribution.arkiv_version ?? "Unavailable"}</dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-muted-foreground">Title</dt>
-                  <dd>{selectedContribution.title ?? "Unavailable"}</dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-muted-foreground">Description</dt>
-                  <dd>{selectedContribution.description ?? "Unavailable"}</dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-muted-foreground">Listing key</dt>
-                  <dd className="break-all font-mono text-xs">
-                    {selectedContribution.arkiv_listing_key ?? "Unavailable"}
-                  </dd>
-                </div>
-              </dl>
-
-              {editingSlug === selectedContribution.skill_slug && editForm ? (
-                <div className="flex flex-col gap-4">
-                  <Separator />
-                  <p className="text-sm text-muted-foreground">
-                    Edit catalog metadata
-                    {editDraftMeta?.arkivVersion != null
-                      ? ` (current Arkiv v${editDraftMeta.arkivVersion})`
-                      : ""}
-                  </p>
-                  {renderMetadataFields(editForm, setEditForm, true)}
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      type="button"
-                      onClick={() => void saveMetadataEdit()}
-                      disabled={!!orchJobId || !!captureJobId || !editForm.title.trim()}
-                    >
-                      Save metadata to Arkiv
-                    </Button>
-                    {editDraftMeta?.arkivListingKey ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => void startRecaptureRepublish()}
-                        disabled={!!orchJobId || !!captureJobId || !!distributeJobId}
-                      >
-                        Re-record &amp; republish
-                      </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => {
-                        setEditingSlug(null);
-                        setEditForm(null);
-                        setEditDraftMeta(null);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-
-              {selectedSkill && catalogDetail ? <CatalogDetailPanel detail={catalogDetail} /> : null}
-            </div>
-          ) : null}
-
-          {selectedContribution ? (
-            <DialogFooter>
+        onClose={closeContributionDialog}
+        title={dialogTitle}
+        subtitle={dialogSubtitle}
+        footer={
+          selectedContribution ? (
+            <>
               <Button type="button" variant="outline" onClick={() => void openEdit(selectedContribution.skill_slug)}>
                 Edit
               </Button>
@@ -869,10 +783,100 @@ export default function ContributionsPage() {
               >
                 Archive
               </Button>
-            </DialogFooter>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+            </>
+          ) : null
+        }
+      >
+        {selectedContribution ? (
+          <div className="flex flex-col gap-5">
+            {catalogLoading ? <CatalogDetailSkeleton /> : null}
+
+            {!catalogLoading && selectedContribution.status === "published" && catalogDetail ? (
+              <CatalogDetailPanel detail={catalogDetail} />
+            ) : null}
+
+            {!catalogLoading && selectedContribution.status !== "published" ? (
+              <ContributionDraftPanel
+                title={selectedContribution.title}
+                description={selectedContribution.description}
+                contributionMeta={contributionMeta!}
+              />
+            ) : null}
+
+            {!catalogLoading &&
+            selectedContribution.status === "published" &&
+            !catalogDetail &&
+            selectedSkill ? (
+              <>
+                {catalogError ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+                    <p className="font-medium">Catalog entry unavailable</p>
+                    <p className="mt-1 text-xs opacity-90">{catalogError}</p>
+                    {catalogError.includes("tsx missing") || catalogError.includes("npm install") ? (
+                      <p className="mt-2 font-mono text-xs">
+                        cd skill-capture/arkiv && npm install
+                      </p>
+                    ) : catalogError.includes("No Arkiv catalog listing") ? (
+                      <p className="mt-2 text-xs">
+                        The skill is marked published locally but is not on Arkiv yet. Re-publish from
+                        the device or run index-arkiv.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                <ContributionDraftPanel
+                  title={selectedContribution.title}
+                  description={selectedContribution.description}
+                  contributionMeta={contributionMeta!}
+                />
+              </>
+            ) : null}
+
+            {editingSlug === selectedContribution.skill_slug && editForm ? (
+              <div className="flex flex-col gap-4">
+                <Separator />
+                <p className="text-sm text-muted-foreground">
+                  Edit catalog metadata
+                  {editDraftMeta?.arkivVersion != null
+                    ? ` (current Arkiv v${editDraftMeta.arkivVersion})`
+                    : ""}
+                </p>
+                {renderMetadataFields(editForm, setEditForm, true)}
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    type="button"
+                    onClick={() => void saveMetadataEdit()}
+                    disabled={!!orchJobId || !!captureJobId || !editForm.title.trim()}
+                  >
+                    Save metadata to Arkiv
+                  </Button>
+                  {editDraftMeta?.arkivListingKey ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void startRecaptureRepublish()}
+                      disabled={!!orchJobId || !!captureJobId || !!distributeJobId}
+                    >
+                      Re-record &amp; republish
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditingSlug(null);
+                      setEditForm(null);
+                      setEditDraftMeta(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </SkillModalDialog>
     </div>
   );
 }

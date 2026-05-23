@@ -19,7 +19,7 @@ export const defaultCatalogSearchFilters: CatalogSearchFilters = {
   status: '',
   since: '',
   until: '',
-  minScore: '0',
+  minScore: '',
   skillSlug: '',
   scope: 'marketplace',
 };
@@ -28,7 +28,6 @@ type CatalogSearchPanelProps = {
   filters: CatalogSearchFilters;
   onChange: (filters: CatalogSearchFilters) => void;
   onSearch: () => void;
-  onBrowseAll: () => void;
   loading?: boolean;
 };
 
@@ -48,7 +47,6 @@ export function CatalogSearchPanel({
   filters,
   onChange,
   onSearch,
-  onBrowseAll,
   loading = false,
 }: CatalogSearchPanelProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -72,7 +70,7 @@ export function CatalogSearchPanel({
       status: '',
       since: '',
       until: '',
-      minScore: '0',
+      minScore: '',
       skillSlug: '',
       scope: 'marketplace',
     });
@@ -82,9 +80,9 @@ export function CatalogSearchPanel({
     <div className="catalog-search-panel">
       <div className="catalog-search-bar">
         <div className="catalog-search-input-wrap">
-          <MagnifyingGlass size={16} className="catalog-search-icon" aria-hidden />
+          <MagnifyingGlass size={18} weight="regular" className="catalog-search-icon" aria-hidden />
           <input
-            className="input catalog-search-field catalog-search-input"
+            className="catalog-search-input"
             placeholder="Search marketplace skills…"
             value={filters.query}
             onChange={(event) => patch({ query: event.target.value })}
@@ -95,9 +93,6 @@ export function CatalogSearchPanel({
         <div className="catalog-search-actions">
           <button type="button" className="btn btn-primary" onClick={onSearch} disabled={loading}>
             {loading ? 'Searching…' : 'Search'}
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={onBrowseAll} disabled={loading}>
-            Browse all
           </button>
           <button
             type="button"
@@ -118,7 +113,7 @@ export function CatalogSearchPanel({
             <label className="catalog-search-field-label">
               Tag
               <input
-                className="input catalog-search-field"
+                className="catalog-search-field"
                 placeholder="e.g. cursor, api"
                 value={filters.tag}
                 onChange={(event) => patch({ tag: event.target.value })}
@@ -128,7 +123,7 @@ export function CatalogSearchPanel({
             <label className="catalog-search-field-label">
               Status
               <select
-                className="input catalog-search-field"
+                className="catalog-search-field"
                 value={filters.status}
                 onChange={(event) => patch({ status: event.target.value })}
               >
@@ -141,7 +136,7 @@ export function CatalogSearchPanel({
               Published after
               <input
                 type="datetime-local"
-                className="input catalog-search-field"
+                className="catalog-search-field"
                 value={filters.since}
                 onChange={(event) => patch({ since: event.target.value })}
               />
@@ -150,7 +145,7 @@ export function CatalogSearchPanel({
               Published before
               <input
                 type="datetime-local"
-                className="input catalog-search-field"
+                className="catalog-search-field"
                 value={filters.until}
                 onChange={(event) => patch({ until: event.target.value })}
               />
@@ -158,7 +153,7 @@ export function CatalogSearchPanel({
             <label className="catalog-search-field-label">
               Skill slug
               <input
-                className="input catalog-search-field"
+                className="catalog-search-field"
                 placeholder="exact-slug"
                 value={filters.skillSlug}
                 onChange={(event) => patch({ skillSlug: event.target.value })}
@@ -168,7 +163,7 @@ export function CatalogSearchPanel({
             <label className="catalog-search-field-label">
               Min match score
               <input
-                className="input catalog-search-field"
+                className="catalog-search-field"
                 placeholder="0–1 (e.g. 0.3)"
                 value={filters.minScore}
                 onChange={(event) => patch({ minScore: event.target.value })}
@@ -178,7 +173,7 @@ export function CatalogSearchPanel({
             <label className="catalog-search-field-label catalog-search-scope">
               Scope
               <select
-                className="input catalog-search-field"
+                className="catalog-search-field"
                 value={filters.scope}
                 onChange={(event) => patch({ scope: event.target.value as CatalogSearchFilters['scope'] })}
               >
@@ -194,8 +189,13 @@ export function CatalogSearchPanel({
                 Clear filters
               </button>
             ) : null}
-            <button type="button" className="btn btn-primary btn-sm" onClick={onSearch} disabled={loading}>
-              Apply filters
+            <button
+              type="button"
+              className="btn btn-primary catalog-search-apply-btn"
+              onClick={onSearch}
+              disabled={loading}
+            >
+              {loading ? 'Applying…' : 'Apply filters'}
             </button>
           </div>
         </div>

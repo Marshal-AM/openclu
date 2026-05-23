@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowLeft } from '@phosphor-icons/react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
@@ -14,6 +15,7 @@ import {
   setStoredSelectedAgentId,
   setStoredThreadId,
 } from '../lib/chatAgentStorage';
+import { PRODUCT_HOME_PATH } from '../config/productSurface';
 import './ChatPage.css';
 
 type AgentListItem = {
@@ -91,6 +93,10 @@ export function ChatPage() {
       <header className="chat-header">
         <div className="chat-header-content">
           <div className="chat-header-agent">
+            <Link to={PRODUCT_HOME_PATH} className="chat-back-link">
+              <ArrowLeft size={16} weight="bold" aria-hidden />
+              Dashboard
+            </Link>
             <span className="chat-header-kicker">Chatting with</span>
             <AgentSelector selectedAgentId={chatAgentId ?? null} onSelect={handleAgentSelect} />
             {uiConfig?.showModelBadge !== false && activeAgent ? (

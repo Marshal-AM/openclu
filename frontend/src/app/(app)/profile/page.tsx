@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, CopyIcon, UploadIcon, UserIcon } from "lucide-react";
+import { CheckIcon, UploadIcon, UserIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCurrentWallet } from "@/components/auth/current-wallet";
@@ -16,7 +16,6 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { shortAddress } from "@/lib/privy-user";
 
 type Profile = {
   walletAddress: string;
@@ -200,18 +199,24 @@ export default function ProfilePage() {
 
             <div className="rounded-lg border bg-muted/30 p-3 text-sm">
               <p className="text-muted-foreground">Wallet</p>
-              <p className="mt-1 break-all font-mono text-xs">{activeWallet ?? "Not connected"}</p>
-              <div className="mt-3 flex items-center gap-2">
-                <Button type="button" size="xs" variant="outline" disabled={!activeWallet} onClick={copyAddress}>
-                  {copied ? (
-                    <CheckIcon data-icon="inline-start" />
-                  ) : (
-                    <CopyIcon data-icon="inline-start" />
-                  )}
-                  {copied ? "Copied" : "Copy address"}
-                </Button>
-                <span className="text-xs text-muted-foreground">{shortAddress(activeWallet)}</span>
-              </div>
+              {activeWallet ? (
+                <button
+                  type="button"
+                  onClick={() => void copyAddress()}
+                  className="group mt-1 w-full text-left"
+                  title="Click to copy wallet address"
+                >
+                  <span className="break-all font-mono text-xs text-foreground transition-colors group-hover:text-primary">
+                    {activeWallet}
+                  </span>
+                  <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground group-hover:text-primary">
+                    {copied ? <CheckIcon className="size-3.5" /> : null}
+                    {copied ? "Copied" : "Click to copy"}
+                  </span>
+                </button>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">Not connected</p>
+              )}
             </div>
 
             <div className="text-xs text-muted-foreground">
