@@ -35,9 +35,9 @@ export function DeviceChooserDialog({
       <DialogContent className="max-h-[92vh] w-[min(94vw,1200px)] overflow-hidden p-0 sm:max-w-[94vw] lg:max-w-[1200px]">
         <div className="flex h-full min-h-0 flex-col">
           <DialogHeader className="shrink-0 px-6 pt-6">
-            <DialogTitle>Choose device for orchestrator actions</DialogTitle>
+            <DialogTitle>Choose device for portal actions</DialogTitle>
             <DialogDescription>
-              Pick a device only when you are about to run orchestrator jobs.
+              Pick a device only when you are about to run portal jobs.
             </DialogDescription>
           </DialogHeader>
 
@@ -52,7 +52,7 @@ export function DeviceChooserDialog({
                 </EmptyHeader>
               </Empty>
             ) : (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,280px))] justify-start gap-3 overflow-y-auto p-1">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,260px))] items-start justify-start gap-3 overflow-y-auto p-1">
                 {devices.map((device) => {
                   const isSelected = device.id === selectedDeviceId;
                   const isChoice = device.id === deviceChoiceId;

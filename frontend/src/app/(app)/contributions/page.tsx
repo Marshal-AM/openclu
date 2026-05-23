@@ -206,12 +206,12 @@ export default function ContributionsPage() {
       const err = await res.json().catch(() => ({}));
       if (res.status === 404) {
         setContributionsError(
-          "A device orchestrator is missing GET /api/v1/skills — restart orchestrator (npm run start) and refresh.",
+          "A device portal is missing GET /api/v1/skills — restart the portal (npm run start) and refresh.",
         );
       } else {
         setContributionsError(
           (err as { error?: string }).error ??
-            `Cannot read skills from a device (${res.status}). Is orchestrator running?`,
+            `Cannot read skills from a device (${res.status}). Is the portal running?`,
         );
       }
       return;

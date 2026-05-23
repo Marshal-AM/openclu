@@ -35,7 +35,7 @@ export async function fetchOwnedDeviceOrchestratorUrl(
     return {
       ok: false,
       error:
-        "Selected device has no orchestrator URL. Re-run register.sh/register.ps1 with ngrok, then re-register this device.",
+        "Selected device has no portal URL. Re-run register.sh/register.ps1 with ngrok, then re-register this device.",
       status: 403,
     };
   }

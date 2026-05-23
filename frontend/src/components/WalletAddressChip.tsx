@@ -12,7 +12,7 @@ type WalletAddressChipProps = {
 };
 
 const chipClassName =
-  "cursor-pointer rounded-full border bg-background px-3 py-1.5 font-mono text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground";
+  "inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border bg-background px-3 py-1.5 font-mono text-xs leading-none text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground";
 
 export function WalletAddressChip({ address, className }: WalletAddressChipProps) {
   const [copied, setCopied] = useState(false);
@@ -52,10 +52,10 @@ export function WalletAddressChip({ address, className }: WalletAddressChipProps
       onClick={() => void copyAddress()}
       onKeyDown={onKeyDown}
       title="Click to copy wallet address"
-      className={cn(chipClassName, copied ? "inline-flex items-center gap-1" : undefined, className)}
+      className={cn(chipClassName, className)}
     >
       {copied ? <CheckIcon className="size-3 shrink-0 text-primary" aria-hidden /> : null}
-      {copied ? "Copied" : shortAddress(address)}
+      <span>{copied ? "Copied" : shortAddress(address)}</span>
     </div>
   );
 }

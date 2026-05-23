@@ -98,7 +98,7 @@ function RegisterForm() {
               <dd className="break-all font-mono text-sm">{address || "Unavailable"}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Orchestrator</dt>
+              <dt className="text-muted-foreground">Portal</dt>
               <dd className="break-all font-mono text-xs">{orchestratorUrl || "Unavailable"}</dd>
             </div>
           </dl>

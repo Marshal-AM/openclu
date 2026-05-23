@@ -165,7 +165,7 @@ export function AppShell({
             <p className="text-sm font-medium">Clu Dashboard</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <WalletAddressChip address={activeWallet} className="hidden sm:block" />
+            <WalletAddressChip address={activeWallet} className="hidden sm:inline-flex" />
 
             <DropdownMenu>
               <DropdownMenuTrigger

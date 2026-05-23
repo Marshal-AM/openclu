@@ -10,7 +10,7 @@ async function proxy(req: Request, pathSegs: string[]) {
   const deviceId = req.headers.get("x-device-id")?.trim();
   if (!deviceId) {
     return NextResponse.json(
-      { error: "Missing x-device-id header for orchestrator interaction." },
+      { error: "Missing x-device-id header for portal interaction." },
       { status: 400 },
     );
   }
@@ -41,7 +41,7 @@ async function proxy(req: Request, pathSegs: string[]) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
       {
-        error: `Cannot reach device orchestrator at ${base}. Is orchestrator running and ngrok tunnel active? ${msg}`,
+        error: `Cannot reach device portal at ${base}. Is the portal running and ngrok tunnel active? ${msg}`,
       },
       { status: 502 },
     );

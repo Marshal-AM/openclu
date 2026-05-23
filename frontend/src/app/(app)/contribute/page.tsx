@@ -205,7 +205,7 @@ export default function ContributePage() {
         const err = await res.json().catch(() => ({}));
         setSyncWarning(
           (err as { error?: string }).error ??
-            `Cannot read skills from device (${res.status}). Is orchestrator running?`,
+            `Cannot read skills from device (${res.status}). Is the portal running?`,
         );
         return;
       }
@@ -283,7 +283,7 @@ export default function ContributePage() {
   function ensureDeviceSelected(): boolean {
     if (!selectedDeviceId) {
       setDevicePickerOpen(true);
-      setError("Select a device before running orchestrator actions.");
+      setError("Select a device before running portal actions.");
       return false;
     }
     return true;
@@ -688,7 +688,7 @@ export default function ContributePage() {
         <Stage
           step="2"
           title="Recording setup"
-          description="Select the local device that will run the orchestrator."
+          description="Select the local device that will run the portal."
         >
           <div className="flex max-w-xl flex-col gap-4">
             <div className="rounded-lg border bg-muted/30 p-4">
@@ -698,8 +698,8 @@ export default function ContributePage() {
               <p className="mt-1 text-xs text-muted-foreground">
                 {selectedDevice
                   ? selectedDevice.orchestrator_url
-                    ? "Ready for orchestrator actions."
-                    : "Device is missing an orchestrator URL."
+                    ? "Ready for portal actions."
+                    : "Device is missing a portal URL."
                   : "Choose a device before recording."}
               </p>
             </div>
@@ -750,7 +750,7 @@ export default function ContributePage() {
               <div className="max-h-64 overflow-auto rounded-lg border bg-muted/50 p-3 font-mono text-xs text-muted-foreground">
                 {captureJobId ? (
                   <p className="mb-2 text-foreground">
-                    Press Q in the <strong>orchestrator</strong> terminal to stop recording.
+                    Press Q in the <strong>portal</strong> terminal to stop recording.
                   </p>
                 ) : null}
                 {logs.slice(-60).map((line, index) => (
