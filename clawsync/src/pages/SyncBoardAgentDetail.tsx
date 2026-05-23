@@ -11,6 +11,7 @@ import {
   Trash,
   FloppyDisk,
 } from '@phosphor-icons/react';
+import { AgentDetailPageSkeleton } from '../components/ui/skeletons';
 
 /**
  * SyncBoardAgentDetail
@@ -65,7 +66,7 @@ export function SyncBoardAgentDetail() {
     return (
       <SyncBoardLayout dynamicLabel="Agent">
         <div className="syncboard-page">
-          <p className="syncboard-page-description">Loading agent...</p>
+          <AgentDetailPageSkeleton />
         </div>
       </SyncBoardLayout>
     );

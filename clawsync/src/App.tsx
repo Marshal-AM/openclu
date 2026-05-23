@@ -15,6 +15,7 @@ import { SyncBoardAgentFeed } from './pages/SyncBoardAgentFeed';
 import { SyncBoardPurchaseSkills } from './pages/SyncBoardPurchaseSkills';
 import { SyncBoardPurchasedSkills } from './pages/SyncBoardPurchasedSkills';
 import { PRODUCT_HOME_PATH } from './config/productSurface';
+import { PageBootSkeleton } from './components/ui/skeletons';
 
 // Wrapper component to check if setup is required
 function SetupGuard({ children }: { children: React.ReactNode }) {
@@ -23,17 +24,7 @@ function SetupGuard({ children }: { children: React.ReactNode }) {
 
   // Show nothing while loading
   if (setupRequired === undefined) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: 'var(--bg-primary)',
-      }}>
-        <div>Loading...</div>
-      </div>
-    );
+    return <PageBootSkeleton />;
   }
 
   // Redirect to setup if required (unless already on setup page)
@@ -103,17 +94,7 @@ function SyncBoardAuthGuard({ children }: { children: React.ReactNode }) {
 
   // Still loading auth state
   if (authEnabled === undefined || isChecking) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: 'var(--bg-primary)',
-      }}>
-        <div>Loading...</div>
-      </div>
-    );
+    return <PageBootSkeleton />;
   }
 
   // Auth is disabled - allow access
@@ -133,17 +114,7 @@ function SyncBoardAuthGuard({ children }: { children: React.ReactNode }) {
 
   // Still verifying token
   if (sessionValid === undefined) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: 'var(--bg-primary)',
-      }}>
-        <div>Verifying session...</div>
-      </div>
-    );
+    return <PageBootSkeleton />;
   }
 
   // Token is valid

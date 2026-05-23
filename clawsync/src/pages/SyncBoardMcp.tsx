@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { ListCardStackSkeleton } from '../components/ui/skeletons';
 
 export function SyncBoardMcp() {
   const servers = useQuery(api.mcpServers.list);
@@ -71,7 +72,9 @@ export function SyncBoardMcp() {
         )}
 
         <div className="servers-list">
-          {servers && servers.length > 0 ? (
+          {!servers ? (
+            <ListCardStackSkeleton count={3} />
+          ) : servers.length > 0 ? (
             servers.map((server: any) => (
               <div key={server._id} className="server-card card">
                 <div className="server-header">

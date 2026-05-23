@@ -4,6 +4,7 @@ import { useThreadMessages } from '@convex-dev/agent/react';
 import { api } from '../../../convex/_generated/api';
 import { MessageBubble } from './MessageBubble';
 import { summarizeFromToolCalls } from '../../lib/marketplaceToolMessages';
+import { Skeleton } from '../ui/Skeleton';
 import './AgentChat.css';
 
 interface ToolCall {
@@ -396,11 +397,21 @@ export function AgentChat({
   // Show typing indicator if loading or any message is still streaming
   const hasStreamingMessage = messages.some((m) => m.streaming);
   const showTyping = isLoading || hasStreamingMessage;
+  const isThreadLoading = Boolean(threadId) && threadMessages === undefined && !localExchange;
 
   return (
     <div className="agent-chat">
       <div className="messages-container">
-        {messages.length === 0 && !isLoading ? (
+        {isThreadLoading ? (
+          <div className="skeleton-chat-main">
+            <div className="skeleton-chat-bubble">
+              <Skeleton style={{ height: '3rem', width: '14rem', borderRadius: 'var(--radius-lg)' }} />
+            </div>
+            <div className="skeleton-chat-bubble is-user">
+              <Skeleton style={{ height: '2.5rem', width: '10rem', borderRadius: 'var(--radius-lg)' }} />
+            </div>
+          </div>
+        ) : messages.length === 0 && !isLoading ? (
           <div className="empty-state">
             <p>Start a conversation with the agent.</p>
           </div>

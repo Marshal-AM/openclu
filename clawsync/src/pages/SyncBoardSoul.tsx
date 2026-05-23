@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { FormSectionSkeleton } from '../components/ui/skeletons';
 
 export function SyncBoardSoul() {
   const config = useQuery(api.agentConfig.get);
@@ -46,6 +47,10 @@ export function SyncBoardSoul() {
           and boundaries. This content is loaded into the agent's system prompt at runtime.
         </p>
 
+        {!config ? (
+          <FormSectionSkeleton rows={4} />
+        ) : (
+          <>
         <div className="form-group">
           <label htmlFor="soul-document">Soul Document (Markdown)</label>
           <textarea
@@ -97,6 +102,8 @@ I will not..."
             <span className="save-status error">Failed to save. Please try again.</span>
           )}
         </div>
+          </>
+        )}
       </div>
 
       <style>{`

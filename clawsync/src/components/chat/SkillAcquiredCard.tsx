@@ -3,6 +3,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import './SkillAcquiredCard.css';
+import { SkillAcquiredCardSkeleton } from '../ui/skeletons';
 
 interface SkillAcquiredCardProps {
   purchaseEventId: string;
@@ -35,17 +36,7 @@ export function SkillAcquiredCard({ purchaseEventId }: SkillAcquiredCardProps) {
   }, [isActive, purchaseEventId]);
 
   if (event === undefined) {
-    return (
-      <div className="skill-acquired-card purchasing">
-        <div className="skill-acquired-header">
-          <div className="skill-acquired-icon">◇</div>
-          <div className="skill-acquired-meta">
-            <h4>Loading skill acquisition…</h4>
-          </div>
-          <span className="skill-acquired-status purchasing">…</span>
-        </div>
-      </div>
-    );
+    return <SkillAcquiredCardSkeleton />;
   }
 
   if (event === null) {

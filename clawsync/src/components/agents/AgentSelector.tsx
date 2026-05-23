@@ -2,6 +2,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { CaretDown, Robot } from '@phosphor-icons/react';
+import { Skeleton } from '../ui/Skeleton';
 import { useState, useRef, useEffect } from 'react';
 
 /**
@@ -40,7 +41,11 @@ export function AgentSelector({ selectedAgentId, onSelect }: AgentSelectorProps)
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  if (!agents || agents.length <= 1) return null;
+  if (agents === undefined) {
+    return <Skeleton style={{ height: '2rem', width: '8rem', borderRadius: 'var(--radius-md)' }} />;
+  }
+
+  if (agents.length <= 1) return null;
 
   const selected = agents.find((a: any) => a._id === selectedAgentId) || agents.find((a: any) => a.isDefault) || agents[0];
 

@@ -3,6 +3,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import { Id } from '../../convex/_generated/dataModel';
+import { TableSkeleton } from '../components/ui/skeletons';
 
 export function SyncBoardApi() {
   const apiKeys = useQuery(api.apiKeys.list);
@@ -150,7 +151,9 @@ export function SyncBoardApi() {
         )}
 
         {/* API Keys List */}
-        {apiKeys && apiKeys.length > 0 ? (
+        {!apiKeys ? (
+          <TableSkeleton rows={4} />
+        ) : apiKeys.length > 0 ? (
           <div className="keys-list">
             {apiKeys.map((key: any) => (
               <div

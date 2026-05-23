@@ -27,14 +27,14 @@ export function CatalogDetailPanel({
   const purchaseView = detail.purchaseView as Record<string, unknown> | undefined;
   return (
     <div className="catalog-detail-panel">
-      <div className="catalog-detail-header">
-        <h3 className="catalog-detail-title">Full Arkiv catalog entry</h3>
-        {onClose && (
+      {onClose ? (
+        <div className="catalog-detail-header">
+          <h3 className="catalog-detail-title">Full Arkiv catalog entry</h3>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
             Close
           </button>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       {payload && (
         <section className="catalog-detail-section">

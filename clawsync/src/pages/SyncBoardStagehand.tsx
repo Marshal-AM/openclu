@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { MarkdownBlockSkeleton } from '../components/ui/skeletons';
 
 /**
  * SyncBoard Stagehand Page
@@ -129,14 +130,16 @@ export function SyncBoardStagehand() {
         )}
 
         {/* Result display */}
-        {result && (
+        {loading ? (
+          <MarkdownBlockSkeleton />
+        ) : result ? (
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-4)' }}>
             <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: 'var(--space-3)' }}>Result</h3>
             <pre style={{ fontSize: 'var(--text-sm)', overflow: 'auto', maxHeight: 400, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
               {result}
             </pre>
           </div>
-        )}
+        ) : null}
       </div>
     </SyncBoardLayout>
   );

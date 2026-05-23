@@ -1,0 +1,84 @@
+.catalog-listing-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.catalog-listing-card:hover {
+  border-color: color-mix(in oklab, var(--border) 70%, var(--text-secondary));
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.catalog-listing-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.catalog-listing-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) 0;
+}
+
+.catalog-listing-card-heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.catalog-listing-card-title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+}
+
+.catalog-listing-card-slug {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.catalog-listing-card-price {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.catalog-listing-card-body {
+  padding: var(--space-3) var(--space-4);
+}
+
+.catalog-listing-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.catalog-listing-card-meta {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}

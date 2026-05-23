@@ -4,6 +4,8 @@ import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 
+import { FormSectionSkeleton } from '../components/ui/skeletons';
+
 const PROVIDERS = [
   { id: 'anthropic', name: 'Anthropic', models: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-sonnet-20241022'] },
   { id: 'openai', name: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'] },
@@ -69,6 +71,10 @@ export function SyncBoardModels() {
           }
         />
 
+        {!config ? (
+          <FormSectionSkeleton rows={4} />
+        ) : (
+          <>
         <section className="config-section">
           <h3>Primary Model</h3>
 
@@ -158,6 +164,8 @@ export function SyncBoardModels() {
             {isSaving ? 'Saving...' : 'Save Configuration'}
           </button>
         </div>
+          </>
+        )}
       </div>
 
       <style>{`

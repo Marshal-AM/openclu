@@ -4,8 +4,19 @@ import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
-import { CatalogDetailPanel } from '../components/syncboard/CatalogDetailPanel';
+import {
+  CatalogSearchPanel,
+  defaultCatalogSearchFilters,
+  type CatalogSearchFilters,
+} from '../components/syncboard/CatalogSearchPanel';
+import {
+  CatalogListingCard,
+  getMintingFeeFromPayload,
+} from '../components/syncboard/CatalogListingCard';
+import { CatalogSkillDialog } from '../components/syncboard/CatalogSkillDialog';
+import '../components/syncboard/PremiumSkillCard.css';
 import './SyncBoardPurchaseSkills.css';
+import { SkillCardGridSkeleton } from '../components/ui/skeletons';
 
 type QueryMatch = {
   score: number;
@@ -36,28 +47,21 @@ export function SyncBoardPurchaseSkills() {
   const getWalletStatus = useAction(api.skillPurchaseActions.getWalletStatus);
   const agents = useQuery(api.agents.list) as AgentOption[] | undefined;
 
-  const [query, setQuery] = useState('');
-  const [tag, setTag] = useState('');
-  const [status, setStatus] = useState('');
-  const [since, setSince] = useState('');
-  const [until, setUntil] = useState('');
-  const [minScore, setMinScore] = useState('0');
-  const [skillSlug, setSkillSlug] = useState('');
-  const [scope, setScope] = useState<'marketplace' | 'mine'>('marketplace');
+  const [filters, setFilters] = useState<CatalogSearchFilters>(defaultCatalogSearchFilters);
   const [matches, setMatches] = useState<QueryMatch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
+  const [showFullBrowse, setShowFullBrowse] = useState(false);
+  const [selectedSkillName, setSelectedSkillName] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [showFullBrowse, setShowFullBrowse] = useState(false);
   const [walletConfigured, setWalletConfigured] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
   const [purchaseError, setPurchaseError] = useState('');
   const [purchaseLogs, setPurchaseLogs] = useState<string[]>([]);
   const [purchaseElapsedSec, setPurchaseElapsedSec] = useState(0);
-  const [targetAgentId, setTargetAgentId] = useState<Id<'agents'> | ''>('');
   const purchaseInFlight = useRef(false);
 
   useEffect(() => {
@@ -70,17 +74,16 @@ export function SyncBoardPurchaseSkills() {
   async function runSearch(opts?: { full?: boolean; emptyQuery?: boolean }) {
     setLoading(true);
     setError('');
-    if (!opts?.full) setDetail(null);
     try {
       const data = (await catalogQuery({
-        query: opts?.emptyQuery ? '' : query.trim() || undefined,
-        tag: tag.trim() || undefined,
-        status: status || undefined,
-        since: since ? Date.parse(since) : undefined,
-        until: until ? Date.parse(until) : undefined,
-        minScore: Number(minScore) || 0,
-        skillSlug: skillSlug.trim() || undefined,
-        scope,
+        query: opts?.emptyQuery ? '' : filters.query.trim() || undefined,
+        tag: filters.tag.trim() || undefined,
+        status: filters.status || undefined,
+        since: filters.since ? Date.parse(filters.since) : undefined,
+        until: filters.until ? Date.parse(filters.until) : undefined,
+        minScore: Number(filters.minScore) || 0,
+        skillSlug: filters.skillSlug.trim() || undefined,
+        scope: filters.scope,
         full: opts?.full ?? false,
       })) as { matches?: QueryMatch[] };
       setMatches(data.matches ?? []);
@@ -96,11 +99,14 @@ export function SyncBoardPurchaseSkills() {
   }
 
   async function openDetail(name: string) {
+    setSelectedSkillName(name);
     setDetailLoading(true);
     setError('');
     setPurchaseError('');
     setPurchaseLogs([]);
     setPurchaseElapsedSec(0);
+    setDetail(null);
+
     try {
       const data = await catalogGetDetail({ skillName: name });
       setDetail(data as Record<string, unknown>);
@@ -110,6 +116,14 @@ export function SyncBoardPurchaseSkills() {
     } finally {
       setDetailLoading(false);
     }
+  }
+
+  function closeDetail() {
+    setSelectedSkillName(null);
+    setDetail(null);
+    setPurchaseError('');
+    setPurchaseLogs([]);
+    setPurchaseElapsedSec(0);
   }
 
   function appendPurchaseLog(line: string) {
@@ -161,20 +175,19 @@ export function SyncBoardPurchaseSkills() {
       appendPurchaseLog(
         `Done in ${(result.durationMs / 1000).toFixed(1)}s — license ${result.licenseTokenId}, saved to disk.`,
       );
-      appendPurchaseLog('Registering purchased skill in the Skills registry and assigning it to the agent…');
+      appendPurchaseLog('Registering purchased skill in the Skills registry and assigning it to the default agent…');
       const defaultAgent = agents?.find((agent) => agent.isDefault) ?? agents?.[0];
-      const selectedAgentId = targetAgentId || defaultAgent?._id;
       const importResult = await importPurchasedSkill({
         purchasedSkillId: result.purchasedSkillId,
-        ...(selectedAgentId ? { targetAgentId: selectedAgentId } : {}),
+        ...(defaultAgent?._id ? { targetAgentId: defaultAgent._id } : {}),
       });
-      const selectedAgentName =
-        agents?.find((agent) => agent._id === selectedAgentId)?.name ?? 'the default agent';
+      const selectedAgentName = defaultAgent?.name ?? 'the default agent';
       appendPurchaseLog(
         `${importResult.alreadyImported ? 'Already registered' : 'Registered'} as skill ${importResult.skillRegistryId} and assigned to ${selectedAgentName}.`,
       );
       setPurchaseError('');
       alert(`Purchased "${skillName}" and added it to ${selectedAgentName}.`);
+      closeDetail();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       appendPurchaseLog(`Failed: ${msg}`);
@@ -186,19 +199,11 @@ export function SyncBoardPurchaseSkills() {
     }
   }
 
-  function onFilterKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      void runSearch();
-    }
-  }
-
   const purchaseBlock = detail?.payload
     ? ((detail.payload as Record<string, unknown>).purchase as Record<string, unknown> | undefined)
     : undefined;
-  const mintingFee = purchaseBlock?.mintingFeeIp
-    ? String(purchaseBlock.mintingFeeIp)
-    : undefined;
+  const mintingFee = purchaseBlock?.mintingFeeIp ? String(purchaseBlock.mintingFeeIp) : undefined;
+  const hasQueryScore = Boolean(filters.query.trim());
 
   return (
     <SyncBoardLayout>
@@ -206,117 +211,26 @@ export function SyncBoardPurchaseSkills() {
         <SyncBoardPageToolbar
           description={
             <p>
-              Browse the Arkiv catalog. Detail view shows full metadata, purchase block, ops, tags, and
-              version. Purchases use your AGENT_PRIVATE_KEY wallet on Story Aeneid (local Convex dev).
-              Purchased skills are registered in Skills and assigned to the selected agent automatically.
-              Run <code>npm run cdr-storage</code> in a second terminal before buying.
+              Browse the Arkiv catalog. Open a skill to view full metadata and purchase. Purchases use
+              your AGENT_PRIVATE_KEY wallet on Story Aeneid and are registered on the default agent
+              automatically. Run <code>npm run cdr-storage</code> in a second terminal before buying.
             </p>
           }
         />
 
-        <div className="purchase-target-agent">
-          <label htmlFor="purchase-target-agent">Add purchased skills to</label>
-          <select
-            id="purchase-target-agent"
-            className="input"
-            value={targetAgentId}
-            onChange={(e) => setTargetAgentId(e.target.value as Id<'agents'> | '')}
-          >
-            <option value="">Default agent</option>
-            {agents?.map((agent) => (
-              <option key={agent._id} value={agent._id}>
-                {agent.name}{agent.isDefault ? ' (default)' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="purchase-filters">
-          <input
-            className="input"
-            placeholder="Keyword search…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={onFilterKeyDown}
-          />
-          <div className="purchase-filters-grid">
-            <input
-              className="input"
-              placeholder="Tag"
-              value={tag}
-              onChange={(e) => setTag(e.target.value)}
-              onKeyDown={onFilterKeyDown}
-            />
-            <select
-              className="input"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="">Any status</option>
-              <option value="published">published</option>
-              <option value="archived">archived</option>
-            </select>
-            <input
-              type="datetime-local"
-              className="input"
-              value={since}
-              onChange={(e) => setSince(e.target.value)}
-            />
-            <input
-              type="datetime-local"
-              className="input"
-              value={until}
-              onChange={(e) => setUntil(e.target.value)}
-            />
-            <input
-              className="input"
-              placeholder="Skill slug"
-              value={skillSlug}
-              onChange={(e) => setSkillSlug(e.target.value)}
-              onKeyDown={onFilterKeyDown}
-            />
-            <input
-              className="input"
-              placeholder="Min score"
-              value={minScore}
-              onChange={(e) => setMinScore(e.target.value)}
-              onKeyDown={onFilterKeyDown}
-            />
-            <select
-              className="input span-2"
-              value={scope}
-              onChange={(e) => setScope(e.target.value as 'marketplace' | 'mine')}
-            >
-              <option value="marketplace">Marketplace (published only)</option>
-              <option value="mine">My listings only</option>
-            </select>
-          </div>
-          <div className="purchase-filter-actions">
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => void runSearch()}
-              disabled={loading}
-            >
-              {loading ? 'Searching…' : 'Search'}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => void runSearch({ full: true, emptyQuery: true })}
-              disabled={loading}
-            >
-              {loading ? 'Loading…' : 'Browse entire catalog'}
-            </button>
-          </div>
-        </div>
+        <CatalogSearchPanel
+          filters={filters}
+          onChange={setFilters}
+          onSearch={() => void runSearch()}
+          onBrowseAll={() => void runSearch({ full: true, emptyQuery: true })}
+          loading={loading}
+        />
 
         {error && <p className="purchase-error">{error}</p>}
 
         {!searched && !loading && (
           <p className="purchase-hint">
-            Search by keyword or click Browse entire catalog to load all published listings with full
-            payloads.
+            Search by keyword or click Browse all to load published listings.
           </p>
         )}
 
@@ -324,71 +238,45 @@ export function SyncBoardPurchaseSkills() {
           <p className="purchase-hint">No skills matched your filters.</p>
         )}
 
-        {searched && matches.length > 0 && (
-          <p className="purchase-hint">
-            {matches.length} listing{matches.length === 1 ? '' : 's'}
-            {showFullBrowse ? ' (full catalog rows)' : ''}
-          </p>
-        )}
+        {loading && searched ? <SkillCardGridSkeleton count={6} /> : null}
 
-        <ul className="purchase-results">
-          {matches.map((m) => (
-            <li key={m.listingKey} className="purchase-result-card">
-              <button
-                type="button"
-                className="purchase-result-btn"
-                onClick={() => void openDetail(m.skillName)}
-              >
-                <div className="purchase-result-header">
-                  <h3>{m.title}</h3>
-                  <span className="purchase-result-meta">
-                    {m.status}
-                    {m.arkivVersion != null ? ` · v${m.arkivVersion}` : ''}
-                    {query.trim() ? ` · score ${(m.score * 100).toFixed(0)}%` : ''}
-                  </span>
-                </div>
-                <p className="purchase-result-desc">{m.description}</p>
-                <p className="purchase-result-slug">{m.skillName}</p>
-              </button>
-              {showFullBrowse && m.payload && (
-                <details className="purchase-inline-payload">
-                  <summary>Inline full payload</summary>
-                  <pre>
-                    {JSON.stringify(
-                      {
-                        entityKey: m.listingKey,
-                        status: m.status,
-                        owner: m.owner,
-                        creator: m.creator,
-                        arkivVersion: m.arkivVersion,
-                        tags: m.tags,
-                        payload: m.payload,
-                      },
-                      null,
-                      2,
-                    )}
-                  </pre>
-                </details>
-              )}
-            </li>
-          ))}
-        </ul>
+        {searched && !loading && matches.length > 0 ? (
+          <>
+            <p className="purchase-hint">
+              {matches.length} listing{matches.length === 1 ? '' : 's'}
+              {showFullBrowse ? ' (full catalog)' : ''}
+            </p>
+            <div className="premium-skill-grid">
+              {matches.map((match) => (
+                <CatalogListingCard
+                  key={match.listingKey}
+                  title={match.title}
+                  description={match.description}
+                  skillName={match.skillName}
+                  status={match.status}
+                  mintingFeeIp={getMintingFeeFromPayload(match.payload)}
+                  score={hasQueryScore ? match.score : undefined}
+                  onClick={() => void openDetail(match.skillName)}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
 
-        {detailLoading && <p className="purchase-hint">Loading full catalog entry…</p>}
-        {detail && !detailLoading && (
-          <CatalogDetailPanel
-            detail={detail}
-            onClose={() => setDetail(null)}
-            purchaseFee={mintingFee}
-            walletConfigured={walletConfigured}
-            walletAddress={walletAddress}
-            onPurchase={() => void handlePurchase()}
-            purchaseLoading={purchaseLoading}
-            purchaseError={purchaseError}
-            purchaseLogs={purchaseLogs}
-            purchaseElapsedSec={purchaseElapsedSec}
-          />
-        )}
+        <CatalogSkillDialog
+          open={selectedSkillName !== null}
+          onClose={closeDetail}
+          detail={detail}
+          loading={detailLoading}
+          purchaseFee={mintingFee}
+          walletConfigured={walletConfigured}
+          walletAddress={walletAddress}
+          onPurchase={() => void handlePurchase()}
+          purchaseLoading={purchaseLoading}
+          purchaseError={purchaseError}
+          purchaseLogs={purchaseLogs}
+          purchaseElapsedSec={purchaseElapsedSec}
+        />
       </div>
     </SyncBoardLayout>
   );

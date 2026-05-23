@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardSidebar } from '../components/syncboard/SyncBoardSidebar';
+import { DetailPanelGridSkeleton, FeedListSkeleton } from '../components/ui/skeletons';
 import './SyncBoard.css';
 
 type SkillSummary = {
@@ -30,6 +31,8 @@ export function SyncBoard() {
   const runningAgents = agents?.filter((a: { status: string }) => a.status === 'running').length ?? 0;
   const totalAgents = agents?.length ?? 0;
 
+  const isLoading = !agentConfig || !skills || !activities || !agents;
+
   return (
     <div className="syncboard">
       <SyncBoardSidebar />
@@ -40,6 +43,16 @@ export function SyncBoard() {
             <div className="dashboard">
               <h2>Dashboard Overview</h2>
 
+              {isLoading ? (
+                <>
+                  <DetailPanelGridSkeleton count={5} />
+                  <section className="dashboard-section">
+                    <h3>Recent Activity</h3>
+                    <FeedListSkeleton count={5} />
+                  </section>
+                </>
+              ) : (
+                <>
               <div className="stats-grid">
                 <div className="stat-card">
                   <span className="stat-value">{totalAgents}</span>
@@ -96,6 +109,8 @@ export function SyncBoard() {
                   </Link>
                 </div>
               </section>
+                </>
+              )}
             </div>
           ) : null}
         </div>

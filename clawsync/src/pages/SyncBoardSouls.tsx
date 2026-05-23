@@ -11,6 +11,7 @@ import {
   X,
   Robot,
 } from '@phosphor-icons/react';
+import { ListCardStackSkeleton } from '../components/ui/skeletons';
 
 /**
  * SyncBoardSouls
@@ -246,9 +247,7 @@ export function SyncBoardSouls() {
 
         {/* Souls list */}
         {!souls ? (
-          <div style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
-            Loading souls...
-          </div>
+          <ListCardStackSkeleton count={4} />
         ) : souls.length === 0 ? (
           <div
             style={{

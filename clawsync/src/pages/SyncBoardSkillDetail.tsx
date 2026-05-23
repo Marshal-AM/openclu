@@ -6,8 +6,8 @@ import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import { SkillMarkdownPreview } from '../components/syncboard/SkillMarkdownPreview';
 import { Id } from '../../convex/_generated/dataModel';
-import { Crown } from '@phosphor-icons/react';
 import '../components/syncboard/PremiumSkillCard.css';
+import { SkillDetailPageSkeleton, MarkdownBlockSkeleton } from '../components/ui/skeletons';
 
 type PurchasedSkill = {
   _id: Id<'purchasedSkills'>;
@@ -75,7 +75,7 @@ export function SyncBoardSkillDetail() {
     return (
       <SyncBoardLayout dynamicLabel="Skill">
         <div className="syncboard-page">
-          <p className="syncboard-page-description">Loading...</p>
+          <SkillDetailPageSkeleton />
         </div>
       </SyncBoardLayout>
     );
@@ -100,24 +100,18 @@ export function SyncBoardSkillDetail() {
       <SyncBoardLayout dynamicLabel={skill.name}>
         <div className="syncboard-page premium-skill-detail-page">
           <div className="premium-skill-detail">
-            <aside className="premium-skill-detail-aside">
-              <div className="premium-skill-detail-badge">
-                <Crown size={16} weight="fill" />
-                <span>Purchased skill</span>
-              </div>
-
-              <h1 className="premium-skill-detail-title">{skill.name}</h1>
-
-              <div className="premium-skill-detail-price-block">
-                <span className="premium-skill-detail-price-label">Amount paid</span>
-                <span className="premium-skill-detail-price-value">{purchase.mintingFeeIp} IP</span>
-              </div>
+            <aside className="premium-skill-detail-card">
+              <header className="premium-skill-detail-header">
+                <div className="premium-skill-detail-heading">
+                  <h1 className="premium-skill-detail-title">{skill.name}</h1>
+                  {purchase.title !== skill.name ? (
+                    <p className="premium-skill-detail-subtitle">{purchase.title}</p>
+                  ) : null}
+                </div>
+                <span className="premium-skill-detail-price">{purchase.mintingFeeIp} IP</span>
+              </header>
 
               <dl className="premium-skill-detail-meta">
-                <div>
-                  <dt>Marketplace title</dt>
-                  <dd>{purchase.title}</dd>
-                </div>
                 <div>
                   <dt>Acquired</dt>
                   <dd>{new Date(purchase.purchasedAt).toLocaleString()}</dd>
@@ -128,7 +122,7 @@ export function SyncBoardSkillDetail() {
                 </div>
               </dl>
 
-              <div className="premium-skill-detail-admin">
+              <div className="premium-skill-detail-actions">
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => void handleToggleStatus()}>
                   {skill.status === 'active' ? 'Deactivate' : 'Activate'}
                 </button>
@@ -138,7 +132,7 @@ export function SyncBoardSkillDetail() {
             <section className="premium-skill-detail-content">
               <h2 className="premium-skill-detail-content-label">Skill content</h2>
               {markdownLoading ? (
-                <p className="syncboard-page-description">Loading skill content…</p>
+                <MarkdownBlockSkeleton />
               ) : (
                 <SkillMarkdownPreview content={markdown} variant="detail" />
               )}
@@ -326,12 +320,6 @@ export function SyncBoardSkillDetail() {
           font-weight: 500;
           color: var(--text-secondary);
           font-size: var(--text-sm);
-        }
-
-        .premium-skill-detail-admin {
-          display: flex;
-          gap: var(--space-2);
-          margin-top: auto;
         }
       `}</style>
     </SyncBoardLayout>

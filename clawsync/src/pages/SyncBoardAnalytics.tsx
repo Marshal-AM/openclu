@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { DetailPanelGridSkeleton, ListCardStackSkeleton } from '../components/ui/skeletons';
 
 /**
  * SyncBoard Analytics Page
@@ -35,7 +36,11 @@ export function SyncBoardAnalytics() {
         </div>
 
         {/* Latest report */}
-        {latest ? (
+        {latest === undefined ? (
+          <div style={{ marginBottom: 'var(--space-6)' }}>
+            <DetailPanelGridSkeleton count={4} />
+          </div>
+        ) : latest ? (
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
               <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 600 }}>{latest.title}</h3>
@@ -98,7 +103,9 @@ export function SyncBoardAnalytics() {
         )}
 
         {/* Report history */}
-        {reports && reports.length > 1 && (
+        {reports === undefined ? (
+          <ListCardStackSkeleton count={3} />
+        ) : reports.length > 1 ? (
           <div>
             <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: 'var(--space-4)' }}>Report History</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -120,7 +127,7 @@ export function SyncBoardAnalytics() {
               ))}
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </SyncBoardLayout>
   );

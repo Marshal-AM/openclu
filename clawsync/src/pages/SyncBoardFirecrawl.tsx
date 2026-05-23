@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { MarkdownBlockSkeleton } from '../components/ui/skeletons';
 
 /**
  * SyncBoard Firecrawl Page
@@ -94,7 +95,9 @@ export function SyncBoardFirecrawl() {
         )}
 
         {/* Status and content */}
-        {content && (
+        {jobId && content === undefined ? (
+          <MarkdownBlockSkeleton />
+        ) : content ? (
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
               <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>
@@ -110,14 +113,14 @@ export function SyncBoardFirecrawl() {
             )}
 
             {content.status === 'scraping' && (
-              <p style={{ color: 'var(--text-secondary)' }}>Scraping in progress...</p>
+              <MarkdownBlockSkeleton />
             )}
 
             {content.status === 'failed' && (
               <p style={{ color: '#ef4444' }}>{content.error ?? 'Scrape failed'}</p>
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </SyncBoardLayout>
   );

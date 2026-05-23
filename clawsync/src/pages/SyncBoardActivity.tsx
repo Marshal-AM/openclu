@@ -9,6 +9,7 @@ import {
   Lock,
   PushPin,
 } from '@phosphor-icons/react';
+import { TableSkeleton } from '../components/ui/skeletons';
 
 export function SyncBoardActivity() {
   const activities = useQuery(api.activityLog.list, { limit: 100 });
@@ -41,7 +42,9 @@ export function SyncBoardActivity() {
         <div className="activity-sections">
           <section className="activity-section">
             <h3>All Activity</h3>
-            {activities && activities.length > 0 ? (
+            {!activities ? (
+              <TableSkeleton rows={6} />
+            ) : activities.length > 0 ? (
               <table className="activity-table">
                 <thead>
                   <tr>
@@ -96,7 +99,9 @@ export function SyncBoardActivity() {
 
           <section className="activity-section">
             <h3>Security Events</h3>
-            {securityFailures && securityFailures.length > 0 ? (
+            {!securityFailures ? (
+              <TableSkeleton rows={4} />
+            ) : securityFailures.length > 0 ? (
               <table className="activity-table">
                 <thead>
                   <tr>

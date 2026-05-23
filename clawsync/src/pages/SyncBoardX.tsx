@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { FormSectionSkeleton, ListCardStackSkeleton } from '../components/ui/skeletons';
 
 export function SyncBoardX() {
   const config = useQuery(api.xTwitter.getConfig);
@@ -76,6 +77,10 @@ export function SyncBoardX() {
         <div className="config-section card">
           <h3>Configuration</h3>
 
+          {!config ? (
+            <FormSectionSkeleton rows={5} />
+          ) : (
+          <>
           <div className="form-group">
             <label className="checkbox-label">
               <input
@@ -158,6 +163,8 @@ export function SyncBoardX() {
           >
             {isSaving ? 'Saving...' : 'Save Configuration'}
           </button>
+          </>
+          )}
         </div>
 
         {/* API Keys Section */}
@@ -207,7 +214,9 @@ export function SyncBoardX() {
             Manage which tweets appear on your landing page.
           </p>
 
-          {!tweets || tweets.length === 0 ? (
+          {!tweets ? (
+            <ListCardStackSkeleton count={3} />
+          ) : tweets.length === 0 ? (
             <div className="empty-tweets">
               <p>No tweets cached yet. Tweets will appear here after the agent posts or reads them.</p>
             </div>

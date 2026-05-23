@@ -8,6 +8,7 @@ import {
   PushPin,
 } from '@phosphor-icons/react';
 import './ActivityFeed.css';
+import { FeedListSkeleton } from '../ui/skeletons';
 
 export function ActivityFeed() {
   const activities = useQuery(api.activityLog.listPublic, { limit: 20 });
@@ -36,7 +37,16 @@ export function ActivityFeed() {
     }
   };
 
-  if (!activities || activities.length === 0) {
+  if (activities === undefined) {
+    return (
+      <div className="activity-feed">
+        <h3 className="activity-title">Activity</h3>
+        <FeedListSkeleton count={5} />
+      </div>
+    );
+  }
+
+  if (activities.length === 0) {
     return (
       <div className="activity-feed">
         <h3 className="activity-title">Activity</h3>

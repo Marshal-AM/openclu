@@ -25,6 +25,7 @@ import {
   Image,
   UsersThree,
 } from "@phosphor-icons/react";
+import { FeedListSkeleton } from "../components/ui/skeletons";
 
 export function LandingPage() {
   // Fetch public activity feed
@@ -259,7 +260,7 @@ export function LandingPage() {
           </p>
           <div className="activity-feed">
             {publicActivity === undefined ? (
-              <div className="activity-loading">Loading activity...</div>
+              <FeedListSkeleton count={5} />
             ) : publicActivity.length === 0 ? (
               <div className="activity-empty">
                 No public activity yet. Start a conversation to see activity

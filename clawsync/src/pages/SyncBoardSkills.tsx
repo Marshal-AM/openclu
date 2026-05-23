@@ -4,6 +4,7 @@ import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import { PremiumSkillCard } from '../components/syncboard/PremiumSkillCard';
+import { SkillCardGridSkeleton } from '../components/ui/skeletons';
 import type { Id } from '../../convex/_generated/dataModel';
 import '../components/syncboard/PremiumSkillCard.css';
 
@@ -89,9 +90,9 @@ export function SyncBoardSkills() {
           </div>
         )}
 
-        {!skills && <p className="syncboard-page-description">Loading skills...</p>}
+        {!skills ? <SkillCardGridSkeleton count={6} /> : null}
 
-        {purchasedSkills.length > 0 ? (
+        {skills && purchasedSkills.length > 0 ? (
           <div className="premium-skill-grid">
             {purchasedSkills.map(({ skill, purchase }) => (
               <PremiumSkillCard

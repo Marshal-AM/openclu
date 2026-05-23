@@ -10,6 +10,7 @@ import {
   Star,
   PaperPlaneTilt,
 } from '@phosphor-icons/react';
+import { FormSectionSkeleton, ListCardStackSkeleton, FeedListSkeleton } from '../components/ui/skeletons';
 
 export function SyncBoardAgentMail() {
   const config = useQuery(api.agentMail.getConfig);
@@ -88,6 +89,10 @@ export function SyncBoardAgentMail() {
   return (
     <SyncBoardLayout>
       <div className="agentmail-page">
+        {!config ? (
+          <FormSectionSkeleton rows={3} />
+        ) : (
+          <>
         {/* Enable/Disable Toggle */}
         <section className="config-section">
           <div className="section-header">
@@ -218,7 +223,9 @@ export function SyncBoardAgentMail() {
 
             {/* Inbox List */}
             <div className="inbox-list">
-              {inboxes && inboxes.length > 0 ? (
+              {!inboxes ? (
+                <ListCardStackSkeleton count={3} />
+              ) : inboxes.length > 0 ? (
                 inboxes.map((inbox: {
                   _id: Id<'agentMailInboxes'>;
                   inboxId: string;
@@ -272,12 +279,15 @@ export function SyncBoardAgentMail() {
         )}
 
         {/* Recent Messages */}
-        {config?.enabled && messages && messages.length > 0 && (
+        {config?.enabled && (
           <section className="config-section">
             <div className="section-header">
               <h3>Recent Messages</h3>
-              <span className="badge">{messages.length}</span>
+              {messages && <span className="badge">{messages.length}</span>}
             </div>
+            {!messages ? (
+              <FeedListSkeleton count={4} />
+            ) : messages.length > 0 ? (
             <div className="message-list">
               {messages.map((msg: any) => (
                 <div key={msg._id} className="message-card">
@@ -309,6 +319,7 @@ export function SyncBoardAgentMail() {
                 </div>
               ))}
             </div>
+            ) : null}
           </section>
         )}
 
@@ -326,6 +337,8 @@ export function SyncBoardAgentMail() {
               <li>Search emails by content</li>
             </ul>
           </section>
+        )}
+          </>
         )}
       </div>
 

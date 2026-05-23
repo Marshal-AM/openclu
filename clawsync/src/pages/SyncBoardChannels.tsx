@@ -10,6 +10,7 @@ import {
   EnvelopeSimple,
   Link as LinkIcon,
 } from '@phosphor-icons/react';
+import { ListCardStackSkeleton } from '../components/ui/skeletons';
 
 const channelInfo: Record<string, { icon: React.ReactNode; description: string }> = {
   telegram: {
@@ -53,14 +54,16 @@ export function SyncBoardChannels() {
           </p>
         </div>
 
-        {(!channels || channels.length === 0) && (
+        {!channels ? (
+          <ListCardStackSkeleton count={4} />
+        ) : channels.length === 0 ? (
           <div className="empty-state">
             <p>No channels configured.</p>
             <button className="btn btn-primary" onClick={handleSeed}>
               Initialize Default Channels
             </button>
           </div>
-        )}
+        ) : null}
 
         <div className="channels-grid">
           {channels?.map((channel: any) => {

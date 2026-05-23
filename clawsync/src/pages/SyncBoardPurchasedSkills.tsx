@@ -6,6 +6,7 @@ import type { Id } from '../../convex/_generated/dataModel';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import './SyncBoardPurchasedSkills.css';
+import { SkillCardGridSkeleton } from '../components/ui/skeletons';
 
 type PurchasedSkillRow = {
   _id: Id<'purchasedSkills'>;
@@ -48,6 +49,12 @@ export function SyncBoardPurchasedSkills() {
   }, [importSkill, purchased]);
 
   async function handlePreview(id: Id<'purchasedSkills'>) {
+    if (previewId === id) {
+      setPreviewId(null);
+      setPreviewText('');
+      return;
+    }
+
     setPreviewId(id);
     try {
       const result = await getPreview({ id });
@@ -78,7 +85,7 @@ export function SyncBoardPurchasedSkills() {
 
         {error && <p className="purchased-error">{error}</p>}
 
-        {!purchased && <p className="purchased-hint">Loading…</p>}
+        {!purchased ? <SkillCardGridSkeleton count={3} /> : null}
 
         {purchased && purchased.length === 0 && (
           <p className="purchased-hint">No purchases yet. Use Purchase Agent Skills to buy from the catalog.</p>
@@ -101,7 +108,7 @@ export function SyncBoardPurchasedSkills() {
                   className="btn btn-secondary btn-sm"
                   onClick={() => void handlePreview(row._id)}
                 >
-                  Preview SKILL.md
+                  {previewId === row._id ? 'Hide preview' : 'Preview SKILL.md'}
                 </button>
                 {row.status === 'purchased' && (
                   <span className="purchased-status-pill">

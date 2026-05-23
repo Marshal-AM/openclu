@@ -4,6 +4,7 @@ import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import { AgentCard } from '../components/agents/AgentCard';
+import { AgentCardGridSkeleton } from '../components/ui/skeletons';
 import { Plus } from '@phosphor-icons/react';
 
 /**
@@ -182,16 +183,7 @@ export function SyncBoardAgents() {
 
         {/* Agent grid */}
         {!agents ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: 'var(--space-8)',
-              color: 'var(--text-secondary)',
-              fontSize: 'var(--text-sm)',
-            }}
-          >
-            Loading agents...
-          </div>
+          <AgentCardGridSkeleton count={4} />
         ) : agents.length === 0 ? (
           <div
             style={{

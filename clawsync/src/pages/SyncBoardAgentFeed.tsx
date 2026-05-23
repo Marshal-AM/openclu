@@ -5,6 +5,7 @@ import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
 import { AgentFeedItem } from '../components/agents/AgentFeedItem';
+import { ChipRowSkeleton, FeedListSkeleton } from '../components/ui/skeletons';
 
 /**
  * SyncBoardAgentFeed
@@ -48,7 +49,11 @@ export function SyncBoardAgentFeed() {
         />
 
         {/* Agent filter chips */}
-        {agents && agents.length > 0 && (
+        {!agents ? (
+          <div style={{ marginBottom: 'var(--space-4)' }}>
+            <ChipRowSkeleton count={4} />
+          </div>
+        ) : agents.length > 0 ? (
           <div
             style={{
               display: 'flex',
@@ -93,15 +98,13 @@ export function SyncBoardAgentFeed() {
               </button>
             ))}
           </div>
-        )}
+        ) : null}
 
         {/* Activity list */}
         <div>
-          {!filteredActivity ? (
-            <div style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
-              Loading activity...
-            </div>
-          ) : filteredActivity.length === 0 ? (
+          {!allActivity ? (
+            <FeedListSkeleton count={6} />
+          ) : filteredActivity && filteredActivity.length === 0 ? (
             <div
               style={{
                 textAlign: 'center',

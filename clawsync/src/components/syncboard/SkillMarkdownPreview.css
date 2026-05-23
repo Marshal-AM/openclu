@@ -1,7 +1,7 @@
 .skill-markdown-preview {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--background) 100%);
+  background: var(--card);
   overflow: hidden;
 }
 
@@ -15,9 +15,9 @@
 
 .skill-markdown-preview--detail {
   min-height: 420px;
-  max-height: min(68vh, 720px);
+  max-height: none;
   padding: var(--space-5);
-  overflow-y: auto;
+  overflow-y: visible;
 }
 
 .skill-markdown-preview :is(h1, h2, h3, h4) {

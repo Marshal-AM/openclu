@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { FormSectionSkeleton } from '../components/ui/skeletons';
 
 /**
  * SyncBoard Memory Page (Supermemory)
@@ -60,6 +61,9 @@ export function SyncBoardMemory() {
         </p>
 
         {/* Configuration */}
+        {!config ? (
+          <FormSectionSkeleton rows={4} />
+        ) : (
         <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
           <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: 'var(--space-4)' }}>Configuration</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
@@ -101,6 +105,7 @@ export function SyncBoardMemory() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Add Memory */}
         <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>

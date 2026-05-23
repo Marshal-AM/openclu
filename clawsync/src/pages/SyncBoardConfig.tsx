@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { FormSectionSkeleton } from '../components/ui/skeletons';
 
 export function SyncBoardConfig() {
   const config = useQuery(api.agentConfig.get);
@@ -65,6 +66,10 @@ export function SyncBoardConfig() {
   return (
     <SyncBoardLayout>
       <div className="config-page">
+        {!config ? (
+          <FormSectionSkeleton rows={5} />
+        ) : (
+          <>
         <section className="config-section">
           <h3>Agent Settings</h3>
           <div className="form-group">
@@ -195,6 +200,8 @@ export function SyncBoardConfig() {
             {isSaving ? 'Saving...' : 'Save Configuration'}
           </button>
         </div>
+          </>
+        )}
       </div>
 
       <style>{`

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import type { Id } from '../../convex/_generated/dataModel';
+import { ListCardStackSkeleton } from '../components/ui/skeletons';
 
 /**
  * SyncBoard Research Page
@@ -122,7 +123,9 @@ export function SyncBoardResearch() {
         )}
 
         {/* Projects list */}
-        {projects && projects.length > 0 ? (
+        {!projects ? (
+          <ListCardStackSkeleton count={4} />
+        ) : projects.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             {projects.map((project: { _id: Id<'researchProjects'>; title: string; description?: string; researchType: string; status: string; createdAt: number }) => (
               <div key={project._id} style={{ background: 'var(--bg-secondary)', border: `1px solid ${selectedProject === project._id ? 'var(--text-primary)' : 'var(--border)'}`, borderRadius: 'var(--radius-xl)', padding: 'var(--space-4)', cursor: 'pointer' }} onClick={() => setSelectedProject(selectedProject === project._id ? null : project._id)}>

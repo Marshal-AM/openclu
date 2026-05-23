@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { DetailPanelGridSkeleton, ListCardStackSkeleton } from '../components/ui/skeletons';
 
 /**
  * SyncBoard Media Page
@@ -73,7 +74,11 @@ export function SyncBoardMedia() {
         </div>
 
         {/* Stats */}
-        {stats && (
+        {!stats ? (
+          <div style={{ marginBottom: 'var(--space-6)' }}>
+            <DetailPanelGridSkeleton count={4} />
+          </div>
+        ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
             {[
               { label: 'Total Files', value: stats.totalFiles },
@@ -90,7 +95,9 @@ export function SyncBoardMedia() {
         )}
 
         {/* File list */}
-        {files && files.length > 0 ? (
+        {!files ? (
+          <ListCardStackSkeleton count={4} />
+        ) : files.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             {files.map((file: any) => (
               <div key={file._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-3) var(--space-4)' }}>

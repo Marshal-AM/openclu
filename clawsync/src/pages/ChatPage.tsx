@@ -6,6 +6,7 @@ import { AgentChat } from '../components/chat/AgentChat';
 import { ActivityFeed } from '../components/chat/ActivityFeed';
 import { AgentSelector } from '../components/agents/AgentSelector';
 import { SHOW_CHAT_ACTIVITY_FEED } from '../config/productSurface';
+import { ChatPageSkeleton } from '../components/ui/skeletons';
 import './ChatPage.css';
 
 type AgentListItem = {
@@ -67,6 +68,10 @@ export function ChatPage() {
   };
 
   const chatAgentId = selectedAgentId ?? activeAgent?._id;
+
+  if (agents === undefined) {
+    return <ChatPageSkeleton />;
+  }
 
   return (
     <div className="chat-page">
