@@ -21,7 +21,6 @@ import {
   BookOpen,
   ListBullets,
   ShoppingCart,
-  Package,
 } from '@phosphor-icons/react';
 import { marketplaceProductNavPaths } from '../../config/productSurface';
 
@@ -39,7 +38,6 @@ export const syncBoardNavItems: SyncBoardNavItem[] = [
   { path: '/syncboard/models', label: 'Models', Icon: Robot },
   { path: '/syncboard/skills', label: 'Skills', Icon: Lightning },
   { path: '/syncboard/skills/purchase', label: 'Purchase Agent Skills', Icon: ShoppingCart },
-  { path: '/syncboard/skills/purchased', label: 'My Purchased Skills', Icon: Package },
   { path: '/syncboard/mcp', label: 'MCP Servers', Icon: Plug },
   { path: '/syncboard/channels', label: 'Channels', Icon: DeviceMobile },
   { path: '/syncboard/x', label: 'X (Twitter)', Icon: XLogo },

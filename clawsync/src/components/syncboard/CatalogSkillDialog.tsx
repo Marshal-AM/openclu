@@ -9,7 +9,6 @@ type CatalogSkillDialogProps = {
   loading?: boolean;
   purchaseFee?: string;
   walletConfigured?: boolean;
-  walletAddress?: string | null;
   onPurchase?: () => void;
   purchaseLoading?: boolean;
   purchaseError?: string;
@@ -24,7 +23,6 @@ export function CatalogSkillDialog({
   loading = false,
   purchaseFee,
   walletConfigured,
-  walletAddress,
   onPurchase,
   purchaseLoading,
   purchaseError,
@@ -32,14 +30,15 @@ export function CatalogSkillDialog({
   purchaseElapsedSec,
 }: CatalogSkillDialogProps) {
   const payload = detail?.payload as Record<string, unknown> | undefined;
-  const title = payload?.title ? String(payload.title) : 'Skill details';
+  const title = payload?.title ? String(payload.title) : 'Skill';
+  const slug = payload?.skillName ? String(payload.skillName) : undefined;
 
   return (
     <ModalDialog
       open={open}
       onClose={onClose}
       title={title}
-      description="Full Arkiv catalog entry, purchase details, and metadata."
+      subtitle={slug}
       className="modal-dialog--wide"
     >
       {loading ? (
@@ -49,7 +48,6 @@ export function CatalogSkillDialog({
           detail={detail}
           purchaseFee={purchaseFee}
           walletConfigured={walletConfigured}
-          walletAddress={walletAddress}
           onPurchase={onPurchase}
           purchaseLoading={purchaseLoading}
           purchaseError={purchaseError}

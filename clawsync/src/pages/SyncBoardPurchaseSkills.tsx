@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { useAction, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -57,19 +58,24 @@ export function SyncBoardPurchaseSkills() {
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [walletConfigured, setWalletConfigured] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
   const [purchaseError, setPurchaseError] = useState('');
   const [purchaseLogs, setPurchaseLogs] = useState<string[]>([]);
   const [purchaseElapsedSec, setPurchaseElapsedSec] = useState(0);
   const purchaseInFlight = useRef(false);
+  const initialCatalogLoad = useRef(false);
 
   useEffect(() => {
     void getWalletStatus({}).then((w) => {
       setWalletConfigured(w.configured);
-      setWalletAddress(w.address);
     });
   }, [getWalletStatus]);
+
+  useEffect(() => {
+    if (initialCatalogLoad.current) return;
+    initialCatalogLoad.current = true;
+    void runSearch({ full: true, emptyQuery: true });
+  }, []);
 
   async function runSearch(opts?: { full?: boolean; emptyQuery?: boolean }) {
     setLoading(true);
@@ -186,12 +192,15 @@ export function SyncBoardPurchaseSkills() {
         `${importResult.alreadyImported ? 'Already registered' : 'Registered'} as skill ${importResult.skillRegistryId} and assigned to ${selectedAgentName}.`,
       );
       setPurchaseError('');
-      alert(`Purchased "${skillName}" and added it to ${selectedAgentName}.`);
+      toast.success(`Purchased "${skillName}"`, {
+        description: `Added to ${selectedAgentName}.`,
+      });
       closeDetail();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       appendPurchaseLog(`Failed: ${msg}`);
       setPurchaseError(msg);
+      toast.error('Purchase failed', { description: msg });
     } finally {
       window.clearInterval(tick);
       purchaseInFlight.current = false;
@@ -228,19 +237,13 @@ export function SyncBoardPurchaseSkills() {
 
         {error && <p className="purchase-error">{error}</p>}
 
-        {!searched && !loading && (
-          <p className="purchase-hint">
-            Search by keyword or click Browse all to load published listings.
-          </p>
-        )}
+        {loading ? <SkillCardGridSkeleton count={6} /> : null}
 
-        {searched && !loading && !error && matches.length === 0 && (
+        {!loading && searched && !error && matches.length === 0 && (
           <p className="purchase-hint">No skills matched your filters.</p>
         )}
 
-        {loading && searched ? <SkillCardGridSkeleton count={6} /> : null}
-
-        {searched && !loading && matches.length > 0 ? (
+        {!loading && searched && matches.length > 0 ? (
           <>
             <p className="purchase-hint">
               {matches.length} listing{matches.length === 1 ? '' : 's'}
@@ -270,7 +273,6 @@ export function SyncBoardPurchaseSkills() {
           loading={detailLoading}
           purchaseFee={mintingFee}
           walletConfigured={walletConfigured}
-          walletAddress={walletAddress}
           onPurchase={() => void handlePurchase()}
           purchaseLoading={purchaseLoading}
           purchaseError={purchaseError}

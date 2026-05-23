@@ -6,6 +6,7 @@ type ModalDialogProps = {
   open: boolean;
   onClose: () => void;
   title?: string;
+  subtitle?: string;
   description?: string;
   children: ReactNode;
   className?: string;
@@ -15,6 +16,7 @@ export function ModalDialog({
   open,
   onClose,
   title,
+  subtitle,
   description,
   children,
   className,
@@ -46,7 +48,7 @@ export function ModalDialog({
         aria-labelledby={title ? 'modal-dialog-title' : undefined}
         onClick={(event) => event.stopPropagation()}
       >
-        {(title || description) && (
+        {(title || subtitle || description) && (
           <header className="modal-dialog-header">
             <div className="modal-dialog-heading">
               {title ? (
@@ -54,6 +56,7 @@ export function ModalDialog({
                   {title}
                 </h2>
               ) : null}
+              {subtitle ? <p className="modal-dialog-subtitle">{subtitle}</p> : null}
               {description ? <p className="modal-dialog-description">{description}</p> : null}
             </div>
             <button type="button" className="modal-dialog-close" onClick={onClose} aria-label="Close">

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
@@ -57,8 +58,9 @@ export function SyncBoardSouls() {
     try {
       await removeSoul({ soulId });
     } catch (error) {
-      // Soul is still referenced by agents
-      alert(error instanceof Error ? error.message : 'Cannot delete soul');
+      toast.error('Cannot delete soul', {
+        description: error instanceof Error ? error.message : undefined,
+      });
     }
   };
 

@@ -25,6 +25,19 @@
   width: min(100%, 56rem);
 }
 
+.modal-dialog--wide .modal-dialog-title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.modal-dialog-subtitle {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
 .modal-dialog-header {
   display: flex;
   align-items: flex-start;

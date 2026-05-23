@@ -122,18 +122,12 @@ export function SkillDetailPageSkeleton() {
 export function CatalogDetailSkeleton() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <div>
-        <Skeleton style={{ height: '0.75rem', width: '5rem', marginBottom: '0.75rem' }} />
-        <DetailPanelGridSkeleton count={4} />
-      </div>
-      <div>
-        <Skeleton style={{ height: '0.75rem', width: '6rem', marginBottom: '0.75rem' }} />
-        <Skeleton style={{ height: '2.5rem', width: '100%' }} />
-        <Skeleton style={{ height: '2.5rem', width: '100%', marginTop: '0.5rem' }} />
-        <Skeleton style={{ height: '2.5rem', width: '100%', marginTop: '0.5rem' }} />
-      </div>
-      <Skeleton style={{ height: '2.5rem', width: '9rem' }} />
-      <Skeleton style={{ height: '12rem', width: '100%', borderRadius: 'var(--radius-lg)' }} />
+      <Skeleton style={{ height: '0.75rem', width: '5rem' }} />
+      <Skeleton style={{ height: '1rem', width: '100%' }} />
+      <Skeleton style={{ height: '1rem', width: '88%' }} />
+      <Skeleton style={{ height: '0.75rem', width: '3rem' }} />
+      <Skeleton style={{ height: '1.5rem', width: '55%' }} />
+      <Skeleton style={{ height: '2.75rem', width: '30%', minWidth: '7rem', borderRadius: '9999px' }} />
     </div>
   );
 }

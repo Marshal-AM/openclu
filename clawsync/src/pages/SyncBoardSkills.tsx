@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { useMutation, useQuery } from 'convex/react';
+import { useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import { SyncBoardPageToolbar } from '../components/syncboard/SyncBoardPageToolbar';
@@ -30,8 +31,22 @@ type PurchasedSkill = {
 export function SyncBoardSkills() {
   const skills = useQuery(api.skillRegistry.list) as RegistrySkill[] | undefined;
   const purchased = useQuery(api.skillPurchases.listPurchased) as PurchasedSkill[] | undefined;
+  const importSkill = useAction(api.skillPurchaseImport.importPurchasedSkill);
   const approveSkill = useMutation(api.skillRegistry.approve);
   const rejectSkill = useMutation(api.skillRegistry.reject);
+  const [importError, setImportError] = useState('');
+  const autoImportStarted = useRef(new Set<Id<'purchasedSkills'>>());
+
+  useEffect(() => {
+    const pending = purchased?.filter((row) => row.status === 'purchased') ?? [];
+    for (const row of pending) {
+      if (autoImportStarted.current.has(row._id)) continue;
+      autoImportStarted.current.add(row._id);
+      void importSkill({ purchasedSkillId: row._id }).catch((e) =>
+        setImportError(e instanceof Error ? e.message : String(e)),
+      );
+    }
+  }, [importSkill, purchased]);
 
   const purchaseByRegistryId = new Map(
     purchased
@@ -69,23 +84,20 @@ export function SyncBoardSkills() {
             </p>
           }
           actions={
-            <>
-              <Link to="/syncboard/skills/purchase" className="btn btn-primary">
-                Purchase Skills
-              </Link>
-              <Link to="/syncboard/skills/purchased" className="btn btn-secondary">
-                Purchased
-              </Link>
-            </>
+            <Link to="/syncboard/skills/purchase" className="btn btn-primary">
+              Purchase Skills
+            </Link>
           }
         />
+
+        {importError ? <p className="syncboard-page-description" style={{ color: 'var(--error)' }}>{importError}</p> : null}
 
         {syncingPurchases.length > 0 && (
           <div className="syncing-panel">
             <strong>Registering purchased skills</strong>
             <p>
               {syncingPurchases.length} purchased skill{syncingPurchases.length === 1 ? '' : 's'} still
-              need registry sync. Open Purchased to retry automatic registration.
+              need registry sync. They will appear here automatically once registered.
             </p>
           </div>
         )}

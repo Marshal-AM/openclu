@@ -1,136 +1,106 @@
+import './CatalogDetailPanel.css';
+
 type CatalogDetail = Record<string, unknown>;
+
+type CatalogDetailPanelProps = {
+  detail: CatalogDetail;
+  onClose?: () => void;
+  purchaseFee?: string;
+  walletConfigured?: boolean;
+  onPurchase?: () => void;
+  purchaseLoading?: boolean;
+  purchaseError?: string;
+  purchaseLogs?: string[];
+  purchaseElapsedSec?: number;
+};
+
+function collectTags(detail: CatalogDetail, payload?: Record<string, unknown>): string[] {
+  const fromPayload = Array.isArray(payload?.triggers) ? (payload.triggers as string[]) : [];
+  const fromListing = Array.isArray(detail.tags) ? (detail.tags as string[]) : [];
+  return [...new Set([...fromPayload, ...fromListing].filter(Boolean))];
+}
 
 export function CatalogDetailPanel({
   detail,
   onClose,
   purchaseFee,
   walletConfigured,
-  walletAddress,
   onPurchase,
   purchaseLoading,
   purchaseError,
   purchaseLogs,
-  purchaseElapsedSec,
-}: {
-  detail: CatalogDetail;
-  onClose?: () => void;
-  purchaseFee?: string;
-  walletConfigured?: boolean;
-  walletAddress?: string | null;
-  onPurchase?: () => void;
-  purchaseLoading?: boolean;
-  purchaseError?: string;
-  purchaseLogs?: string[];
-  purchaseElapsedSec?: number;
-}) {
+}: CatalogDetailPanelProps) {
   const payload = detail.payload as Record<string, unknown> | undefined;
   const purchaseView = detail.purchaseView as Record<string, unknown> | undefined;
+  const description = payload?.description ? String(payload.description) : '';
+  const tags = collectTags(detail, payload);
+
   return (
     <div className="catalog-detail-panel">
       {onClose ? (
         <div className="catalog-detail-header">
-          <h3 className="catalog-detail-title">Full Arkiv catalog entry</h3>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
             Close
           </button>
         </div>
       ) : null}
 
-      {payload && (
-        <section className="catalog-detail-section">
-          <h4 className="catalog-detail-label">Metadata</h4>
-          <dl className="catalog-detail-grid">
-            <div>
-              <dt>Title</dt>
-              <dd>{String(payload.title ?? '')}</dd>
-            </div>
-            <div>
-              <dt>Skill slug</dt>
-              <dd className="mono">{String(payload.skillName ?? '')}</dd>
-            </div>
-            <div className="span-2">
-              <dt>Description</dt>
-              <dd>{String(payload.description ?? '')}</dd>
-            </div>
-            <div className="span-2">
-              <dt>Triggers</dt>
-              <dd className="mono">
-                {Array.isArray(payload.triggers)
-                  ? (payload.triggers as string[]).join(', ')
-                  : '—'}
-              </dd>
-            </div>
-          </dl>
+      {description ? (
+        <section className="catalog-detail-description-block">
+          <h3 className="catalog-detail-section-heading">Description</h3>
+          <p className="catalog-detail-description">{description}</p>
         </section>
-      )}
+      ) : null}
 
-      <section className="catalog-detail-meta">
-        {detail.entityKey != null && (
-          <p>
-            <span className="muted">Entity key:</span>{' '}
-            <span className="mono break-all">{String(detail.entityKey)}</span>
-          </p>
-        )}
-        {detail.status != null && (
-          <p>
-            <span className="muted">Status:</span> {String(detail.status)}
-          </p>
-        )}
-        {detail.arkivVersion != null && (
-          <p>
-            <span className="muted">Arkiv version:</span> {String(detail.arkivVersion)}
-          </p>
-        )}
-        {purchaseFee && (
-          <p>
-            <span className="muted">Minting fee:</span> {purchaseFee} IP
-          </p>
-        )}
-        {walletConfigured && walletAddress && (
-          <p>
-            <span className="muted">Buyer wallet:</span>{' '}
-            <span className="mono break-all">{walletAddress}</span>
-          </p>
-        )}
-        {!walletConfigured && (
-          <p className="catalog-detail-warn">
-            Add AGENT_PRIVATE_KEY to clawsync/.env (local dev) or run npx convex env set
-            AGENT_PRIVATE_KEY.
-          </p>
-        )}
-      </section>
+      {tags.length > 0 ? (
+        <section className="catalog-detail-tags">
+          <h3 className="catalog-detail-section-heading">Tags</h3>
+          <ul className="catalog-detail-tag-list">
+            {tags.map((tag) => (
+              <li key={tag}>
+                <span className="badge catalog-detail-tag-badge">{tag}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
-      {onPurchase && (
+      {!walletConfigured ? (
+        <p className="catalog-detail-warn">
+          Add AGENT_PRIVATE_KEY to clawsync/.env (local dev) or run npx convex env set
+          AGENT_PRIVATE_KEY.
+        </p>
+      ) : null}
+
+      {onPurchase ? (
         <div className="catalog-detail-actions">
           <button
             type="button"
-            className="btn btn-primary"
-            disabled={!walletConfigured || purchaseLoading}
+            className={`btn btn-primary catalog-detail-purchase-btn${purchaseLoading ? ' is-loading' : ''}`}
+            disabled={!walletConfigured || purchaseLoading || !purchaseFee}
             onClick={onPurchase}
+            aria-label={purchaseFee ? `Buy skill for ${purchaseFee} IP` : 'Buy skill'}
+            aria-busy={purchaseLoading}
           >
-            {purchaseLoading ? 'Purchasing…' : 'Purchase skill'}
+            {purchaseLoading ? (
+              <span className="catalog-detail-purchase-spinner" aria-hidden />
+            ) : (
+              <span className="catalog-detail-purchase-label">{purchaseFee ? `${purchaseFee} IP` : '—'}</span>
+            )}
           </button>
-          {purchaseLoading && purchaseElapsedSec != null && purchaseElapsedSec > 0 && (
-            <p className="catalog-detail-hint muted">
-              Elapsed: {purchaseElapsedSec}s — still running…
-            </p>
-          )}
-          {purchaseError && <p className="catalog-detail-error">{purchaseError}</p>}
+          {purchaseError ? <p className="catalog-detail-error">{purchaseError}</p> : null}
         </div>
-      )}
+      ) : null}
 
-      {purchaseLogs && purchaseLogs.length > 0 && (
+      {!purchaseLoading && purchaseLogs && purchaseLogs.length > 0 ? (
         <section className="catalog-detail-log">
-          <h4 className="catalog-detail-label">Purchase log</h4>
-          <pre className="catalog-detail-log-pre">
-            {purchaseLogs.join('\n')}
-            {purchaseLoading ? '\n…' : ''}
-          </pre>
+          <h4 className="catalog-detail-section-heading">Purchase log</h4>
+          <pre className="catalog-detail-log-pre">{purchaseLogs.join('\n')}</pre>
         </section>
-      )}
+      ) : null}
 
       <details className="catalog-detail-raw">
-        <summary>Raw JSON (full listing + purchase view)</summary>
+        <summary>Raw JSON</summary>
         <pre>
           {JSON.stringify(
             {

@@ -13,9 +13,9 @@ import { SyncBoardAgents } from './pages/SyncBoardAgents';
 import { SyncBoardAgentDetail } from './pages/SyncBoardAgentDetail';
 import { SyncBoardAgentFeed } from './pages/SyncBoardAgentFeed';
 import { SyncBoardPurchaseSkills } from './pages/SyncBoardPurchaseSkills';
-import { SyncBoardPurchasedSkills } from './pages/SyncBoardPurchasedSkills';
 import { PRODUCT_HOME_PATH } from './config/productSurface';
 import { PageBootSkeleton } from './components/ui/skeletons';
+import { Toaster } from 'sonner';
 
 // Wrapper component to check if setup is required
 function SetupGuard({ children }: { children: React.ReactNode }) {
@@ -132,6 +132,7 @@ export function App() {
         message="A new version is available!"
         buttonText="Refresh"
       />
+      <Toaster position="top-center" richColors closeButton />
       <SetupGuard>
         <Routes>
           {/* Setup wizard (first-run) */}
@@ -147,7 +148,7 @@ export function App() {
           <Route path="/syncboard/models" element={<SyncBoardAuthGuard><SyncBoardModels /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills" element={<SyncBoardAuthGuard><SyncBoardSkills /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills/purchase" element={<SyncBoardAuthGuard><SyncBoardPurchaseSkills /></SyncBoardAuthGuard>} />
-          <Route path="/syncboard/skills/purchased" element={<SyncBoardAuthGuard><SyncBoardPurchasedSkills /></SyncBoardAuthGuard>} />
+          <Route path="/syncboard/skills/purchased" element={<Navigate to="/syncboard/skills" replace />} />
           <Route path="/syncboard/skills/new" element={hiddenRoute} />
           <Route path="/syncboard/skills/:id" element={<SyncBoardAuthGuard><SyncBoardSkillDetail /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/mcp" element={hiddenRoute} />

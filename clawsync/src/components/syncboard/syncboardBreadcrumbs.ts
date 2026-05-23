@@ -63,16 +63,6 @@ const routes: RouteMatch[] = [
     }),
   },
   {
-    test: (p) => p.match(/^\/syncboard\/skills\/purchased$/),
-    resolve: () => ({
-      items: [
-        { label: 'Skills', href: '/syncboard/skills' },
-        { label: 'My Purchased Skills' },
-      ],
-      parentHref: '/syncboard/skills',
-    }),
-  },
-  {
     test: (p) => p.match(/^\/syncboard\/skills\/([^/]+)$/),
     resolve: (_m, dynamicLabel) => ({
       items: [

@@ -15,20 +15,23 @@ type CatalogListingCardProps = {
 export function CatalogListingCard({
   title,
   description,
-  skillName,
   status,
   mintingFeeIp,
   score,
   onClick,
 }: CatalogListingCardProps) {
   return (
-    <button type="button" className="catalog-listing-card" onClick={onClick}>
+    <button
+      type="button"
+      className="catalog-listing-card"
+      onClick={onClick}
+      aria-label={mintingFeeIp ? `${title}, ${mintingFeeIp} IP` : title}
+    >
       <header className="catalog-listing-card-header">
-        <div className="catalog-listing-card-heading">
-          <h3 className="catalog-listing-card-title">{title}</h3>
-          <p className="catalog-listing-card-slug">{skillName}</p>
-        </div>
-        {mintingFeeIp ? <span className="catalog-listing-card-price">{mintingFeeIp} IP</span> : null}
+        <h3 className="catalog-listing-card-title">{title}</h3>
+        {mintingFeeIp ? (
+          <span className="catalog-listing-card-price">{mintingFeeIp} IP</span>
+        ) : null}
       </header>
 
       <div className="catalog-listing-card-body">
