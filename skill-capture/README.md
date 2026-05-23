@@ -32,7 +32,7 @@ Each contributor runs **orchestrator on their PC** and tunnels it with **ngrok**
 3. Run `.\register.ps1` — reads `publicUrl` from orchestrator `/health`, puts it in the QR link, saves to Supabase on confirm
 4. Set `FRONTEND_URL` in `skill-capture/.env` to your **Vercel** (or local) app URL before `register.ps1`
 5. `register.ps1` POSTs pending registration to **`FRONTEND_URL/api/devices/pending`** (not the orchestrator)
-6. After login, the UI proxies Contribute jobs to **your** ngrok URL (`devices.orchestrator_url`)
+6. In Contribute, choose a registered device; the UI proxies jobs to that device ngrok URL (`devices.orchestrator_url`)
 
 Keep orchestrator + ngrok running while contributing. Supabase credentials live **only on the frontend** (local or Vercel).
 
@@ -52,7 +52,7 @@ pip install -r requirements.txt
 .\register.ps1   # or ./register.sh on Git Bash
 ```
 
-Scan the QR / open the link → confirm registration → sign in with the printed wallet address.
+Scan the QR / open the link → sign in with your owner wallet → confirm device registration.
 
 ## Setup (once)
 
@@ -99,7 +99,7 @@ npm run dev
 
 **Contribute flow (browser)**
 
-1. Sign in with device wallet address.
+1. Sign in with your owner wallet.
 2. **Contribute** → fill metadata → **Save draft** (writes `skills/<slug>/SKILL.md`).
 3. **Start recording** → press **Q** in the terminal when done.
 4. Orchestrator auto-runs distribute (Story + Helia + Arkiv, device key).

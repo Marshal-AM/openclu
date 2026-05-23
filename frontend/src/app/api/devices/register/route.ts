@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getSessionWallet } from "@/lib/session";
 
 export async function POST(req: Request) {
   try {
+    const ownerWallet = await getSessionWallet();
+    if (!ownerWallet) {
+      return NextResponse.json(
+        { error: "Please log in first to register this device." },
+        { status: 401 },
+      );
+    }
+
     const { token, address, deviceName, deviceId, orchestratorUrl } =
       (await req.json()) as {
         token?: string;
@@ -24,6 +33,14 @@ export async function POST(req: Request) {
     }
 
     const sb = getSupabaseAdmin();
+    const { error: userErr } = await sb.from("users").upsert(
+      {
+        wallet_address: ownerWallet,
+        last_login_at: new Date().toISOString(),
+      },
+      { onConflict: "wallet_address" },
+    );
+    if (userErr) return NextResponse.json({ error: userErr.message }, { status: 500 });
 
     const { data: pending, error: pErr } = await sb
       .from("device_registration_pending")
@@ -65,7 +82,7 @@ export async function POST(req: Request) {
       wallet_address: wallet,
       registration_token: token,
       registered_at: new Date().toISOString(),
-      owner_wallet_address: wallet,
+      owner_wallet_address: ownerWallet,
       orchestrator_url,
     });
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
@@ -74,7 +91,12 @@ export async function POST(req: Request) {
       await sb.from("device_registration_pending").delete().eq("registration_token", token);
     }
 
-    return NextResponse.json({ ok: true, wallet_address: wallet, orchestrator_url });
+    return NextResponse.json({
+      ok: true,
+      wallet_address: wallet,
+      owner_wallet_address: ownerWallet,
+      orchestrator_url,
+    });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : String(e) },

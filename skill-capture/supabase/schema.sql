@@ -1,11 +1,22 @@
 -- Run in Supabase SQL editor (service role used from Next.js / orchestrator only)
 
+create table if not exists public.users (
+  wallet_address text primary key,
+  display_name text,
+  email text,
+  avatar_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  last_login_at timestamptz,
+  constraint users_wallet_lowercase check (wallet_address ~ '^0x[a-fA-F0-9]{40}$')
+);
+
 create table if not exists public.devices (
   id uuid primary key default gen_random_uuid(),
   device_id text not null unique,
   device_name text not null,
   wallet_address text not null unique,
-  owner_wallet_address text,
+  owner_wallet_address text not null references public.users(wallet_address) on update cascade on delete restrict,
   registration_token text unique,
   registered_at timestamptz,
   orchestrator_url text,
@@ -51,11 +62,17 @@ begin
 end;
 $$;
 
+drop trigger if exists users_updated_at on public.users;
+create trigger users_updated_at
+  before update on public.users
+  for each row execute function public.set_updated_at();
+
 drop trigger if exists skill_contributions_updated_at on public.skill_contributions;
 create trigger skill_contributions_updated_at
   before update on public.skill_contributions
   for each row execute function public.set_updated_at();
 
+alter table public.users enable row level security;
 alter table public.devices enable row level security;
 alter table public.device_registration_pending enable row level security;
 alter table public.skill_contributions enable row level security;

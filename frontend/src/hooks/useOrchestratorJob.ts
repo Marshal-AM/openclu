@@ -24,7 +24,15 @@ type JobHandlers = {
   onFailed?: (job: OrchestratorJob) => void;
 };
 
-export function useOrchestratorJob(jobId: string | null, handlers?: JobHandlers) {
+function withDeviceHeaders(deviceId: string | null): HeadersInit {
+  return deviceId ? { "x-device-id": deviceId } : {};
+}
+
+export function useOrchestratorJob(
+  jobId: string | null,
+  deviceId: string | null,
+  handlers?: JobHandlers,
+) {
   const [job, setJob] = useState<OrchestratorJob | null>(null);
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
@@ -40,7 +48,9 @@ export function useOrchestratorJob(jobId: string | null, handlers?: JobHandlers)
     let cancelled = false;
 
     const poll = async () => {
-      const res = await fetch(`${ORCH}/jobs/${jobId}`);
+      const res = await fetch(`${ORCH}/jobs/${jobId}`, {
+        headers: withDeviceHeaders(deviceId),
+      });
       if (!res.ok || cancelled) return;
       const data = (await res.json()) as OrchestratorJob;
       if (cancelled) return;
@@ -61,7 +71,7 @@ export function useOrchestratorJob(jobId: string | null, handlers?: JobHandlers)
       cancelled = true;
       clearInterval(id);
     };
-  }, [jobId]);
+  }, [jobId, deviceId]);
 
   return { job, logs: job?.logs ?? [] };
 }

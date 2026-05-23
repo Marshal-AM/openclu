@@ -1,62 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useLogin, usePrivy } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { syncWalletSession } from "@/components/auth/backend-session-sync";
+import { useCurrentWallet } from "@/components/auth/current-wallet";
+import { OpenCluLogo } from "@/components/OpenCluLogo";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
-  const [address, setAddress] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { ready } = usePrivy();
+  const { login } = useLogin();
+  const { authenticated, walletAddress } = useCurrentWallet();
+  const [syncing, setSyncing] = useState(false);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: address.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Login failed");
-      router.push("/contribute");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    let mounted = true;
+
+    async function completeLogin() {
+      if (!authenticated || !walletAddress || syncing) return;
+      setSyncing(true);
+      try {
+        await syncWalletSession(walletAddress);
+        if (mounted) router.replace("/contribute");
+      } finally {
+        if (mounted) setSyncing(false);
+      }
     }
-  }
+
+    void completeLogin();
+    return () => {
+      mounted = false;
+    };
+  }, [authenticated, router, syncing, walletAddress]);
+
+  const canLogin = ready && !authenticated && !syncing;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-6">
-      <form
-        onSubmit={submit}
-        className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-xl"
-      >
-        <h1 className="text-2xl font-semibold">Sign in</h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          Enter the device wallet address from <code className="text-emerald-400">register.sh</code>
-        </p>
-        <label className="mt-6 block text-sm text-zinc-300">
-          Wallet address
-          <input
-            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-sm"
-            placeholder="0x..."
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-        </label>
-        {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-6 w-full rounded-lg bg-emerald-600 py-2.5 font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+    <main className="grid min-h-svh place-items-center bg-background p-6">
+      <section className="flex flex-col items-center gap-10">
+        <OpenCluLogo priority className="h-auto w-72 max-w-[80vw]" />
+        <Button
+          type="button"
+          size="lg"
+          className="h-12 rounded-full px-8"
+          disabled={!canLogin}
+          onClick={() => login()}
         >
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-    </div>
+          {syncing || authenticated ? "Connecting..." : "Connect wallet"}
+        </Button>
+      </section>
+    </main>
   );
 }

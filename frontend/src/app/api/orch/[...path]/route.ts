@@ -1,8 +1,21 @@
 import { NextResponse } from "next/server";
-import { resolveOrchestratorUrlForRequest } from "@/lib/session";
+import { getSessionWalletFromRequest } from "@/lib/auth-session";
+import { fetchOwnedDeviceOrchestratorUrl } from "@/lib/session";
 
 async function proxy(req: Request, pathSegs: string[]) {
-  const resolved = await resolveOrchestratorUrlForRequest();
+  const ownerWallet = getSessionWalletFromRequest(req);
+  if (!ownerWallet) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const deviceId = req.headers.get("x-device-id")?.trim();
+  if (!deviceId) {
+    return NextResponse.json(
+      { error: "Missing x-device-id header for orchestrator interaction." },
+      { status: 400 },
+    );
+  }
+
+  const resolved = await fetchOwnedDeviceOrchestratorUrl(ownerWallet, deviceId);
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }

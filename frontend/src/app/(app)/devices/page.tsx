@@ -1,71 +1,218 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-type Device = {
-  device_id: string;
-  device_name: string;
-  wallet_address: string;
-  orchestrator_url: string | null;
-  registered_at: string | null;
-};
+import { useCallback, useEffect, useState } from "react";
+import { useDeviceInteractionStore } from "@/lib/device-interaction-store";
+import type { OwnedDevice } from "@/lib/device-types";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DevicesPage() {
-  const [device, setDevice] = useState<Device | null>(null);
+  const [devices, setDevices] = useState<OwnedDevice[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<OwnedDevice | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const selectedDeviceId = useDeviceInteractionStore((s) => s.selectedDeviceId);
+  const chooseDevice = useDeviceInteractionStore((s) => s.chooseDevice);
+  const clearDeviceSelection = useDeviceInteractionStore((s) => s.clearDeviceSelection);
+
+  const loadDevices = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/devices");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not load devices");
+      const list = (data.devices ?? []) as OwnedDevice[];
+      setDevices(list);
+      if (selectedDeviceId && !list.some((d) => d.id === selectedDeviceId)) {
+        clearDeviceSelection();
+      }
+      setError("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [clearDeviceSelection, selectedDeviceId]);
 
   useEffect(() => {
-    fetch("/api/devices/me")
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        setDevice(data.device);
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
-  }, []);
+    void loadDevices();
+  }, [loadDevices]);
+
+  function selectDevice(deviceId: string) {
+    chooseDevice(deviceId);
+  }
 
   return (
-    <div className="max-w-lg">
-      <h1 className="text-2xl font-semibold">My Devices</h1>
-      <p className="mt-1 text-sm text-zinc-400">
-        Device registered via <code className="text-emerald-400">register.sh</code> on this machine.
-      </p>
-      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
-      {device && (
-        <dl className="mt-6 space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 text-sm">
-          <div>
-            <dt className="text-zinc-500">Name</dt>
-            <dd className="font-medium">{device.device_name}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Device ID</dt>
-            <dd className="font-mono text-xs">{device.device_id}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Wallet</dt>
-            <dd className="break-all font-mono text-emerald-300">{device.wallet_address}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Orchestrator tunnel</dt>
-            <dd className="break-all font-mono text-xs text-emerald-300/90">
-              {device.orchestrator_url ?? "—"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Registered</dt>
-            <dd>{device.registered_at ? new Date(device.registered_at).toLocaleString() : "—"}</dd>
-          </div>
-        </dl>
-      )}
-      <p className="mt-6 text-sm text-zinc-500">
-        Orchestrator URL is refreshed from Supabase whenever you open any app page. After changing ngrok,
-        update <code className="text-zinc-400">devices.orchestrator_url</code> in Supabase or re-run{" "}
-        <code className="text-zinc-400">register.ps1</code> and confirm registration.
-      </p>
-      <p className="mt-2 text-sm text-zinc-500">
-        To register a new device, run{" "}
-        <code className="text-zinc-300">./register.sh</code> from skill-capture and scan the QR code.
-      </p>
+    <div className="mx-auto flex max-w-4xl flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">My Devices</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Devices registered via <code className="text-foreground">register.sh</code>. Choose the
+          one you want to use for capture/publish actions.
+        </p>
+      </div>
+
+      {error ? (
+        <Alert variant="destructive">
+          <AlertTitle>Could not load devices</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {loading ? (
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-40 w-full" />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {!loading && devices.length === 0 && !error ? (
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>No devices registered</EmptyTitle>
+            <EmptyDescription>
+              Run register.sh/register.ps1 from skill-capture and confirm the registration link.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : null}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {devices.map((device) => {
+          const isSelected = selectedDeviceId === device.id;
+          return (
+            <Card
+              key={device.id}
+              role="button"
+              tabIndex={0}
+              className="cursor-pointer transition-colors hover:bg-muted/40"
+              onClick={() => setSelectedDevice(device)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setSelectedDevice(device);
+                }
+              }}
+            >
+              <CardHeader>
+                <CardTitle>{device.device_name}</CardTitle>
+                <CardDescription className="flex items-center gap-2">
+                  {isSelected ? <Badge variant="secondary">Selected for recording</Badge> : null}
+                  {!device.orchestrator_url ? (
+                    <Badge variant="destructive">Missing orchestrator URL</Badge>
+                  ) : null}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <dl className="grid gap-3 text-sm">
+                  <div>
+                    <dt className="text-muted-foreground">Device wallet</dt>
+                    <dd className="truncate font-mono text-xs">{device.wallet_address}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Registered</dt>
+                    <dd>
+                      {device.registered_at
+                        ? new Date(device.registered_at).toLocaleString()
+                        : "Unavailable"}
+                    </dd>
+                  </div>
+                </dl>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  type="button"
+                  variant={isSelected ? "secondary" : "outline"}
+                  className="w-full"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    selectDevice(device.id);
+                  }}
+                >
+                  {isSelected ? "Currently selected" : "Use this device"}
+                </Button>
+              </CardFooter>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Dialog open={!!selectedDevice} onOpenChange={(open) => !open && setSelectedDevice(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedDevice?.device_name ?? "Device"}</DialogTitle>
+            <DialogDescription>Registered device details.</DialogDescription>
+          </DialogHeader>
+          {selectedDevice ? (
+            <dl className="grid gap-5 text-sm">
+              <div>
+                <dt className="text-muted-foreground">Device row ID</dt>
+                <dd className="break-all font-mono text-xs">{selectedDevice.id}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Device ID</dt>
+                <dd className="break-all font-mono text-xs">{selectedDevice.device_id}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Device wallet</dt>
+                <dd className="break-all font-mono text-xs">{selectedDevice.wallet_address}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Orchestrator tunnel</dt>
+                <dd className="break-all font-mono text-xs">
+                  {selectedDevice.orchestrator_url ?? "Unavailable"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Registered</dt>
+                <dd>
+                  {selectedDevice.registered_at
+                    ? new Date(selectedDevice.registered_at).toLocaleString()
+                    : "Unavailable"}
+                </dd>
+              </div>
+              <div>
+                <Button
+                  type="button"
+                  className="w-full sm:w-auto"
+                  onClick={() => selectDevice(selectedDevice.id)}
+                >
+                  Use this device for contribution flow
+                </Button>
+              </div>
+            </dl>
+          ) : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => clearDeviceSelection()}>
+              Clear selected context
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

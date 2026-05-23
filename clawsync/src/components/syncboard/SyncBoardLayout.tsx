@@ -86,7 +86,10 @@ export function SyncBoardLayout({ title, children }: SyncBoardLayoutProps) {
       <aside className="syncboard-sidebar">
         <div className="sidebar-header">
           <Link to="/" className="sidebar-logo-link">
-            <img src="/clawsync-logo.svg" alt="ClawSync" className="sidebar-logo" onError={(e) => { e.currentTarget.src = '/clawsync-logo.png'; }} />
+            <picture>
+              <source srcSet="/openclu_logo_dark.png" media="(prefers-color-scheme: dark)" />
+              <img src="/openclu_logo_light.png" alt="OpenClu" className="sidebar-logo" />
+            </picture>
           </Link>
           <h1 className="sidebar-title">SyncBoard</h1>
           <div className="sidebar-header-actions">

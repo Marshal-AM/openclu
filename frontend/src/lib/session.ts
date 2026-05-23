@@ -1,58 +1,43 @@
 import { cookies } from "next/headers";
-import { fetchOrchestratorUrlFromDb } from "@/lib/orchestrator-db";
-import {
-  ORCHESTRATOR_COOKIE,
-  ORCHESTRATOR_COOKIE_OPTS,
-  SESSION_COOKIE,
-} from "@/lib/orchestrator-cookies";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { SESSION_COOKIE, SESSION_COOKIE_OPTS } from "@/lib/orchestrator-cookies";
 
-export { SESSION_COOKIE, ORCHESTRATOR_COOKIE, ORCHESTRATOR_COOKIE_OPTS };
-export { fetchOrchestratorUrlFromDb };
+export { SESSION_COOKIE, SESSION_COOKIE_OPTS };
+
+export function normalizeAddress(value: string): string {
+  return value.trim().toLowerCase();
+}
 
 export async function getSessionWallet(): Promise<string | null> {
   const jar = await cookies();
-  const v = jar.get(SESSION_COOKIE)?.value;
-  return v?.toLowerCase() ?? null;
+  const wallet = jar.get(SESSION_COOKIE)?.value?.trim();
+  return wallet ? normalizeAddress(wallet) : null;
 }
 
-export async function getSessionOrchestratorUrl(): Promise<string | null> {
-  const jar = await cookies();
-  const v = jar.get(ORCHESTRATOR_COOKIE)?.value?.trim();
-  if (!v) return null;
-  return v.replace(/\/$/, "");
-}
+export async function fetchOwnedDeviceOrchestratorUrl(
+  ownerWallet: string,
+  deviceId: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string; status: number }> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("devices")
+    .select("id, orchestrator_url")
+    .eq("owner_wallet_address", normalizeAddress(ownerWallet))
+    .eq("id", deviceId)
+    .maybeSingle();
 
-export type OrchestratorResolveResult =
-  | { ok: true; url: string; source: "database" | "fallback" }
-  | { ok: false; error: string; status: number };
-
-/** Route Handlers only — reads DB and updates cookies(). */
-export async function resolveOrchestratorUrlForRequest(): Promise<OrchestratorResolveResult> {
-  const wallet = await getSessionWallet();
-
-  if (wallet) {
-    try {
-      const url = await fetchOrchestratorUrlFromDb(wallet);
-      const jar = await cookies();
-      if (url) {
-        jar.set(ORCHESTRATOR_COOKIE, url, ORCHESTRATOR_COOKIE_OPTS);
-        return { ok: true, url, source: "database" };
-      }
-      return {
-        ok: false,
-        error:
-          "No orchestrator_url for your device in Supabase. Re-run register.ps1 (orchestrator running), confirm registration, or update devices.orchestrator_url in the dashboard.",
-        status: 403,
-      };
-    } catch (e) {
-      return {
-        ok: false,
-        error: e instanceof Error ? e.message : String(e),
-        status: 500,
-      };
-    }
+  if (error) return { ok: false, error: error.message, status: 500 };
+  if (!data) {
+    return { ok: false, error: "Selected device not found for this owner.", status: 404 };
   }
-
-  const fallback = (process.env.ORCHESTRATOR_URL ?? "http://127.0.0.1:8790").replace(/\/$/, "");
-  return { ok: true, url: fallback, source: "fallback" };
+  const orchestratorUrl = data.orchestrator_url?.trim().replace(/\/$/, "");
+  if (!orchestratorUrl) {
+    return {
+      ok: false,
+      error:
+        "Selected device has no orchestrator URL. Re-run register.sh/register.ps1 with ngrok, then re-register this device.",
+      status: 403,
+    };
+  }
+  return { ok: true, url: orchestratorUrl };
 }

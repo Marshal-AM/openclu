@@ -1,22 +1,23 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { fetchOrchestratorUrlFromDb } from "@/lib/orchestrator-db";
-import { applyOrchestratorCookie, SESSION_COOKIE } from "@/lib/orchestrator-cookies";
+import { SESSION_COOKIE } from "@/lib/orchestrator-cookies";
 
 const PUBLIC = [
   "/login",
   "/register",
-  "/api/auth/login",
+  "/api/auth/wallet",
   "/api/devices/register",
   "/api/devices/pending",
 ];
+const PUBLIC_FILE = /\.(.*)$/;
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (
     PUBLIC.some((p) => pathname.startsWith(p)) ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon")
+    pathname.startsWith("/favicon") ||
+    PUBLIC_FILE.test(pathname)
   ) {
     return NextResponse.next();
   }
@@ -25,19 +26,7 @@ export async function middleware(req: NextRequest) {
   if (!session && !pathname.startsWith("/api/")) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
-
-  const res = NextResponse.next();
-
-  if (session) {
-    try {
-      const url = await fetchOrchestratorUrlFromDb(session);
-      applyOrchestratorCookie(res, url);
-    } catch {
-      // Do not block navigation if Supabase is temporarily unavailable
-    }
-  }
-
-  return res;
+  return NextResponse.next();
 }
 
 export const config = {
