@@ -1,5 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import { SkillAcquiredCard } from './SkillAcquiredCard';
+import { ArkivQueryDebugPanel } from '../syncboard/ArkivQueryDebugPanel';
+import { createArkivTrace } from '../../lib/arkivTrace';
 import './MessageBubble.css';
 
 interface ToolCall {
@@ -58,6 +60,8 @@ export function MessageBubble({
   });
 
   const visibleToolCalls = toolCalls?.filter((tc) => !HIDDEN_TOOL_NAMES.has(tc.name));
+  const arkivSearchCalls =
+    toolCalls?.filter((tc) => tc.name === 'search_arkiv_skills' && tc.result?.trim()) ?? [];
   const purchaseEventId =
     skillPurchase?.purchaseEventId ?? parsePurchaseEventId(toolCalls);
 
@@ -115,6 +119,24 @@ export function MessageBubble({
       {role === 'assistant' && purchaseEventId && (
         <SkillAcquiredCard purchaseEventId={purchaseEventId} />
       )}
+      {role === 'assistant'
+        ? arkivSearchCalls.map((tc, index) => {
+            try {
+              const request = JSON.parse(tc.args) as unknown;
+              const response = JSON.parse(tc.result) as unknown;
+              const trace = createArkivTrace(
+                'search_arkiv_skills',
+                'convex:marketplaceTools.search_arkiv_skills',
+                request,
+                response,
+                { transport: 'skill-marketplace catalog-query-cli', network: 'braga-hoodi' },
+              );
+              return <ArkivQueryDebugPanel key={`arkiv-${index}`} trace={trace} />;
+            } catch {
+              return null;
+            }
+          })
+        : null}
       <span className="message-time">{formattedTime}</span>
     </div>
   );

@@ -11,6 +11,7 @@ import { SkillModalDialog } from "@/components/skills/SkillModalDialog";
 import { CatalogDetailSkeleton, SkillCardGridSkeleton } from "@/components/skills/skill-skeletons";
 import { useOrchestratorJob } from "@/hooks/useOrchestratorJob";
 import type { OwnedDevice } from "@/lib/device-types";
+import { splitArkivTrace, type ArkivQueryTrace } from "@/lib/arkiv-trace";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -133,6 +134,7 @@ export default function ContributionsPage() {
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const [selectedContribution, setSelectedContribution] = useState<Contribution | null>(null);
   const [catalogDetail, setCatalogDetail] = useState<Record<string, unknown> | null>(null);
+  const [catalogArkivTrace, setCatalogArkivTrace] = useState<ArkivQueryTrace | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<PublishSuccess | null>(null);
@@ -586,16 +588,22 @@ export default function ContributionsPage() {
   async function viewSkill(slug: string) {
     setSelectedSkill(slug);
     setCatalogDetail(null);
+    setCatalogArkivTrace(null);
     setCatalogError(null);
     setCatalogLoading(true);
     try {
       const res = await fetch(`/api/catalog/${encodeURIComponent(slug)}`);
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const payload = (await res.json().catch(() => ({}))) as Record<string, unknown> & {
+        error?: string;
+        arkivTrace?: ArkivQueryTrace;
+      };
       if (res.ok) {
-        setCatalogDetail(data as Record<string, unknown>);
+        const { data, trace } = splitArkivTrace(payload);
+        setCatalogDetail(data);
+        setCatalogArkivTrace(trace);
         return;
       }
-      const message = data.error ?? "Could not load catalog entry";
+      const message = payload.error ?? "Could not load catalog entry";
       setCatalogError(message);
       if (message.includes("tsx missing") || message.includes("npm install")) {
         toast.error("Catalog CLI not installed", {
@@ -639,6 +647,7 @@ export default function ContributionsPage() {
     setSelectedContribution(null);
     setSelectedSkill(null);
     setCatalogDetail(null);
+    setCatalogArkivTrace(null);
     setCatalogError(null);
     setCatalogLoading(false);
     setEditingSlug(null);
@@ -792,7 +801,7 @@ export default function ContributionsPage() {
             {catalogLoading ? <CatalogDetailSkeleton /> : null}
 
             {!catalogLoading && selectedContribution.status === "published" && catalogDetail ? (
-              <CatalogDetailPanel detail={catalogDetail} />
+              <CatalogDetailPanel detail={catalogDetail} arkivTrace={catalogArkivTrace} />
             ) : null}
 
             {!catalogLoading && selectedContribution.status !== "published" ? (

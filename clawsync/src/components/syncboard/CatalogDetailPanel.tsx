@@ -1,9 +1,12 @@
 import './CatalogDetailPanel.css';
+import { ArkivQueryDebugPanel } from './ArkivQueryDebugPanel';
+import type { ArkivQueryTrace } from '../../lib/arkivTrace';
 
 type CatalogDetail = Record<string, unknown>;
 
 type CatalogDetailPanelProps = {
   detail: CatalogDetail;
+  arkivTrace?: ArkivQueryTrace | null;
   onClose?: () => void;
   purchaseFee?: string;
   walletConfigured?: boolean;
@@ -22,6 +25,7 @@ function collectTags(detail: CatalogDetail, payload?: Record<string, unknown>): 
 
 export function CatalogDetailPanel({
   detail,
+  arkivTrace,
   onClose,
   purchaseFee,
   walletConfigured,
@@ -99,25 +103,7 @@ export function CatalogDetailPanel({
         </section>
       ) : null}
 
-      <details className="catalog-detail-raw">
-        <summary>Raw JSON</summary>
-        <pre>
-          {JSON.stringify(
-            {
-              entityKey: detail.entityKey,
-              status: detail.status,
-              owner: detail.owner,
-              creator: detail.creator,
-              arkivVersion: detail.arkivVersion,
-              tags: detail.tags,
-              payload: detail.payload,
-              purchaseView: detail.purchaseView ?? purchaseView,
-            },
-            null,
-            2,
-          )}
-        </pre>
-      </details>
+      <ArkivQueryDebugPanel trace={arkivTrace} />
     </div>
   );
 }

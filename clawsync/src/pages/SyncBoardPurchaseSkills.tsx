@@ -14,6 +14,8 @@ import {
   getMintingFeeFromPayload,
 } from '../components/syncboard/CatalogListingCard';
 import { CatalogSkillDialog } from '../components/syncboard/CatalogSkillDialog';
+import { ArkivQueryDebugPanel } from '../components/syncboard/ArkivQueryDebugPanel';
+import { createArkivTrace, type ArkivQueryTrace } from '../lib/arkivTrace';
 import '../components/syncboard/PremiumSkillCard.css';
 import './SyncBoardPurchaseSkills.css';
 import { SkillCardGridSkeleton } from '../components/ui/skeletons';
@@ -63,6 +65,8 @@ export function SyncBoardPurchaseSkills() {
   const [showFullBrowse, setShowFullBrowse] = useState(false);
   const [selectedSkillName, setSelectedSkillName] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
+  const [queryArkivTrace, setQueryArkivTrace] = useState<ArkivQueryTrace | null>(null);
+  const [detailArkivTrace, setDetailArkivTrace] = useState<ArkivQueryTrace | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [walletConfigured, setWalletConfigured] = useState(false);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
@@ -88,7 +92,7 @@ export function SyncBoardPurchaseSkills() {
     setLoading(true);
     setError('');
     try {
-      const data = (await catalogQuery({
+      const request = {
         query: opts?.emptyQuery ? '' : filters.query.trim() || undefined,
         tag: filters.tag.trim() || undefined,
         status: filters.status || undefined,
@@ -98,8 +102,19 @@ export function SyncBoardPurchaseSkills() {
         skillSlug: filters.skillSlug.trim() || undefined,
         scope: filters.scope,
         full: opts?.full ?? true,
-      })) as { matches?: QueryMatch[] };
+      };
+      const data = (await catalogQuery(request)) as {
+        matches?: QueryMatch[];
+        filters?: unknown;
+      };
       setMatches(data.matches ?? []);
+      setQueryArkivTrace(
+        createArkivTrace('query', 'convex:catalogActions.query', request, data, {
+          transport: 'skill-marketplace catalog-query-cli',
+          network: 'braga-hoodi',
+          resolvedFilters: data.filters,
+        }),
+      );
       setSearched(true);
       if (opts?.full) setShowFullBrowse(true);
     } catch (e) {
@@ -119,10 +134,18 @@ export function SyncBoardPurchaseSkills() {
     setPurchaseLogs([]);
     setPurchaseElapsedSec(0);
     setDetail(null);
+    setDetailArkivTrace(null);
 
     try {
-      const data = await catalogGetDetail({ skillName: name });
+      const request = { skillName: name };
+      const data = await catalogGetDetail(request);
       setDetail(data as Record<string, unknown>);
+      setDetailArkivTrace(
+        createArkivTrace('get-detail', 'convex:catalogActions.getDetail', request, data, {
+          transport: 'skill-marketplace catalog-query-cli',
+          network: 'braga-hoodi',
+        }),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setDetail(null);
@@ -134,6 +157,7 @@ export function SyncBoardPurchaseSkills() {
   function closeDetail() {
     setSelectedSkillName(null);
     setDetail(null);
+    setDetailArkivTrace(null);
     setPurchaseError('');
     setPurchaseLogs([]);
     setPurchaseElapsedSec(0);
@@ -260,6 +284,7 @@ export function SyncBoardPurchaseSkills() {
                 />
               ))}
             </div>
+            <ArkivQueryDebugPanel trace={queryArkivTrace} />
           </>
         ) : null}
 
@@ -267,6 +292,7 @@ export function SyncBoardPurchaseSkills() {
           open={selectedSkillName !== null}
           onClose={closeDetail}
           detail={detail}
+          arkivTrace={detailArkivTrace}
           loading={detailLoading}
           purchaseFee={mintingFee}
           walletConfigured={walletConfigured}

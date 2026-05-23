@@ -1,5 +1,8 @@
 "use client";
 
+import type { ArkivQueryTrace } from "@/lib/arkiv-trace";
+import { ArkivQueryDebugPanel } from "@/components/ArkivQueryDebugPanel";
+
 type CatalogDetail = Record<string, unknown>;
 
 function collectTags(detail: CatalogDetail, payload?: Record<string, unknown>): string[] {
@@ -8,7 +11,13 @@ function collectTags(detail: CatalogDetail, payload?: Record<string, unknown>): 
   return [...new Set([...fromPayload, ...fromListing].filter(Boolean))];
 }
 
-export function CatalogDetailPanel({ detail }: { detail: CatalogDetail }) {
+export function CatalogDetailPanel({
+  detail,
+  arkivTrace,
+}: {
+  detail: CatalogDetail;
+  arkivTrace?: ArkivQueryTrace | null;
+}) {
   const payload = detail.payload as Record<string, unknown> | undefined;
   const description = payload?.description ? String(payload.description) : "";
   const tags = collectTags(detail, payload);
@@ -41,24 +50,7 @@ export function CatalogDetailPanel({ detail }: { detail: CatalogDetail }) {
         </section>
       ) : null}
 
-      <details className="catalog-detail-raw">
-        <summary className="cursor-pointer text-xs text-muted-foreground">Raw JSON</summary>
-        <pre className="mt-2 max-h-[32rem] overflow-auto rounded-md border border-border bg-background p-3 text-[11px]">
-          {JSON.stringify(
-            {
-              entityKey: detail.entityKey,
-              status: detail.status,
-              owner: detail.owner,
-              creator: detail.creator,
-              arkivVersion: detail.arkivVersion,
-              tags: detail.tags,
-              payload: detail.payload,
-            },
-            null,
-            2,
-          )}
-        </pre>
-      </details>
+      <ArkivQueryDebugPanel trace={arkivTrace} />
     </div>
   );
 }
