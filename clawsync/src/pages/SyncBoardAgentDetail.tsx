@@ -10,8 +10,10 @@ import { AgentFeedItem } from '../components/agents/AgentFeedItem';
 import {
   Trash,
   FloppyDisk,
+  ChatCircle,
 } from '@phosphor-icons/react';
 import { AgentDetailPageSkeleton } from '../components/ui/skeletons';
+import { openChatWithAgent } from '../lib/chatAgentStorage';
 
 /**
  * SyncBoardAgentDetail
@@ -134,7 +136,19 @@ export function SyncBoardAgentDetail() {
               {agent.modelProvider}/{agent.model}
             </span>
           }
-          actions={<AgentControls agentId={agentId} status={agent.status} mode={agent.mode} />}
+          actions={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => navigate(openChatWithAgent(agentId, true))}
+              >
+                <ChatCircle size={16} />
+                Chat with agent
+              </button>
+              <AgentControls agentId={agentId} status={agent.status} mode={agent.mode} />
+            </div>
+          }
         />
 
         {/* Tabs */}

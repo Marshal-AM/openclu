@@ -2,8 +2,10 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAction } from 'convex/react';
 import { useThreadMessages } from '@convex-dev/agent/react';
 import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 import { MessageBubble } from './MessageBubble';
 import { summarizeFromToolCalls } from '../../lib/marketplaceToolMessages';
+import { clearStoredThreadId } from '../../lib/chatAgentStorage';
 import { Skeleton } from '../ui/Skeleton';
 import './AgentChat.css';
 
@@ -387,7 +389,11 @@ export function AgentChat({
   };
 
   const handleClearChat = () => {
-    localStorage.removeItem('clawsync_thread_id');
+    if (agentId) {
+      clearStoredThreadId(agentId as Id<'agents'>);
+    } else {
+      localStorage.removeItem('clawsync_thread_id');
+    }
     setLocalExchange(null);
     setPendingUserMessage(null);
     lastThreadMessagesRef.current = undefined;

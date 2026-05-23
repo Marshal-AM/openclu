@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
@@ -7,6 +8,12 @@ import { ActivityFeed } from '../components/chat/ActivityFeed';
 import { AgentSelector } from '../components/agents/AgentSelector';
 import { SHOW_CHAT_ACTIVITY_FEED } from '../config/productSurface';
 import { ChatPageSkeleton } from '../components/ui/skeletons';
+import {
+  getStoredSelectedAgentId,
+  getStoredThreadId,
+  setStoredSelectedAgentId,
+  setStoredThreadId,
+} from '../lib/chatAgentStorage';
 import './ChatPage.css';
 
 type AgentListItem = {
@@ -18,6 +25,7 @@ type AgentListItem = {
 };
 
 export function ChatPage() {
+  const location = useLocation();
   const [sessionId] = useState(() => {
     const stored = localStorage.getItem('clawsync_session_id');
     if (stored) return stored;
@@ -26,13 +34,10 @@ export function ChatPage() {
     return newId;
   });
 
-  const [threadId, setThreadId] = useState<string | null>(() => {
-    return localStorage.getItem('clawsync_thread_id');
-  });
+  const [selectedAgentId, setSelectedAgentId] = useState<Id<'agents'> | null>(() => getStoredSelectedAgentId());
 
-  const [selectedAgentId, setSelectedAgentId] = useState<Id<'agents'> | null>(() => {
-    const stored = localStorage.getItem('clawsync_selected_agent');
-    return stored ? (stored as Id<'agents'>) : null;
+  const [threadId, setThreadId] = useState<string | null>(() => {
+    return getStoredThreadId(getStoredSelectedAgentId());
   });
 
   const agents = useQuery(api.agents.list);
@@ -48,23 +53,31 @@ export function ChatPage() {
   }, [agents, selectedAgentId]);
 
   useEffect(() => {
+    const stored = getStoredSelectedAgentId();
+    if (stored && stored !== selectedAgentId) {
+      setSelectedAgentId(stored);
+      setThreadId(getStoredThreadId(stored));
+    }
+  }, [location.key, selectedAgentId]);
+
+  useEffect(() => {
     if (!selectedAgentId && activeAgent) {
       setSelectedAgentId(activeAgent._id);
-      localStorage.setItem('clawsync_selected_agent', activeAgent._id);
+      setStoredSelectedAgentId(activeAgent._id);
+      setThreadId(getStoredThreadId(activeAgent._id));
     }
   }, [selectedAgentId, activeAgent]);
 
   useEffect(() => {
-    if (threadId) {
-      localStorage.setItem('clawsync_thread_id', threadId);
+    if (threadId && selectedAgentId) {
+      setStoredThreadId(selectedAgentId, threadId);
     }
-  }, [threadId]);
+  }, [threadId, selectedAgentId]);
 
   const handleAgentSelect = (agentId: Id<'agents'>) => {
     setSelectedAgentId(agentId);
-    localStorage.setItem('clawsync_selected_agent', agentId);
-    setThreadId(null);
-    localStorage.removeItem('clawsync_thread_id');
+    setStoredSelectedAgentId(agentId);
+    setThreadId(getStoredThreadId(agentId));
   };
 
   const chatAgentId = selectedAgentId ?? activeAgent?._id;
@@ -77,38 +90,42 @@ export function ChatPage() {
     <div className="chat-page">
       <header className="chat-header">
         <div className="chat-header-content">
-          <h1 className="chat-title">{activeAgent?.name || agentConfig?.name || 'ClawSync Agent'}</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <AgentSelector
-              selectedAgentId={chatAgentId ?? null}
-              onSelect={handleAgentSelect}
-            />
-            {uiConfig?.showModelBadge !== false && activeAgent && (
+          <div className="chat-header-agent">
+            <span className="chat-header-kicker">Chatting with</span>
+            <AgentSelector selectedAgentId={chatAgentId ?? null} onSelect={handleAgentSelect} />
+            {uiConfig?.showModelBadge !== false && activeAgent ? (
               <span className="badge" title={`Provider: ${activeAgent.modelProvider}`}>
                 {activeAgent.modelProvider}/{activeAgent.model}
               </span>
-            )}
+            ) : null}
           </div>
         </div>
       </header>
 
       <main className="chat-main">
         <div className="chat-container">
-          <AgentChat
-            sessionId={sessionId}
-            threadId={threadId}
-            onThreadChange={setThreadId}
-            placeholder={uiConfig?.chatPlaceholder || 'Ask me anything...'}
-            maxLength={uiConfig?.maxMessageLength || 4000}
-            agentId={chatAgentId}
-          />
+          {chatAgentId ? (
+            <AgentChat
+              key={chatAgentId}
+              sessionId={sessionId}
+              threadId={threadId}
+              onThreadChange={setThreadId}
+              placeholder={uiConfig?.chatPlaceholder || 'Ask me anything...'}
+              maxLength={uiConfig?.maxMessageLength || 4000}
+              agentId={chatAgentId}
+            />
+          ) : (
+            <div className="chat-empty-agents">
+              <p>Create an agent in SyncBoard to start chatting.</p>
+            </div>
+          )}
         </div>
 
-        {SHOW_CHAT_ACTIVITY_FEED && uiConfig?.showActivityFeed !== false && (
+        {SHOW_CHAT_ACTIVITY_FEED && uiConfig?.showActivityFeed !== false ? (
           <aside className="activity-sidebar">
             <ActivityFeed />
           </aside>
-        )}
+        ) : null}
       </main>
     </div>
   );

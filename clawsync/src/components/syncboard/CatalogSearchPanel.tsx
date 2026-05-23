@@ -84,7 +84,7 @@ export function CatalogSearchPanel({
         <div className="catalog-search-input-wrap">
           <MagnifyingGlass size={16} className="catalog-search-icon" aria-hidden />
           <input
-            className="input catalog-search-input"
+            className="input catalog-search-field catalog-search-input"
             placeholder="Search marketplace skills…"
             value={filters.query}
             onChange={(event) => patch({ query: event.target.value })}
@@ -115,56 +115,77 @@ export function CatalogSearchPanel({
       {advancedOpen ? (
         <div className="catalog-search-advanced">
           <div className="catalog-search-advanced-grid">
-            <input
-              className="input"
-              placeholder="Tag"
-              value={filters.tag}
-              onChange={(event) => patch({ tag: event.target.value })}
-              onKeyDown={onFilterKeyDown}
-            />
-            <select
-              className="input"
-              value={filters.status}
-              onChange={(event) => patch({ status: event.target.value })}
-            >
-              <option value="">Any status</option>
-              <option value="published">published</option>
-              <option value="archived">archived</option>
-            </select>
-            <input
-              type="datetime-local"
-              className="input"
-              value={filters.since}
-              onChange={(event) => patch({ since: event.target.value })}
-            />
-            <input
-              type="datetime-local"
-              className="input"
-              value={filters.until}
-              onChange={(event) => patch({ until: event.target.value })}
-            />
-            <input
-              className="input"
-              placeholder="Skill slug"
-              value={filters.skillSlug}
-              onChange={(event) => patch({ skillSlug: event.target.value })}
-              onKeyDown={onFilterKeyDown}
-            />
-            <input
-              className="input"
-              placeholder="Min score"
-              value={filters.minScore}
-              onChange={(event) => patch({ minScore: event.target.value })}
-              onKeyDown={onFilterKeyDown}
-            />
-            <select
-              className="input catalog-search-scope"
-              value={filters.scope}
-              onChange={(event) => patch({ scope: event.target.value as CatalogSearchFilters['scope'] })}
-            >
-              <option value="marketplace">Marketplace (published only)</option>
-              <option value="mine">My listings only</option>
-            </select>
+            <label className="catalog-search-field-label">
+              Tag
+              <input
+                className="input catalog-search-field"
+                placeholder="e.g. cursor, api"
+                value={filters.tag}
+                onChange={(event) => patch({ tag: event.target.value })}
+                onKeyDown={onFilterKeyDown}
+              />
+            </label>
+            <label className="catalog-search-field-label">
+              Status
+              <select
+                className="input catalog-search-field"
+                value={filters.status}
+                onChange={(event) => patch({ status: event.target.value })}
+              >
+                <option value="">Any status</option>
+                <option value="published">published</option>
+                <option value="archived">archived</option>
+              </select>
+            </label>
+            <label className="catalog-search-field-label">
+              Published after
+              <input
+                type="datetime-local"
+                className="input catalog-search-field"
+                value={filters.since}
+                onChange={(event) => patch({ since: event.target.value })}
+              />
+            </label>
+            <label className="catalog-search-field-label">
+              Published before
+              <input
+                type="datetime-local"
+                className="input catalog-search-field"
+                value={filters.until}
+                onChange={(event) => patch({ until: event.target.value })}
+              />
+            </label>
+            <label className="catalog-search-field-label">
+              Skill slug
+              <input
+                className="input catalog-search-field"
+                placeholder="exact-slug"
+                value={filters.skillSlug}
+                onChange={(event) => patch({ skillSlug: event.target.value })}
+                onKeyDown={onFilterKeyDown}
+              />
+            </label>
+            <label className="catalog-search-field-label">
+              Min match score
+              <input
+                className="input catalog-search-field"
+                placeholder="0–1 (e.g. 0.3)"
+                value={filters.minScore}
+                onChange={(event) => patch({ minScore: event.target.value })}
+                onKeyDown={onFilterKeyDown}
+              />
+            </label>
+            <label className="catalog-search-field-label catalog-search-scope">
+              Scope
+              <select
+                className="input catalog-search-field"
+                value={filters.scope}
+                onChange={(event) => patch({ scope: event.target.value as CatalogSearchFilters['scope'] })}
+              >
+                <option value="marketplace">Marketplace (published only)</option>
+                <option value="mine">My listings only</option>
+              </select>
+            </label>
           </div>
 
           <div className="catalog-search-advanced-actions">

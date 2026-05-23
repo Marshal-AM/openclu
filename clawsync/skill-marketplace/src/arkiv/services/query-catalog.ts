@@ -161,6 +161,10 @@ export async function fetchListings(filters: ListingFilters = {}): Promise<
     rows = rows.filter((r) => set.has(r.entityKey.toLowerCase()));
   }
 
+  if (filters.since != null || filters.until != null) {
+    rows = rows.filter((row) => matchesPublishedAtRange(row.payload, filters.since, filters.until));
+  }
+
   return rows;
 }
 
@@ -214,18 +218,84 @@ function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter((t) => t.length > 2 && !STOP.has(t));
+    .filter((t) => t.length >= 2 && !STOP.has(t));
 }
 
-function scoreSearch(query: string, searchText: string): number {
-  const qTokens = tokenize(query);
-  if (!qTokens.length) return 0;
-  const hay = searchText.toLowerCase();
-  let hits = 0;
-  for (const t of qTokens) {
-    if (hay.includes(t)) hits++;
+function haystackWords(text: string): string[] {
+  return text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+}
+
+function tokenMatches(token: string, hay: string, hayWords: string[], slugParts: string[]): boolean {
+  if (hay.includes(token)) return true;
+  if (hayWords.some((word) => word.startsWith(token) || token.startsWith(word))) return true;
+  return slugParts.some((part) => part.includes(token) || token.includes(part));
+}
+
+type SearchableListing = {
+  searchText: string;
+  skillName: string;
+  title: string;
+  description: string;
+};
+
+function scoreSearch(query: string, listing: SearchableListing): number {
+  const q = query.trim().toLowerCase();
+  if (!q) return 1;
+
+  const hay = listing.searchText.toLowerCase();
+  const hayWords = haystackWords(hay);
+  const slugParts = listing.skillName.toLowerCase().split(/[-_]/).filter(Boolean);
+  const titleHay = listing.title.toLowerCase();
+  const descriptionHay = listing.description.toLowerCase();
+
+  if (
+    hay.includes(q) ||
+    titleHay.includes(q) ||
+    descriptionHay.includes(q) ||
+    listing.skillName.toLowerCase().includes(q)
+  ) {
+    return 1;
   }
+
+  const qTokens = tokenize(q);
+  if (!qTokens.length) {
+    return q.length >= 2 && (hay.includes(q) || titleHay.includes(q) || slugParts.some((p) => p.includes(q)))
+      ? 0.4
+      : 0;
+  }
+
+  let hits = 0;
+  for (const token of qTokens) {
+    if (
+      tokenMatches(token, hay, hayWords, slugParts) ||
+      tokenMatches(token, titleHay, haystackWords(titleHay), slugParts) ||
+      tokenMatches(token, descriptionHay, haystackWords(descriptionHay), slugParts)
+    ) {
+      hits += 1;
+    }
+  }
+
   return hits / qTokens.length;
+}
+
+function listingPublishedAtMs(payload: ReturnType<typeof SkillListingPayloadSchema.parse>): number | null {
+  const raw = payload.purchase?.publishedAt ?? payload.recordedAt;
+  if (!raw) return null;
+  const ms = Date.parse(String(raw));
+  return Number.isNaN(ms) ? null : ms;
+}
+
+function matchesPublishedAtRange(
+  payload: ReturnType<typeof SkillListingPayloadSchema.parse>,
+  since?: number,
+  until?: number,
+): boolean {
+  if (since == null && until == null) return true;
+  const ms = listingPublishedAtMs(payload);
+  if (ms == null) return true;
+  if (since != null && ms < since) return false;
+  if (until != null && ms > until) return false;
+  return true;
 }
 
 export async function searchNaturalLanguage(
@@ -235,16 +305,21 @@ export async function searchNaturalLanguage(
   const rows = await fetchListings(normalizeListingFilters(filters));
   const scored = rows.map((row) => ({
     row,
-    score: query.trim() ? scoreSearch(query, row.payload.searchText) : 1,
+    score: query.trim()
+      ? scoreSearch(query, {
+          searchText: row.payload.searchText,
+          skillName: row.payload.skillName,
+          title: row.payload.title,
+          description: row.payload.description,
+        })
+      : 1,
   }));
 
   if (query.trim()) {
     scored.sort((a, b) => b.score - a.score);
     const withHits = scored.filter((s) => s.score > 0);
-    if (withHits.length) {
-      scored.length = 0;
-      scored.push(...withHits);
-    }
+    scored.length = 0;
+    scored.push(...withHits);
   }
 
   const matches: QueryMatch[] = [];

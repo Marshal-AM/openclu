@@ -3,20 +3,22 @@ import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { CaretDown, Robot } from '@phosphor-icons/react';
 import { Skeleton } from '../ui/Skeleton';
+import { Link } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-
-/**
- * AgentSelector
- *
- * Dropdown to choose which agent to chat with.
- * Shows status dot next to each agent name.
- * Defaults to the default agent if no selection.
- */
+import './AgentSelector.css';
 
 interface AgentSelectorProps {
   selectedAgentId: Id<'agents'> | null;
   onSelect: (agentId: Id<'agents'>) => void;
 }
+
+type AgentListItem = {
+  _id: Id<'agents'>;
+  name: string;
+  status: string;
+  isDefault: boolean;
+  modelProvider: string;
+};
 
 const STATUS_COLORS: Record<string, string> = {
   running: 'var(--success)',
@@ -30,7 +32,6 @@ export function AgentSelector({ selectedAgentId, onSelect }: AgentSelectorProps)
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close on click outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -42,132 +43,71 @@ export function AgentSelector({ selectedAgentId, onSelect }: AgentSelectorProps)
   }, []);
 
   if (agents === undefined) {
-    return <Skeleton style={{ height: '2rem', width: '8rem', borderRadius: 'var(--radius-md)' }} />;
+    return <Skeleton style={{ height: '2.25rem', width: '10rem', borderRadius: 'var(--radius-md)' }} />;
   }
 
-  if (agents.length <= 1) return null;
+  if (agents.length === 0) {
+    return (
+      <div className="agent-selector-empty">
+        <span>No agents configured.</span>
+        <Link to="/syncboard/agents" className="agent-selector-empty-link">
+          Create one
+        </Link>
+      </div>
+    );
+  }
 
-  const selected = agents.find((a: any) => a._id === selectedAgentId) || agents.find((a: any) => a.isDefault) || agents[0];
+  const selected =
+    agents.find((a: AgentListItem) => a._id === selectedAgentId) ??
+    agents.find((a: AgentListItem) => a.isDefault) ??
+    agents[0];
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative' }}>
+    <div ref={dropdownRef} className="agent-selector">
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--space-2)',
-          padding: '6px 10px',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          background: 'var(--bg-primary)',
-          color: 'var(--text-primary)',
-          fontSize: 'var(--text-sm)',
-          cursor: 'pointer',
-          transition: 'var(--transition-fast)',
-        }}
+        type="button"
+        className="agent-selector-trigger"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
       >
         <div
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: 'var(--radius-full)',
-            background: STATUS_COLORS[selected?.status || 'idle'] || 'var(--accent)',
-          }}
+          className="agent-selector-status-dot"
+          style={{ background: STATUS_COLORS[selected?.status || 'idle'] || 'var(--accent)' }}
         />
-        <Robot size={14} />
-        <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {selected?.name || 'Select Agent'}
-        </span>
-        <CaretDown size={12} />
+        <Robot size={16} weight="duotone" />
+        <span className="agent-selector-label">{selected?.name || 'Select agent'}</span>
+        {agents.length > 1 ? <CaretDown size={12} className={isOpen ? 'is-open' : undefined} /> : null}
       </button>
 
-      {isOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            marginTop: 4,
-            minWidth: 200,
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--shadow-md)',
-            zIndex: 'var(--z-dropdown)' as any,
-            overflow: 'hidden',
-          }}
-        >
-          {agents.map((agent: any) => (
-            <button
-              key={agent._id}
-              onClick={() => {
-                onSelect(agent._id);
-                setIsOpen(false);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                background:
-                  agent._id === selected?._id
-                    ? 'var(--bg-hover)'
-                    : 'transparent',
-                color: 'var(--text-primary)',
-                fontSize: 'var(--text-sm)',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'var(--transition-fast)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--bg-hover)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background =
-                  agent._id === selected?._id ? 'var(--bg-hover)' : 'transparent';
-              }}
-            >
-              <div
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 'var(--radius-full)',
-                  background: STATUS_COLORS[agent.status] || 'var(--accent)',
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {agent.name}
-              </span>
-              {agent.isDefault && (
-                <span
-                  style={{
-                    fontSize: '9px',
-                    padding: '1px 4px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--text-primary)',
-                    color: 'var(--bg-primary)',
-                  }}
-                >
-                  default
-                </span>
-              )}
-              <span
-                style={{
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--text-secondary)',
-                  fontFamily: 'var(--font-mono)',
+      {isOpen && agents.length > 0 ? (
+        <div className="agent-selector-menu" role="listbox">
+          {agents.map((agent: AgentListItem) => {
+            const isSelected = agent._id === selected?._id;
+            return (
+              <button
+                key={agent._id}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                className={`agent-selector-option${isSelected ? ' is-selected' : ''}`}
+                onClick={() => {
+                  onSelect(agent._id);
+                  setIsOpen(false);
                 }}
               >
-                {agent.modelProvider}
-              </span>
-            </button>
-          ))}
+                <div
+                  className="agent-selector-status-dot"
+                  style={{ background: STATUS_COLORS[agent.status] || 'var(--accent)' }}
+                />
+                <span className="agent-selector-option-name">{agent.name}</span>
+                {agent.isDefault ? <span className="agent-selector-default">default</span> : null}
+                <span className="agent-selector-option-model">{agent.modelProvider}</span>
+              </button>
+            );
+          })}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -40,8 +40,8 @@ export function CatalogListingCard({
 
       <footer className="catalog-listing-card-footer">
         <span className="catalog-listing-card-meta">{status}</span>
-        {score != null ? (
-          <span className="catalog-listing-card-meta">Match {Math.round(score * 100)}%</span>
+        {score != null && score > 0 ? (
+          <span className="catalog-listing-card-meta">{Math.ceil(score * 100)}% match</span>
         ) : null}
       </footer>
     </button>

@@ -1,7 +1,8 @@
 import { Id } from '../../../convex/_generated/dataModel';
 import { AgentControls } from './AgentControls';
 import { useNavigate } from 'react-router-dom';
-import { Robot } from '@phosphor-icons/react';
+import { Robot, ChatCircle } from '@phosphor-icons/react';
+import { openChatWithAgent } from '../../lib/chatAgentStorage';
 
 /**
  * AgentCard
@@ -193,13 +194,26 @@ export function AgentCard({ agent }: AgentCardProps) {
       </div>
 
       {/* Controls */}
-      <div onClick={(e) => e.stopPropagation()}>
-        <AgentControls
-          agentId={agent._id}
-          status={agent.status}
-          mode={agent.mode}
-          compact
-        />
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          onClick={() => navigate(openChatWithAgent(agent._id, true))}
+        >
+          <ChatCircle size={14} />
+          Chat
+        </button>
+        <div style={{ flex: 1 }}>
+          <AgentControls
+            agentId={agent._id}
+            status={agent.status}
+            mode={agent.mode}
+            compact
+          />
+        </div>
       </div>
     </div>
   );

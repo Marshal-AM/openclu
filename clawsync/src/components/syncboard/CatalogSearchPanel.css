@@ -32,6 +32,29 @@
   padding-left: calc(var(--space-3) + 1.25rem);
 }
 
+.catalog-search-field-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.catalog-search-panel .catalog-search-field::placeholder {
+  color: color-mix(in oklab, var(--muted-foreground) 42%, transparent);
+  opacity: 1;
+}
+
+.catalog-search-panel .catalog-search-field::-webkit-datetime-edit-fields-wrapper {
+  color: var(--text-primary);
+}
+
+.catalog-search-panel .catalog-search-field:not(:focus):invalid,
+.catalog-search-panel .catalog-search-field[value=''] {
+  color: var(--text-primary);
+}
+
 .catalog-search-actions {
   display: flex;
   flex-wrap: wrap;

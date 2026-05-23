@@ -16,6 +16,7 @@ const MARKETPLACE_PRODUCT_ROUTES = [
 ] as const;
 
 export const marketplaceProductNavPaths = new Set<string>([
+  '/chat',
   '/syncboard/agents',
   '/syncboard/agent-feed',
   '/syncboard/models',

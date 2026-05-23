@@ -19,6 +19,14 @@ import '../components/syncboard/PremiumSkillCard.css';
 import './SyncBoardPurchaseSkills.css';
 import { SkillCardGridSkeleton } from '../components/ui/skeletons';
 
+function parseFilterTimestamp(value: string, bound: 'since' | 'until'): number | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const ms = Date.parse(trimmed);
+  if (Number.isNaN(ms)) return undefined;
+  return bound === 'until' ? ms + 59_999 : ms;
+}
+
 type QueryMatch = {
   score: number;
   skillName: string;
@@ -85,12 +93,12 @@ export function SyncBoardPurchaseSkills() {
         query: opts?.emptyQuery ? '' : filters.query.trim() || undefined,
         tag: filters.tag.trim() || undefined,
         status: filters.status || undefined,
-        since: filters.since ? Date.parse(filters.since) : undefined,
-        until: filters.until ? Date.parse(filters.until) : undefined,
+        since: parseFilterTimestamp(filters.since, 'since'),
+        until: parseFilterTimestamp(filters.until, 'until'),
         minScore: Number(filters.minScore) || 0,
         skillSlug: filters.skillSlug.trim() || undefined,
         scope: filters.scope,
-        full: opts?.full ?? false,
+        full: opts?.full ?? true,
       })) as { matches?: QueryMatch[] };
       setMatches(data.matches ?? []);
       setSearched(true);

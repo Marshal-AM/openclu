@@ -8,6 +8,7 @@ import {
   XLogo,
   Key,
   ChatCircle,
+  Chats,
   ClipboardText,
   Gear,
   EnvelopeSimple,
@@ -32,6 +33,7 @@ export type SyncBoardNavItem = {
 
 export const syncBoardNavItems: SyncBoardNavItem[] = [
   { path: '/syncboard/agents', label: 'Agents', Icon: UsersThree },
+  { path: '/chat', label: 'Chat', Icon: Chats },
   { path: '/syncboard/souls', label: 'Souls', Icon: BookOpen },
   { path: '/syncboard/agent-feed', label: 'Agent Feed', Icon: ListBullets },
   { path: '/syncboard/soul', label: 'Soul Document', Icon: Brain },

@@ -179,6 +179,11 @@ button {
   background-color: var(--bg-hover);
 }
 
+.btn-sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+}
+
 /* Card */
 .card {
   background-color: var(--bg-secondary);
