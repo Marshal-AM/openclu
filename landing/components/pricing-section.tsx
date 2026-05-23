@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { ArrowRight, Check, Minus } from "lucide-react"
 import { motion } from "framer-motion"
+import { DASHBOARD_LOGIN_URL } from "@/lib/constants"
 
 const ease = [0.22, 1, 0.36, 1] as const
 
@@ -75,7 +76,7 @@ const TIERS: Tier[] = [
       { text: "Story Protocol IP + royalties", included: true },
       { text: "Clu hardware (when shipped)", included: false },
     ],
-    cta: "START CAPTURING",
+    cta: "GET STARTED",
     highlighted: false,
   },
   {
@@ -93,7 +94,7 @@ const TIERS: Tier[] = [
       { text: "Direct Arkiv + Story publishing", included: true },
       { text: "Founder serial numbers", included: true },
     ],
-    cta: "RESERVE A UNIT",
+    cta: "GET STARTED",
     highlighted: true,
   },
   {
@@ -111,7 +112,7 @@ const TIERS: Tier[] = [
       { text: "On-chain attribution receipts", included: true },
       { text: "Dedicated integration engineering", included: true },
     ],
-    cta: "TALK TO US",
+    cta: "GET STARTED",
     highlighted: false,
   },
 ]
@@ -231,7 +232,8 @@ function PricingCard({ tier, index }: { tier: Tier; index: number }) {
 
       {/* CTA */}
       <div className="px-5 pb-5 pt-3">
-        <motion.button
+        <motion.a
+          href={DASHBOARD_LOGIN_URL}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           className={`group w-full flex items-center justify-center gap-0 text-xs font-mono tracking-wider uppercase ${
@@ -244,7 +246,7 @@ function PricingCard({ tier, index }: { tier: Tier; index: number }) {
             <ArrowRight size={14} strokeWidth={2} className="text-background" />
           </span>
           <span className="flex-1 py-2.5">{tier.cta}</span>
-        </motion.button>
+        </motion.a>
       </div>
     </motion.div>
   )

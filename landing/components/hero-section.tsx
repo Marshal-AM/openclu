@@ -1,6 +1,7 @@
 "use client"
 
 import { WorkflowDiagram } from "@/components/workflow-diagram"
+import { DASHBOARD_LOGIN_URL } from "@/lib/constants"
 import { ArrowRight } from "lucide-react"
 import { motion } from "framer-motion"
 
@@ -68,13 +69,12 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6, ease }}
-          className="flex flex-col sm:flex-row items-center gap-3"
         >
           <motion.a
-            href="#device"
+            href={DASHBOARD_LOGIN_URL}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            className="group flex items-center gap-0 bg-foreground text-background text-sm font-mono tracking-wider uppercase"
+            className="group inline-flex items-center gap-0 bg-foreground text-background text-sm font-mono tracking-wider uppercase"
           >
             <span className="flex items-center justify-center w-10 h-10 bg-[#ea580c]">
               <motion.span
@@ -85,16 +85,7 @@ export function HeroSection() {
                 <ArrowRight size={16} strokeWidth={2} className="text-background" />
               </motion.span>
             </span>
-            <span className="px-5 py-2.5">Reserve a Clu device</span>
-          </motion.a>
-
-          <motion.a
-            href="#pipeline"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 border-2 border-foreground px-5 py-2.5 text-sm font-mono tracking-wider uppercase text-foreground hover:bg-foreground hover:text-background transition-colors"
-          >
-            See the pipeline
+            <span className="px-5 py-2.5">Get started</span>
           </motion.a>
         </motion.div>
       </div>

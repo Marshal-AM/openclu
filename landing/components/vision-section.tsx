@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { ArrowRight, Languages, Hammer, Stethoscope, Music, Brain, MapPin } from "lucide-react"
+import { DASHBOARD_LOGIN_URL } from "@/lib/constants"
 
 const ease = [0.22, 1, 0.36, 1] as const
 
@@ -105,25 +106,17 @@ export function VisionSection() {
               commoditized. The next moat is <span className="text-foreground">whose skills</span> your
               agent has.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <div className="mt-8">
               <motion.a
-                href="#device"
+                href={DASHBOARD_LOGIN_URL}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="group flex items-center gap-0 bg-foreground text-background text-sm font-mono tracking-wider uppercase"
+                className="group inline-flex items-center gap-0 bg-foreground text-background text-sm font-mono tracking-wider uppercase"
               >
                 <span className="flex items-center justify-center w-10 h-10 bg-[#ea580c]">
                   <ArrowRight size={16} strokeWidth={2} className="text-background" />
                 </span>
-                <span className="px-5 py-2.5">Join the device waitlist</span>
-              </motion.a>
-              <motion.a
-                href="#tracks"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-2 border-2 border-foreground px-5 py-2.5 text-sm font-mono tracking-wider uppercase text-foreground hover:bg-foreground hover:text-background transition-colors"
-              >
-                Contribute a skill today
+                <span className="px-5 py-2.5">Get started</span>
               </motion.a>
             </div>
           </div>
