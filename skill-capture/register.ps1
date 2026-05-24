@@ -82,8 +82,6 @@ Write-Host ""
 Write-Host "PRIVATE KEY (keep local):"
 Write-Host $DevicePrivateKey
 Write-Host ""
-Write-Host "Register: $RegisterUrl"
-
 try {
   $body = @{
     registration_token = $RegistrationToken
@@ -97,5 +95,14 @@ try {
   Write-Host "(Could not POST pending - start frontend with SUPABASE_* in .env.local)"
 }
 
-# Optional QR in terminal (skip npx on Windows - avoids spawn issues)
-Write-Host "Open the Register URL above in your browser."
+Write-Host ""
+Write-Host "Scan this QR to register the device in your browser:"
+$QrScript = Join-Path $Root "scripts\print-registration-qr.mjs"
+try {
+  $env:REGISTER_URL = $RegisterUrl
+  node $QrScript $RegisterUrl
+  if ($LASTEXITCODE -ne 0) { throw "QR script failed" }
+} catch {
+  Write-Host "(QR unavailable — run 'npm install' in skill-capture, then re-run register.ps1)"
+  Write-Host "Open the Register URL above in your browser."
+}

@@ -80,10 +80,6 @@ echo "$DEVICE_PRIVATE_KEY"
 echo ""
 echo "Fund this wallet on Story Aeneid + Braga GLM before first publish."
 echo ""
-echo "Register in browser:"
-echo "$REGISTER_URL"
-echo ""
-
 PENDING_JSON="{\"registration_token\":\"$REGISTRATION_TOKEN\",\"device_id\":\"$DEVICE_ID\",\"device_name\":\"$DEVICE_NAME\",\"wallet_address\":\"$DEVICE_ADDRESS\""
 if [[ -n "$ORCHESTRATOR_PUBLIC" ]]; then
   PENDING_JSON="${PENDING_JSON},\"orchestrator_url\":\"$ORCHESTRATOR_PUBLIC\""
@@ -95,6 +91,10 @@ curl -sf -X POST "${FRONTEND_URL}/api/devices/pending" \
   -d "$PENDING_JSON" \
   2>/dev/null || echo "(Could not POST pending — ensure frontend is running and SUPABASE_* is set in frontend/.env.local)"
 
-if command -v npx >/dev/null 2>&1; then
-  npx --yes qrcode-terminal "$REGISTER_URL" 2>/dev/null || true
+echo "Scan this QR to register the device in your browser:"
+if node "$ROOT/scripts/print-registration-qr.mjs" "$REGISTER_URL" 2>/dev/null; then
+  :
+else
+  echo "(Install qrcode-terminal: npm install in skill-capture/)"
+  echo "$REGISTER_URL"
 fi
