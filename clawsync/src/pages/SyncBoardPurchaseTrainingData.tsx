@@ -17,6 +17,7 @@ import { ArkivQueryDebugPanel } from '../components/syncboard/ArkivQueryDebugPan
 import { createArkivTrace, type ArkivQueryTrace } from '../lib/arkivTrace';
 import { TrainingDataVideoPlayer } from '../components/syncboard/TrainingDataVideoPlayer';
 import '../components/syncboard/PremiumSkillCard.css';
+import '../components/syncboard/TrainingDataCard.css';
 import './SyncBoardPurchaseSkills.css';
 import { SkillCardGridSkeleton } from '../components/ui/skeletons';
 
@@ -217,12 +218,6 @@ export function SyncBoardPurchaseTrainingData() {
   return (
     <SyncBoardLayout>
       <div className="purchase-skills-page syncboard-page">
-        <h1 className="syncboard-page-title">Purchase Training Data</h1>
-        <p className="purchase-hint">
-          Search Arkiv for encrypted training data videos. After purchase, the video is reconstructed from the
-          decrypted bundle.
-        </p>
-
         <CatalogSearchPanel
           filters={filters}
           onChange={setFilters}
@@ -278,8 +273,8 @@ export function SyncBoardPurchaseTrainingData() {
         />
 
         {purchasedId ? (
-          <section className="mt-6 rounded-lg border p-4">
-            <h2 className="mb-3 text-lg font-medium">Your video</h2>
+          <section className="training-data-purchase-preview">
+            <h2>Your video</h2>
             <TrainingDataVideoPlayer
               purchasedId={purchasedId as import('../../convex/_generated/dataModel').Id<'purchasedTrainingData'>}
               skillName={selectedSkillName ?? ''}

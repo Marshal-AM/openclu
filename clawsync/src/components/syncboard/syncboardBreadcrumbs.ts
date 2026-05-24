@@ -73,6 +73,23 @@ const routes: RouteMatch[] = [
     }),
   },
   {
+    test: (p) => p.match(/^\/syncboard\/training-data$/),
+    resolve: () => ({
+      items: [{ label: 'Training Data' }],
+      parentHref: null,
+    }),
+  },
+  {
+    test: (p) => p.match(/^\/syncboard\/training-data\/purchase$/),
+    resolve: () => ({
+      items: [
+        { label: 'Training Data', href: '/syncboard/training-data' },
+        { label: 'Purchase Training Data' },
+      ],
+      parentHref: '/syncboard/training-data',
+    }),
+  },
+  {
     test: (p) => p.match(/^\/syncboard\/train-ai$/),
     resolve: () => ({
       items: [{ label: 'Train your AI' }],

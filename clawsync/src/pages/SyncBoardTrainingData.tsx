@@ -4,7 +4,12 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
+import { TrainingDataCard } from '../components/syncboard/TrainingDataCard';
 import { TrainingDataVideoPlayer } from '../components/syncboard/TrainingDataVideoPlayer';
+import { SkillCardGridSkeleton } from '../components/ui/skeletons';
+import '../components/syncboard/PremiumSkillCard.css';
+import '../components/syncboard/TrainingDataCard.css';
+import './SyncBoardPurchaseSkills.css';
 
 export function SyncBoardTrainingData() {
   const rows = useQuery(api.trainingDataPurchases.listPurchased);
@@ -13,43 +18,44 @@ export function SyncBoardTrainingData() {
   const selected = rows?.find((r) => r._id === selectedId);
 
   return (
-    <SyncBoardLayout>
+    <SyncBoardLayout
+      pageActions={
+        <Link to="/syncboard/training-data/purchase" className="btn btn-primary">
+          Purchase Training Data
+        </Link>
+      }
+    >
       <div className="syncboard-page">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="syncboard-page-title">My Training Data</h1>
-            <p className="text-sm text-muted-foreground">
-              Purchased training data videos decrypted on this machine.
-            </p>
-          </div>
-          <Link className="syncboard-btn syncboard-btn-secondary" to="/syncboard/training-data/purchase">
-            Purchase Training Data
-          </Link>
-        </div>
+        {!rows ? <SkillCardGridSkeleton count={6} /> : null}
 
-        {!rows?.length ? (
-          <p className="purchase-hint">No purchased training data yet.</p>
-        ) : (
-          <ul className="mb-6 space-y-2">
+        {rows && rows.length === 0 ? (
+          <div className="empty-state">
+            <p>No purchased training data yet.</p>
+            <Link to="/syncboard/training-data/purchase" className="btn btn-primary">
+              Browse marketplace
+            </Link>
+          </div>
+        ) : null}
+
+        {rows && rows.length > 0 ? (
+          <div className="premium-skill-grid">
             {rows.map((row) => (
-              <li key={row._id}>
-                <button
-                  type="button"
-                  className="w-full rounded-lg border px-4 py-3 text-left hover:bg-muted/50"
-                  onClick={() => setSelectedId(row._id)}
-                >
-                  <span className="font-medium">{row.title}</span>
-                  <span className="ml-2 text-sm text-muted-foreground">{row.skillName}</span>
-                </button>
-              </li>
+              <TrainingDataCard
+                key={row._id}
+                title={row.title}
+                skillName={row.skillName}
+                purchasedAt={row.purchasedAt}
+                selected={selectedId === row._id}
+                onSelect={() => setSelectedId(row._id)}
+              />
             ))}
-          </ul>
-        )}
+          </div>
+        ) : null}
 
         {selected ? (
-          <section className="rounded-lg border p-4">
-            <h2 className="mb-2 text-lg font-medium">{selected.title}</h2>
-            <p className="mb-4 text-sm text-muted-foreground">{selected.description}</p>
+          <section className="training-data-detail">
+            <h2>{selected.title}</h2>
+            <p>{selected.description}</p>
             <TrainingDataVideoPlayer
               purchasedId={selected._id}
               skillName={selected.skillName}
@@ -58,6 +64,21 @@ export function SyncBoardTrainingData() {
           </section>
         ) : null}
       </div>
+
+      <style>{`
+        .empty-state {
+          text-align: center;
+          padding: var(--space-12);
+          background-color: var(--bg-secondary);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--border);
+        }
+
+        .empty-state p {
+          color: var(--text-secondary);
+          margin-bottom: var(--space-4);
+        }
+      `}</style>
     </SyncBoardLayout>
   );
 }

@@ -1,4 +1,5 @@
 import type { InferencePrediction, TrainMetrics } from '../../../lib/localTrainerApi';
+import './TrainAI.css';
 
 type Props = {
   jobId: string | null;
@@ -27,49 +28,47 @@ export function TrainAIResults({
 
   return (
     <section className="train-ai-results">
-      <h2 className="text-lg font-medium">Results</h2>
+      <h2>Results</h2>
 
       {!trainingDone ? (
-        <p className="text-sm text-muted-foreground">
-          Training in progress… metrics and inference appear when finished.
-        </p>
+        <p>Training in progress… metrics and inference appear when finished.</p>
       ) : null}
 
       {trainingDone && metrics?.ready ? (
-        <div className="mb-4 rounded-lg border p-3 text-sm">
+        <div className="train-ai-metrics">
           <p>
             <strong>Classes trained:</strong> {metrics.labels.join(', ')}
           </p>
           {metrics.final_loss != null ? (
-            <p className="mt-1">
+            <p>
               <strong>Final loss:</strong> {metrics.final_loss.toFixed(4)}
             </p>
           ) : null}
           {metrics.losses.length > 1 ? (
-            <p className="mt-1 text-muted-foreground">
-              Loss per epoch: {metrics.losses.map((l) => l.toFixed(4)).join(' → ')}
-            </p>
+            <p>Loss per epoch: {metrics.losses.map((l) => l.toFixed(4)).join(' → ')}</p>
           ) : null}
         </div>
       ) : null}
 
       {outputPath ? (
-        <p className="text-sm text-muted-foreground">
-          Weights on disk: <code className="text-xs">{outputPath}</code>
+        <p style={{ marginTop: 'var(--space-3)' }}>
+          Weights on disk: <code>{outputPath}</code>
         </p>
       ) : null}
 
       {trainingDone ? (
-        <div className="mt-4">
-          <h3 className="mb-2 font-medium">See model output (inference)</h3>
-          <p className="mb-2 text-sm text-muted-foreground">
-            Upload a test image or short video clip. The model predicts which label best
-            matches what it sees (with confidence scores).
+        <div style={{ marginTop: 'var(--space-4)' }}>
+          <h3>See model output (inference)</h3>
+          <p style={{ marginBottom: 'var(--space-3)' }}>
+            Upload a test image or short video clip. The model predicts which label best matches what it
+            sees (with confidence scores).
           </p>
-          <label className="train-ai-field">
-            <span>Test file</span>
+          <div className="form-group">
+            <label htmlFor="infer-file">Test file</label>
             <input
+              id="infer-file"
               type="file"
+              className="input"
               accept="image/*,video/mp4,video/webm,video/quicktime"
               disabled={!outputPath || inferBusy}
               onChange={(e) => {
@@ -79,19 +78,19 @@ export function TrainAIResults({
                 }
               }}
             />
-          </label>
+          </div>
         </div>
       ) : null}
 
-      {inferBusy ? (
-        <p className="mt-2 text-sm text-muted-foreground">Running inference…</p>
-      ) : null}
+      {inferBusy ? <p style={{ marginTop: 'var(--space-2)' }}>Running inference…</p> : null}
 
-      {inferError ? <p className="purchase-error mt-2">{inferError}</p> : null}
+      {inferError ? <p className="purchase-error">{inferError}</p> : null}
 
       {predictions?.length ? (
-        <div className="mt-3">
-          <p className="mb-2 text-sm font-medium">Predictions</p>
+        <div style={{ marginTop: 'var(--space-3)' }}>
+          <p style={{ marginBottom: 'var(--space-2)', fontWeight: 600, color: 'var(--text-primary)' }}>
+            Predictions
+          </p>
           <ul className="train-ai-predictions">
             {predictions.map((p) => (
               <li key={p.label}>
@@ -102,6 +101,23 @@ export function TrainAIResults({
           </ul>
         </div>
       ) : null}
+
+      <style>{`
+        .train-ai-results .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-2);
+        }
+
+        .train-ai-results .form-group label {
+          font-weight: 500;
+          font-size: var(--text-sm);
+        }
+
+        .train-ai-results .purchase-error {
+          margin-top: var(--space-2);
+        }
+      `}</style>
     </section>
   );
 }

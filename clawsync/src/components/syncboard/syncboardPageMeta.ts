@@ -24,6 +24,14 @@ const PAGE_META: Record<string, SyncBoardPageMeta> = {
     title: 'Skills Marketplace',
     subtitle: 'Browse and purchase skills from the Arkiv catalog.',
   },
+  '/syncboard/training-data': {
+    title: 'My Training Data',
+    subtitle: 'Purchased training videos decrypted and ready for local fine-tuning.',
+  },
+  '/syncboard/training-data/purchase': {
+    title: 'Training Data Marketplace',
+    subtitle: 'Browse and purchase encrypted training videos from the Arkiv catalog.',
+  },
   '/syncboard/skills/new': {
     title: 'New Skill',
     subtitle: 'Register a custom skill for agent use.',
@@ -94,7 +102,8 @@ const PAGE_META: Record<string, SyncBoardPageMeta> = {
   },
   '/syncboard/train-ai': {
     title: 'Train your AI',
-    subtitle: 'Fine-tune vision models locally on video frames.',
+    subtitle:
+      'Fine-tune vision models on video frames, then run inference to test predicted labels.',
   },
 };
 

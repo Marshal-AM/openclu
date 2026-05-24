@@ -6,6 +6,7 @@ import {
   type TrainProgressEvent,
 } from '../../../lib/localTrainerApi';
 import { TrainAIProgress } from './TrainAIProgress';
+import './TrainAI.css';
 
 type Props = {
   disabled: boolean;
@@ -84,12 +85,13 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
 
   return (
     <div className="train-ai-grid">
-      <div>
-        <h2 className="mb-3 text-lg font-medium">Model</h2>
-        <div className="train-ai-field mb-3">
+      <section className="train-ai-section">
+        <h3>Model</h3>
+        <div className="form-group">
           <label htmlFor="preset-model">Preset</label>
           <select
             id="preset-model"
+            className="input"
             value={modelId}
             disabled={disabled || busy || useLocalModel}
             onChange={(e) => setModelId(e.target.value)}
@@ -101,18 +103,19 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
             ))}
           </select>
         </div>
-        <div className="train-ai-field mb-3">
+        <div className="form-group">
           <label htmlFor="custom-model">Or HuggingFace model ID</label>
           <input
             id="custom-model"
             type="text"
+            className="input"
             placeholder="e.g. openai/clip-vit-base-patch32"
             value={customModelId}
             disabled={disabled || busy || useLocalModel}
             onChange={(e) => setCustomModelId(e.target.value)}
           />
         </div>
-        <label className="mb-3 flex items-center gap-2 text-sm">
+        <label className="train-ai-checkbox">
           <input
             type="checkbox"
             checked={useLocalModel}
@@ -122,18 +125,23 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
           Upload local model folder (config.json + weights)
         </label>
         {useLocalModel ? (
-          <input
-            type="file"
-            {...({ webkitdirectory: '', directory: '' } as InputHTMLAttributes<HTMLInputElement>)}
-            multiple
-            disabled={disabled || busy}
-            onChange={(e) => setModelFiles(Array.from(e.target.files ?? []))}
-          />
+          <div className="form-group">
+            <label htmlFor="local-model">Model folder</label>
+            <input
+              id="local-model"
+              type="file"
+              className="input"
+              {...({ webkitdirectory: '', directory: '' } as InputHTMLAttributes<HTMLInputElement>)}
+              multiple
+              disabled={disabled || busy}
+              onChange={(e) => setModelFiles(Array.from(e.target.files ?? []))}
+            />
+          </div>
         ) : null}
-      </div>
+      </section>
 
-      <div>
-        <h2 className="mb-3 text-lg font-medium">Training video</h2>
+      <section className="train-ai-section">
+        <h3>Training video</h3>
         <div
           className="train-ai-dropzone"
           onDragOver={(e) => {
@@ -152,24 +160,27 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
             }
           }}
         >
-          <input
-            type="file"
-            accept="video/mp4,video/webm,video/quicktime,.mp4,.mov,.webm"
-            id="train-video"
-            disabled={disabled || busy}
-            onChange={(e) => onDropVideo(e.target.files?.[0] ?? null)}
-          />
-          <p className="mt-2 text-sm text-muted-foreground">
-            {video ? `Selected: ${video.name}` : 'Drop a file on this area or use the picker above'}
-          </p>
+          <div className="form-group">
+            <label htmlFor="train-video">Video file</label>
+            <input
+              type="file"
+              className="input"
+              accept="video/mp4,video/webm,video/quicktime,.mp4,.mov,.webm"
+              id="train-video"
+              disabled={disabled || busy}
+              onChange={(e) => onDropVideo(e.target.files?.[0] ?? null)}
+            />
+          </div>
+          <p>{video ? `Selected: ${video.name}` : 'Drop a file on this area or use the picker above'}</p>
         </div>
 
-        <div className="mt-4 grid gap-3">
-          <div className="train-ai-field">
+        <div className="train-ai-form-stack">
+          <div className="form-group">
             <label htmlFor="sample-rate">Sample rate (seconds between frames)</label>
             <input
               id="sample-rate"
               type="number"
+              className="input"
               min={0.1}
               step={0.1}
               value={sampleRateSec}
@@ -177,11 +188,12 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
               onChange={(e) => setSampleRateSec(Number(e.target.value))}
             />
           </div>
-          <div className="train-ai-field">
+          <div className="form-group">
             <label htmlFor="epochs">Epochs</label>
             <input
               id="epochs"
               type="number"
+              className="input"
               min={1}
               max={50}
               value={epochs}
@@ -189,22 +201,24 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
               onChange={(e) => setEpochs(Number(e.target.value))}
             />
           </div>
-          <div className="train-ai-field">
+          <div className="form-group">
             <label htmlFor="lr">Learning rate</label>
             <input
               id="lr"
               type="number"
+              className="input"
               step="any"
               value={learningRate}
               disabled={disabled || busy}
               onChange={(e) => setLearningRate(Number(e.target.value))}
             />
           </div>
-          <div className="train-ai-field">
+          <div className="form-group">
             <label htmlFor="labels">Labels (comma-separated; one label adds &quot;other&quot;)</label>
             <input
               id="labels"
               type="text"
+              className="input"
               value={labels}
               disabled={disabled || busy}
               onChange={(e) => setLabels(e.target.value)}
@@ -212,23 +226,47 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
           </div>
         </div>
 
-        <button
-          type="button"
-          className="btn btn-primary mt-4"
-          disabled={disabled || busy || !video}
-          onClick={() => void handleTrain()}
-        >
-          {busy ? 'Training…' : 'Train'}
-        </button>
+        <div className="train-ai-form-actions">
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={disabled || busy || !video}
+            onClick={() => void handleTrain()}
+          >
+            {busy ? 'Training…' : 'Train'}
+          </button>
+        </div>
 
-        {error ? <p className="purchase-error mt-2">{error}</p> : null}
-      </div>
+        {error ? <p className="purchase-error">{error}</p> : null}
+      </section>
 
       {(busy || progress) && jobId ? (
         <div style={{ gridColumn: '1 / -1' }}>
           <TrainAIProgress progress={progress} />
         </div>
       ) : null}
+
+      <style>{`
+        .train-ai-section .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-2);
+          margin-bottom: var(--space-3);
+        }
+
+        .train-ai-section .form-group label {
+          font-weight: 500;
+          font-size: var(--text-sm);
+        }
+
+        .train-ai-form-stack {
+          margin-top: var(--space-4);
+        }
+
+        .train-ai-section .purchase-error {
+          margin-top: var(--space-3);
+        }
+      `}</style>
     </div>
   );
 }

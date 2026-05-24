@@ -12,6 +12,7 @@ import {
   type TrainerHealth,
 } from '../lib/localTrainerApi';
 import '../components/syncboard/train-ai/TrainAI.css';
+import './SyncBoardPurchaseSkills.css';
 
 export function SyncBoardTrainAI() {
   const [health, setHealth] = useState<TrainerHealth | null>(null);
@@ -80,37 +81,21 @@ export function SyncBoardTrainAI() {
 
   return (
     <SyncBoardLayout>
-      <div className="syncboard-page">
-        <h1 className="syncboard-page-title">Train your AI</h1>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Fine-tune small vision models on your machine. After training, use{' '}
-          <strong>See model output</strong> below to upload a test image and view predicted labels.
-        </p>
-
-        <div
-          className={`train-ai-banner ${trainerOk ? 'train-ai-banner--ok' : 'train-ai-banner--error'}`}
-        >
+      <div className="syncboard-page train-ai-page">
+        <div className={`train-ai-banner ${trainerOk ? 'train-ai-banner--ok' : 'train-ai-banner--error'}`}>
           {trainerOk ? (
-            <p className="text-sm">
-              Trainer connected — device: <strong>{health?.device}</strong>, PyTorch{' '}
-              {health?.torch_version}
+            <p>
+              Trainer connected — device: <strong>{health?.device}</strong>, PyTorch {health?.torch_version}
             </p>
           ) : (
-            <p className="text-sm purchase-error">{healthError ?? 'Checking trainer…'}</p>
+            <p className="purchase-error">{healthError ?? 'Checking trainer…'}</p>
           )}
-          <button
-            type="button"
-            className="syncboard-btn syncboard-btn-secondary mt-2"
-            onClick={() => void checkHealth()}
-          >
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void checkHealth()}>
             Retry connection
           </button>
         </div>
 
-        <TrainAIForm
-          disabled={!trainerOk}
-          onComplete={(id, path) => void onComplete(id, path)}
-        />
+        <TrainAIForm disabled={!trainerOk} onComplete={(id, path) => void onComplete(id, path)} />
 
         <TrainAIResults
           jobId={jobId}
@@ -125,17 +110,11 @@ export function SyncBoardTrainAI() {
 
         <details className="train-ai-howto">
           <summary>How to download a model from Hugging Face</summary>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Option 1: pick a preset above — weights download automatically on first train.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Option 2: pre-download with the Hugging Face CLI:
-          </p>
+          <p>Option 1: pick a preset above — weights download automatically on first train.</p>
+          <p>Option 2: pre-download with the Hugging Face CLI:</p>
           <pre>{`pip install huggingface_hub
 huggingface-cli download openai/clip-vit-base-patch32 --local-dir .\\models\\clip-vit-b32`}</pre>
-          <p className="text-sm text-muted-foreground">
-            Then enable &quot;Upload local model folder&quot; and select that directory.
-          </p>
+          <p>Then enable &quot;Upload local model folder&quot; and select that directory.</p>
         </details>
       </div>
     </SyncBoardLayout>
