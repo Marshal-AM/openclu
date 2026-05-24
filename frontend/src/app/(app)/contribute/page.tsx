@@ -945,7 +945,7 @@ export default function ContributePage() {
                 {videoCaptureJobId ? (
                   <p className="mb-2 text-foreground">
                     Type <strong>q</strong> and press Enter in the <strong>orchestrator</strong> terminal to stop{" "}
-                    <strong>video recording</strong>.
+                    <strong>video recording</strong> (your camera and microphone on this device).
                   </p>
                 ) : null}
                 {logs.slice(-60).map((line, index) => (

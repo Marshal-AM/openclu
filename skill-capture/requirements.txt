@@ -3,8 +3,10 @@ openai-whisper
 pyaudio
 pillow
 mss
+opencv-python
 pynput
 ffmpeg-python
+imageio-ffmpeg
 numpy
 soundfile
 keyboard

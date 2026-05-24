@@ -16,7 +16,7 @@ Raw audio and frames stay local. Ciphertext is pinned on local Helia. **No CDR o
 
 ## Prerequisites
 
-- Python 3.10+ with `requirements.txt`
+- Python 3.10+ with `requirements.txt` (includes bundled **ffmpeg** via `imageio-ffmpeg` for training video)
 - Node.js 22+
 - `GROQ_API_KEY` in `skill-capture/.env`
 - Device wallet from `register.sh` (fund on Story Aeneid + Braga GLM)
@@ -48,7 +48,7 @@ In another terminal:
 ```powershell
 cd skill-capture
 .\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+npm run setup
 .\register.ps1   # or ./register.sh on Git Bash
 ```
 
@@ -60,25 +60,23 @@ Scan the QR / open the link → sign in with your owner wallet → confirm devic
 cd skill-capture
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-npm install
+npm run setup
 
-cd cdr
-copy .env.example .env
-npm install
-
-cd ..\arkiv
-npm install
-
-cd ..\cli
-npm install
-
-cd ..\orchestrator
-npm install
-
-cd ..\..\frontend
+cd ..\frontend
 copy .env.local.example .env.local
 npm install
+```
+
+`npm run setup` runs `pip install -r requirements.txt` (including **imageio-ffmpeg**, which provides ffmpeg for training video capture) and installs Node deps for `cdr`, `arkiv`, `cli`, and `orchestrator`.
+
+Manual alternative:
+
+```powershell
+pip install -r requirements.txt
+cd cdr && copy .env.example .env && npm install
+cd ..\arkiv && npm install
+cd ..\cli && npm install
+cd ..\orchestrator && npm install
 ```
 
 ## Run — 2 terminals (+ Python venv when capturing)

@@ -27,8 +27,9 @@ __pycache__/
 # Local Helia / IPFS block stores
 .helia-data/
 
-# Screen-capture artifacts (audio, frames) — stay on device only
+# Local capture artifacts (audio, frames, raw video) — stay on device only
 skill-capture/skills/raw/
+skill-capture/training-data/raw/
 
 # Logs and local noise
 *.log

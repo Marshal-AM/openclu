@@ -172,7 +172,7 @@ export function startVideoCaptureJob(skillSlug: string): Job {
     jobKind: "training",
     status: "capturing",
     logs: [
-      `Starting video recording for "${skillSlug}" - type q and press Enter in this terminal to stop.`,
+      `Starting video recording (camera + microphone) for "${skillSlug}" - type q and press Enter in this terminal to stop.`,
       `Python: ${resolveVenvPython()}`,
     ],
     exitCode: null,

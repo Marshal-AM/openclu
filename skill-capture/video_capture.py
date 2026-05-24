@@ -1,8 +1,9 @@
 """
-Training data video recording — display + microphone, encoded to webm, stored as base64.
+Training data video recording — system camera + microphone, encoded to webm, stored as base64.
 """
 import base64
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -16,9 +17,8 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
+import cv2
 import pyaudio
-import mss
-from PIL import Image
 
 AUDIO_RATE = 44100
 AUDIO_CHANNELS = 1
@@ -29,8 +29,29 @@ OUTPUT_BUNDLE = Path("training-data")
 MAX_VIDEO_BYTES = 100 * 1024 * 1024  # 100 MB soft cap
 
 stop_flag = threading.Event()
-frames_audio = []
-video_frames = []
+frames_audio: list[bytes] = []
+video_frames: list = []
+
+
+def _camera_device_index() -> int:
+    raw = os.environ.get("TRAINING_CAMERA_INDEX", "0").strip()
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 0
+
+
+def _open_camera(device_index: int) -> cv2.VideoCapture:
+    """Open default or indexed camera (Windows DShow / macOS AVFoundation when available)."""
+    if sys.platform == "win32":
+        cap = cv2.VideoCapture(device_index, cv2.CAP_DSHOW)
+    elif sys.platform == "darwin":
+        cap = cv2.VideoCapture(device_index, cv2.CAP_AVFOUNDATION)
+    else:
+        cap = cv2.VideoCapture(device_index)
+    if cap.isOpened():
+        return cap
+    return cv2.VideoCapture(device_index)
 
 
 def record_audio():
@@ -52,20 +73,33 @@ def record_audio():
     print("  [video] audio stopped.")
 
 
-def record_video_frames():
-    sct = mss.mss()
-    monitor = sct.monitors[1]
+def record_camera_frames():
+    device = _camera_device_index()
+    cap = _open_camera(device)
+    if not cap.isOpened():
+        raise RuntimeError(
+            f"Could not open camera (device index {device}). "
+            "Check permissions and set TRAINING_CAMERA_INDEX if needed.",
+        )
+
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cap.set(cv2.CAP_PROP_FPS, max(1, int(1.0 / FRAME_INTERVAL)))
+
+    print(f"  [video] camera recording (device {device})...")
     last_grab = 0.0
-    print("  [video] video recording...")
-    while not stop_flag.is_set():
-        now = time.time()
-        if now - last_grab >= FRAME_INTERVAL:
-            raw = sct.grab(monitor)
-            img = Image.frombytes("RGB", raw.size, raw.bgra, "raw", "BGRX")
-            video_frames.append(img)
-            last_grab = now
-        time.sleep(0.02)
-    print(f"  [video] video stopped. {len(video_frames)} frames captured.")
+    try:
+        while not stop_flag.is_set():
+            now = time.time()
+            if now - last_grab >= FRAME_INTERVAL:
+                ok, frame = cap.read()
+                if ok and frame is not None:
+                    video_frames.append(frame)
+                    last_grab = now
+            time.sleep(0.01)
+    finally:
+        cap.release()
+    print(f"  [video] camera stopped. {len(video_frames)} frames captured.")
 
 
 def wait_for_terminal_quit():
@@ -94,14 +128,22 @@ def _find_ffmpeg() -> str | None:
     exe = shutil.which("ffmpeg")
     if exe:
         return exe
+    try:
+        import imageio_ffmpeg
+
+        bundled = imageio_ffmpeg.get_ffmpeg_exe()
+        if bundled and Path(bundled).is_file():
+            return bundled
+    except ImportError:
+        pass
     return None
 
 
 def _mux_to_webm(ffmpeg: str, run_dir: Path, wav_path: Path) -> Path:
     frames_dir = run_dir / "frames"
     frames_dir.mkdir(parents=True, exist_ok=True)
-    for i, img in enumerate(video_frames):
-        img.save(str(frames_dir / f"frame_{i:04d}.jpg"), "JPEG", quality=85)
+    for i, frame in enumerate(video_frames):
+        cv2.imwrite(str(frames_dir / f"frame_{i:04d}.jpg"), frame)
 
     out_path = run_dir / "recording.webm"
     fps = max(1, min(30, int(1.0 / FRAME_INTERVAL)))
@@ -152,6 +194,7 @@ def save_bundle(slug: str, webm_path: Path, duration_sec: float):
         "byteLength": len(raw_bytes),
         "recordedAt": datetime.utcnow().isoformat() + "Z",
         "contentKind": "trainingData",
+        "captureSource": "camera",
     }
     (bundle_dir / "video.meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     print(f"  [video] bundle -> {bundle_dir}/video.b64 ({len(b64)} chars base64)")
@@ -178,18 +221,27 @@ def main():
 
     ffmpeg = _find_ffmpeg()
     if not ffmpeg:
-        print("Error: ffmpeg not found on PATH — install ffmpeg for video encoding.")
+        print(
+            "Error: ffmpeg not available. Run from skill-capture: "
+            "pip install -r requirements.txt  (or: npm run setup)",
+        )
         sys.exit(1)
 
+    device = _camera_device_index()
     print(f"\n=== Training data video: {slug} ===")
     print(f"Output dir: {run_dir}")
+    print(f"Camera device index: {device} (override with TRAINING_CAMERA_INDEX)")
     print("\nStarting in 3 seconds...")
     time.sleep(3)
-    print("\nVideo recording started. Type q and press Enter in the orchestrator terminal to stop.\n", flush=True)
+    print(
+        "\nVideo recording started (camera + microphone). "
+        "Type q and press Enter in the orchestrator terminal to stop.\n",
+        flush=True,
+    )
 
     start_time = time.time()
     audio_thread = threading.Thread(target=record_audio, daemon=True)
-    video_thread = threading.Thread(target=record_video_frames, daemon=True)
+    video_thread = threading.Thread(target=record_camera_frames, daemon=True)
     audio_thread.start()
     video_thread.start()
     wait_for_terminal_quit()
@@ -207,7 +259,7 @@ def main():
     wf.close()
 
     if not video_frames:
-        print("Error: no video frames captured.")
+        print("Error: no camera frames captured.")
         sys.exit(1)
     webm_path = _mux_to_webm(ffmpeg, run_dir, wav_path)
 
