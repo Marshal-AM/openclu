@@ -2,13 +2,17 @@
 
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { MonitorIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DeviceChooserDialog } from "@/components/DeviceChooserDialog";
+import { OpenCluLogo } from "@/components/OpenCluLogo";
 import { useDeviceInteractionStore } from "@/lib/device-interaction-store";
 import type { OwnedDevice } from "@/lib/device-types";
 import { makeSkillSlug, randomSlugSuffix } from "@/lib/skill-slug";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -82,6 +86,53 @@ function Stage({
 
 function isPublishedOnDevice(s: DeviceSkill): boolean {
   return s.arkivStatus === "published" || !!s.arkivListingKey;
+}
+
+function CaptureModeOptionCard({
+  title,
+  subtitle,
+  icon,
+  isChosen,
+  disabled,
+  onSelect,
+}: {
+  title: string;
+  subtitle: string;
+  icon: ReactNode;
+  isChosen: boolean;
+  disabled?: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <Card
+      size="sm"
+      tabIndex={disabled ? undefined : 0}
+      className={cn(
+        "flex aspect-square w-full max-w-[240px] flex-col items-center justify-center gap-3 overflow-hidden rounded-xl bg-card px-5 py-6 text-center shadow-sm ring-1 ring-border/80 transition-all",
+        !disabled && "cursor-pointer",
+        isChosen ? "bg-primary/15 ring-primary/40 shadow-md" : !disabled && "hover:bg-muted/35",
+        disabled && "cursor-not-allowed opacity-50",
+      )}
+      onClick={() => {
+        if (!disabled) onSelect();
+      }}
+      onKeyDown={(event) => {
+        if (disabled) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
+    >
+      <div className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-muted/60 p-1.5">
+        {icon}
+      </div>
+      <div className="flex flex-col items-center gap-1.5">
+        <h3 className="text-base font-semibold leading-snug">{title}</h3>
+        <p className="max-w-[13.5rem] text-center text-xs leading-snug text-muted-foreground">{subtitle}</p>
+      </div>
+    </Card>
+  );
 }
 
 function emptyForm(): MetadataForm {
@@ -174,6 +225,7 @@ export default function ContributePage() {
   const [activeStage, setActiveStage] = useState(0);
   const [hydratedDraft, setHydratedDraft] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
+  const [activeCaptureMode, setActiveCaptureMode] = useState<"skill" | "training" | null>(null);
   const [captureJobId, setCaptureJobId] = useState<string | null>(null);
   const [distributeJobId, setDistributeJobId] = useState<string | null>(null);
   const [videoCaptureJobId, setVideoCaptureJobId] = useState<string | null>(null);
@@ -725,6 +777,7 @@ export default function ContributePage() {
     }
 
     setCaptureJobId(data.jobId);
+    setActiveCaptureMode("skill");
 
     await syncContributionFromJob(captureSlug, "capturing");
   }
@@ -757,11 +810,20 @@ export default function ContributePage() {
     }
 
     setVideoCaptureJobId(data.jobId);
+    setActiveCaptureMode("training");
     await syncTrainingContributionFromJob(captureSlug, "capturing");
   }
 
   const recordingBusy =
     !!captureJobId || !!distributeJobId || !!videoCaptureJobId || !!videoDistributeJobId;
+
+  const skillModeActive =
+    activeCaptureMode === "skill" || !!captureJobId || !!distributeJobId;
+  const trainingModeActive =
+    activeCaptureMode === "training" || !!videoCaptureJobId || !!videoDistributeJobId;
+
+  const captureDisabled =
+    !form.title.trim() || !form.description.trim() || !selectedDeviceId || recordingBusy;
 
   return (
     <div className="flex w-full flex-col gap-8">
@@ -896,47 +958,30 @@ export default function ContributePage() {
         <Stage
           step="3"
           title="Capture console"
-          description="Save the skill brief, then start the recording session."
+          description="Choose a recording mode and start the session on your device."
         >
-          <div className="flex max-w-2xl flex-col gap-4">
-            <div className="flex flex-wrap gap-3">
-              <Button
-                type="button"
-                onClick={() => void saveDraft()}
-                variant="secondary"
-                disabled={!selectedDeviceId || recordingBusy}
-              >
-                Save draft
-              </Button>
-              <Button
-                type="button"
-                onClick={() => void startCapture()}
-                disabled={
-                  !form.title.trim() ||
-                  !form.description.trim() ||
-                  !selectedDeviceId ||
-                  recordingBusy
-                }
-              >
-                Start recording
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => void startVideoCapture()}
-                disabled={
-                  !form.title.trim() ||
-                  !form.description.trim() ||
-                  !selectedDeviceId ||
-                  recordingBusy
-                }
-              >
-                Record Training data
-              </Button>
+          <div className="flex w-full flex-col gap-6">
+            <div className="mx-auto grid w-full max-w-xl grid-cols-1 justify-items-center gap-4 sm:grid-cols-2">
+              <CaptureModeOptionCard
+                title="Record skill"
+                subtitle="Records your screen and voice"
+                icon={<MonitorIcon className="size-11 text-primary" strokeWidth={1.75} />}
+                isChosen={skillModeActive}
+                disabled={captureDisabled}
+                onSelect={() => void startCapture()}
+              />
+              <CaptureModeOptionCard
+                title="Record training data"
+                subtitle="Uses Clu Hardware to record surroundings for activity recording"
+                icon={<OpenCluLogo markOnly className="size-11" />}
+                isChosen={trainingModeActive}
+                disabled={captureDisabled}
+                onSelect={() => void startVideoCapture()}
+              />
             </div>
 
             {captureJobId || distributeJobId || videoCaptureJobId || videoDistributeJobId || logs.length > 0 ? (
-              <div className="max-h-64 overflow-auto rounded-lg border bg-muted/50 p-3 font-mono text-xs text-muted-foreground">
+              <div className="max-h-64 w-full overflow-auto rounded-lg border bg-muted/50 p-3 font-mono text-xs text-muted-foreground">
                 {captureJobId ? (
                   <p className="mb-2 text-foreground">
                     Type <strong>q</strong> and press Enter in the <strong>orchestrator</strong> terminal to stop recording.
