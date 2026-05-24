@@ -23,6 +23,7 @@ import {
   BookOpen,
   ListBullets,
   ShoppingCart,
+  GraduationCap,
 } from '@phosphor-icons/react';
 import { marketplaceProductNavPaths } from '../../config/productSurface';
 
@@ -43,6 +44,7 @@ export const syncBoardNavItems: SyncBoardNavItem[] = [
   { path: '/syncboard/skills/purchase', label: 'Skills Marketplace', Icon: ShoppingCart },
   { path: '/syncboard/training-data', label: 'My Training Data', Icon: VideoCamera },
   { path: '/syncboard/training-data/purchase', label: 'Purchase Training Data', Icon: ShoppingCart },
+  { path: '/syncboard/train-ai', label: 'Train your AI', Icon: GraduationCap },
   { path: '/syncboard/mcp', label: 'MCP Servers', Icon: Plug },
   { path: '/syncboard/channels', label: 'Channels', Icon: DeviceMobile },
   { path: '/syncboard/x', label: 'X (Twitter)', Icon: XLogo },

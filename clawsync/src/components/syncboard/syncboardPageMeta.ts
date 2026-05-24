@@ -92,6 +92,10 @@ const PAGE_META: Record<string, SyncBoardPageMeta> = {
     title: 'Configuration',
     subtitle: 'Global SyncBoard settings and defaults.',
   },
+  '/syncboard/train-ai': {
+    title: 'Train your AI',
+    subtitle: 'Fine-tune vision models locally on video frames.',
+  },
 };
 
 export function resolveSyncBoardPageMeta(

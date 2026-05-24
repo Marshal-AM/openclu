@@ -1,0 +1,115 @@
+.train-ai-banner {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+}
+
+.train-ai-banner--ok {
+  border-color: var(--color-success);
+}
+
+.train-ai-banner--error {
+  border-color: var(--color-danger);
+}
+
+.train-ai-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .train-ai-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.train-ai-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.train-ai-field label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.train-ai-field input,
+.train-ai-field select {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.train-ai-dropzone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.train-ai-dropzone:hover,
+.train-ai-dropzone--active {
+  border-color: var(--color-primary);
+}
+
+.train-ai-progress {
+  margin-top: var(--space-4);
+}
+
+.train-ai-progress-bar {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.train-ai-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width 0.3s ease;
+}
+
+.train-ai-results {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.train-ai-howto {
+  margin-top: var(--space-6);
+}
+
+.train-ai-howto summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.train-ai-howto pre {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-elevated);
+  overflow-x: auto;
+  font-size: var(--font-size-sm);
+}
+
+.train-ai-predictions {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-2) 0 0;
+}
+
+.train-ai-predictions li {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}

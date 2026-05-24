@@ -132,6 +132,22 @@ Visit http://localhost:5173 and complete the setup wizard. This creates your age
 - Landing Page: http://localhost:5173
 - Chat: http://localhost:5173/chat
 - SyncBoard: http://localhost:5173/syncboard
+- Train your AI: http://localhost:5173/syncboard/train-ai
+
+### Local vision training (optional)
+
+Fine-tune small Hugging Face vision models on video frames via a local Python server:
+
+```bash
+cd local-trainer
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1   # Windows
+pip install -r requirements.txt
+cd ..
+npm run trainer:dev
+```
+
+See [local-trainer/README.md](local-trainer/README.md) for model download and training steps.
 
 ## Deployment
 

@@ -72,6 +72,13 @@ const routes: RouteMatch[] = [
       parentHref: '/syncboard/skills',
     }),
   },
+  {
+    test: (p) => p.match(/^\/syncboard\/train-ai$/),
+    resolve: () => ({
+      items: [{ label: 'Train your AI' }],
+      parentHref: null,
+    }),
+  },
 ];
 
 export function resolveSyncBoardBreadcrumbs(

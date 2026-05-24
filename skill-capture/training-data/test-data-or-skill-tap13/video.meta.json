@@ -1,7 +1,8 @@
 {
   "mimeType": "video/webm",
-  "durationSec": 19.48,
-  "byteLength": 925815,
-  "recordedAt": "2026-05-24T13:33:05.014961Z",
-  "contentKind": "trainingData"
+  "durationSec": 13.67,
+  "byteLength": 2197245,
+  "recordedAt": "2026-05-24T13:53:41.316696Z",
+  "contentKind": "trainingData",
+  "captureSource": "camera"
 }

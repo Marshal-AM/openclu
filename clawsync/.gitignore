@@ -50,6 +50,13 @@ data/marketplace-blobs/
 .helia-data/
 skill-marketplace/.helia-data/
 
+# Local ML trainer
+local-trainer/.venv/
+local-trainer/output/
+local-trainer/models/
+local-trainer/__pycache__/
+local-trainer/**/__pycache__/
+
 # Misc
 *.log
 *.sw?

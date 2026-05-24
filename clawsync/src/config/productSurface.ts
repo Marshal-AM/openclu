@@ -14,6 +14,7 @@ const MARKETPLACE_PRODUCT_ROUTES = [
   '/syncboard/skills/purchase',
   '/syncboard/training-data',
   '/syncboard/training-data/purchase',
+  '/syncboard/train-ai',
   '/syncboard/api',
 ] as const;
 
@@ -26,6 +27,7 @@ export const marketplaceProductNavPaths = new Set<string>([
   '/syncboard/skills/purchase',
   '/syncboard/training-data',
   '/syncboard/training-data/purchase',
+  '/syncboard/train-ai',
 ]);
 
 export function isMarketplaceProductRoute(pathname: string): boolean {
@@ -36,6 +38,7 @@ export function isMarketplaceProductRoute(pathname: string): boolean {
   return (
     pathname.startsWith('/syncboard/agents/') ||
     pathname.startsWith('/syncboard/skills/') ||
-    pathname.startsWith('/syncboard/training-data')
+    pathname.startsWith('/syncboard/training-data') ||
+    pathname.startsWith('/syncboard/train-ai')
   );
 }

@@ -20,7 +20,9 @@
     "republish-registry": "tsx scripts/republish-skill-registry.ts",
     "deploy": "npx @convex-dev/self-static-hosting deploy",
     "deploy:static": "npx @convex-dev/self-static-hosting upload --build --prod",
-    "cdr-storage": "npm run cdr-storage -w skill-marketplace"
+    "cdr-storage": "npm run cdr-storage -w skill-marketplace",
+    "trainer:dev": "cd local-trainer && python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000 --reload-exclude output --reload-exclude __pycache__",
+    "trainer:start": "cd local-trainer && python -m uvicorn main:app --host 127.0.0.1 --port 8000"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.59",
