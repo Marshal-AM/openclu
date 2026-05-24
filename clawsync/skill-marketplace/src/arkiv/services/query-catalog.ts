@@ -11,10 +11,12 @@ import {
 } from "../lib/constants.js";
 import {
   SkillListingPayloadSchema,
+  TrainingDataListingPayloadSchema,
   SkillTagPayloadSchema,
   type QueryMatch,
   type PurchaseInfo,
   type SkillListingPayload,
+  type TrainingDataListingPayload,
 } from "../lib/types.js";
 
 export type ListingQueryScope = "marketplace" | "mine";
@@ -161,10 +163,6 @@ export async function fetchListings(filters: ListingFilters = {}): Promise<
     rows = rows.filter((r) => set.has(r.entityKey.toLowerCase()));
   }
 
-  if (filters.since != null || filters.until != null) {
-    rows = rows.filter((row) => matchesPublishedAtRange(row.payload, filters.since, filters.until));
-  }
-
   return rows;
 }
 
@@ -218,84 +216,18 @@ function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter((t) => t.length >= 2 && !STOP.has(t));
+    .filter((t) => t.length > 2 && !STOP.has(t));
 }
 
-function haystackWords(text: string): string[] {
-  return text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
-}
-
-function tokenMatches(token: string, hay: string, hayWords: string[], slugParts: string[]): boolean {
-  if (hay.includes(token)) return true;
-  if (hayWords.some((word) => word.startsWith(token) || token.startsWith(word))) return true;
-  return slugParts.some((part) => part.includes(token) || token.includes(part));
-}
-
-type SearchableListing = {
-  searchText: string;
-  skillName: string;
-  title: string;
-  description: string;
-};
-
-function scoreSearch(query: string, listing: SearchableListing): number {
-  const q = query.trim().toLowerCase();
-  if (!q) return 1;
-
-  const hay = listing.searchText.toLowerCase();
-  const hayWords = haystackWords(hay);
-  const slugParts = listing.skillName.toLowerCase().split(/[-_]/).filter(Boolean);
-  const titleHay = listing.title.toLowerCase();
-  const descriptionHay = listing.description.toLowerCase();
-
-  if (
-    hay.includes(q) ||
-    titleHay.includes(q) ||
-    descriptionHay.includes(q) ||
-    listing.skillName.toLowerCase().includes(q)
-  ) {
-    return 1;
-  }
-
-  const qTokens = tokenize(q);
-  if (!qTokens.length) {
-    return q.length >= 2 && (hay.includes(q) || titleHay.includes(q) || slugParts.some((p) => p.includes(q)))
-      ? 0.4
-      : 0;
-  }
-
+function scoreSearch(query: string, searchText: string): number {
+  const qTokens = tokenize(query);
+  if (!qTokens.length) return 0;
+  const hay = searchText.toLowerCase();
   let hits = 0;
-  for (const token of qTokens) {
-    if (
-      tokenMatches(token, hay, hayWords, slugParts) ||
-      tokenMatches(token, titleHay, haystackWords(titleHay), slugParts) ||
-      tokenMatches(token, descriptionHay, haystackWords(descriptionHay), slugParts)
-    ) {
-      hits += 1;
-    }
+  for (const t of qTokens) {
+    if (hay.includes(t)) hits++;
   }
-
   return hits / qTokens.length;
-}
-
-function listingPublishedAtMs(payload: ReturnType<typeof SkillListingPayloadSchema.parse>): number | null {
-  const raw = payload.purchase?.publishedAt ?? payload.recordedAt;
-  if (!raw) return null;
-  const ms = Date.parse(String(raw));
-  return Number.isNaN(ms) ? null : ms;
-}
-
-function matchesPublishedAtRange(
-  payload: ReturnType<typeof SkillListingPayloadSchema.parse>,
-  since?: number,
-  until?: number,
-): boolean {
-  if (since == null && until == null) return true;
-  const ms = listingPublishedAtMs(payload);
-  if (ms == null) return true;
-  if (since != null && ms < since) return false;
-  if (until != null && ms > until) return false;
-  return true;
 }
 
 export async function searchNaturalLanguage(
@@ -305,21 +237,16 @@ export async function searchNaturalLanguage(
   const rows = await fetchListings(normalizeListingFilters(filters));
   const scored = rows.map((row) => ({
     row,
-    score: query.trim()
-      ? scoreSearch(query, {
-          searchText: row.payload.searchText,
-          skillName: row.payload.skillName,
-          title: row.payload.title,
-          description: row.payload.description,
-        })
-      : 1,
+    score: query.trim() ? scoreSearch(query, row.payload.searchText) : 1,
   }));
 
   if (query.trim()) {
     scored.sort((a, b) => b.score - a.score);
     const withHits = scored.filter((s) => s.score > 0);
-    scored.length = 0;
-    scored.push(...withHits);
+    if (withHits.length) {
+      scored.length = 0;
+      scored.push(...withHits);
+    }
   }
 
   const matches: QueryMatch[] = [];
@@ -339,6 +266,124 @@ export async function searchNaturalLanguage(
     };
     if (filters.full) {
       match.payload = row.payload;
+      const listingKey = row.entityKey as Hex;
+      const next = await getNextVersionNumber(listingKey);
+      match.arkivVersion = Math.max(1, next - 1);
+      match.tags = await fetchTagsForListing(listingKey);
+    }
+    matches.push(match);
+  }
+  return matches;
+}
+
+function trainingListingQueryBuilder(filters: ListingFilters = {}) {
+  const preds = [
+    eq(PROJECT_ATTRIBUTE.key, PROJECT_ATTRIBUTE.value),
+    eq(ATTR.entityType, ENTITY_TYPE.trainingDataListing),
+  ];
+  if (filters.status) preds.push(eq(ATTR.status, filters.status));
+  if (filters.skillSlug) preds.push(eq(ATTR.skillSlug, filters.skillSlug));
+  if (filters.since) preds.push(gte(ATTR.publishedAt, filters.since));
+  if (filters.until) preds.push(lte(ATTR.publishedAt, filters.until));
+
+  let qb = createArkivPublicClient()
+    .buildQuery()
+    .where(and(preds))
+    .withPayload(true)
+    .withAttributes(true)
+    .withMetadata(true)
+    .orderBy(desc(ATTR.publishedAt, "number"));
+
+  qb = applyWalletScope(qb, filters);
+  if (filters.limit) qb = qb.limit(filters.limit);
+  return qb;
+}
+
+function parseTrainingListingEntity(entity: Entity): {
+  payload: TrainingDataListingPayload;
+  entityKey: string;
+  status: string;
+  owner?: string;
+  creator?: string;
+} {
+  const raw = entity.toJson();
+  const payload = TrainingDataListingPayloadSchema.parse(raw);
+  const statusAttr = entity.attributes.find((a) => a.key === ATTR.status);
+  const wallet = entityWalletMeta(entity);
+  return {
+    payload,
+    entityKey: entity.key,
+    status: String(statusAttr?.value ?? "published"),
+    owner: wallet.owner,
+    creator: wallet.creator,
+  };
+}
+
+export async function fetchTrainingListings(filters: ListingFilters = {}): Promise<
+  Array<{
+    entityKey: string;
+    status: string;
+    payload: TrainingDataListingPayload;
+    owner?: string;
+    creator?: string;
+  }>
+> {
+  const qb = trainingListingQueryBuilder(normalizeListingFilters(filters));
+  const entities = await fetchAllPages(qb);
+  let rows = entities.map(parseTrainingListingEntity);
+
+  if (filters.listingKey) {
+    rows = rows.filter((r) => r.entityKey.toLowerCase() === filters.listingKey!.toLowerCase());
+  }
+
+  if (filters.tag) {
+    const keys = await listingKeysForTag(filters.tag, {
+      scope: filters.scope,
+      ownerAddress: filters.ownerAddress,
+    });
+    const set = new Set(keys.map((k) => k.toLowerCase()));
+    rows = rows.filter((r) => set.has(r.entityKey.toLowerCase()));
+  }
+
+  return rows;
+}
+
+export async function searchTrainingNaturalLanguage(
+  query: string,
+  filters: ListingFilters = {},
+): Promise<QueryMatch[]> {
+  const rows = await fetchTrainingListings(normalizeListingFilters(filters));
+  const scored = rows.map((row) => ({
+    row,
+    score: query.trim() ? scoreSearch(query, row.payload.searchText) : 1,
+  }));
+
+  if (query.trim()) {
+    scored.sort((a, b) => b.score - a.score);
+    const withHits = scored.filter((s) => s.score > 0);
+    if (withHits.length) {
+      scored.length = 0;
+      scored.push(...withHits);
+    }
+  }
+
+  const matches: QueryMatch[] = [];
+  for (const { row, score } of scored) {
+    const match: QueryMatch = {
+      score,
+      entityKey: row.entityKey,
+      skillName: row.payload.skillName,
+      title: row.payload.title,
+      description: row.payload.description,
+      triggers: [],
+      purchase: row.payload.purchase as PurchaseInfo,
+      listingKey: row.entityKey,
+      status: row.status,
+      owner: row.owner,
+      creator: row.creator,
+    };
+    if (filters.full) {
+      match.payload = row.payload as unknown as SkillListingPayload;
       const listingKey = row.entityKey as Hex;
       const next = await getNextVersionNumber(listingKey);
       match.arkivVersion = Math.max(1, next - 1);

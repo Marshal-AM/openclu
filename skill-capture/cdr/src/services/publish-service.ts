@@ -25,7 +25,7 @@ import {
   uploadJsonToIpfs,
 } from "../helia-storage.js";
 import { uploadCiphertextToPinata } from "../pinata-ipfs.js";
-import { zipSkillBundle } from "../zip-bundle.js";
+import { zipBundleDir, zipSkillBundle } from "../zip-bundle.js";
 
 export interface PublishStartResult {
   ipId: `0x${string}`;
@@ -292,4 +292,12 @@ export function readBundleZip(bundleDir: string): Buffer {
   const skillMd = resolve(bundleDir, "SKILL.md");
   readFileSync(skillMd, "utf-8");
   return zipSkillBundle(bundleDir);
+}
+
+export function readTrainingBundleZip(bundleDir: string): Buffer {
+  const trainingMd = resolve(bundleDir, "TRAINING.md");
+  const videoB64 = resolve(bundleDir, "video.b64");
+  readFileSync(trainingMd, "utf-8");
+  readFileSync(videoB64, "utf-8");
+  return zipBundleDir(bundleDir);
 }

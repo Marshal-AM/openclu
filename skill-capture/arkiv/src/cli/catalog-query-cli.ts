@@ -1,7 +1,9 @@
 import {
   catalogQuery,
+  catalogQueryTraining,
   catalogGetSkill,
   catalogGetSkillDetail,
+  catalogGetTrainingDetail,
   catalogStats,
 } from "../catalog-read-bridge.js";
 
@@ -50,10 +52,28 @@ async function main() {
       scope?: string;
       ownerAddress?: string;
     };
-    console.log(JSON.stringify(await catalogStats(scope, ownerAddress)));
+    console.log(
+      JSON.stringify(
+        await catalogStats(scope as "marketplace" | "mine" | undefined, ownerAddress),
+      ),
+    );
     return;
   }
-  console.error("Usage: catalog-query-cli.ts query|get|stats <json-or-slug>");
+  if (cmd === "query-training") {
+    const body = parseJsonArg();
+    console.log(JSON.stringify(await catalogQueryTraining(body)));
+    return;
+  }
+  if (cmd === "get-training-detail") {
+    const slug = process.argv[3];
+    if (!slug) {
+      console.error(JSON.stringify({ error: "training slug required" }));
+      process.exit(1);
+    }
+    console.log(JSON.stringify(await catalogGetTrainingDetail(slug)));
+    return;
+  }
+  console.error("Usage: catalog-query-cli.ts query|query-training|get|get-training-detail|stats");
   process.exit(1);
 }
 

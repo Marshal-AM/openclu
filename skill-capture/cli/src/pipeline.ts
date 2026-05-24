@@ -9,6 +9,7 @@ import { spawnSync } from "node:child_process";
 import { SKILL_CAPTURE_ROOT } from "../../arkiv/src/lib/device-wallet.js";
 import { resolveVenvPython } from "../../lib/spawn-util.js";
 import { distributeSkill } from "./distribute.js";
+import { distributeTraining } from "./distribute-training.js";
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, "../..");
@@ -62,6 +63,18 @@ async function main() {
       ? resolve(bundleDirArg)
       : resolve(ROOT, "skills", skillName);
     await distributeSkill({ skillName, bundleDir });
+    return;
+  }
+
+  if (cmd === "distribute-training") {
+    if (!skillName) {
+      console.error("Usage: distribute-training <skill-name> [bundle-dir]");
+      process.exit(1);
+    }
+    const bundleDir = bundleDirArg
+      ? resolve(bundleDirArg)
+      : resolve(ROOT, "training-data", skillName);
+    await distributeTraining({ skillName, bundleDir });
     return;
   }
 

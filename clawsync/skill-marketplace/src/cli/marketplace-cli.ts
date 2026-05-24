@@ -1,6 +1,8 @@
 import {
   catalogQuery,
+  catalogQueryTraining,
   catalogGetSkillDetail,
+  catalogGetTrainingDetail,
   catalogStats,
   type CatalogQueryBody,
 } from "../arkiv/catalog-read-bridge.js";
@@ -32,6 +34,47 @@ async function main() {
       ownerAddress?: string;
     };
     console.log(JSON.stringify(await catalogStats(scope ?? "marketplace", ownerAddress)));
+    return;
+  }
+  if (cmd === "query-training") {
+    const body = parseJsonArg() as CatalogQueryBody;
+    console.log(JSON.stringify(await catalogQueryTraining(body)));
+    return;
+  }
+  if (cmd === "get-training-detail") {
+    const slug = process.argv[3];
+    if (!slug) throw new Error("training slug required");
+    console.log(JSON.stringify(await catalogGetTrainingDetail(slug)));
+    return;
+  }
+  if (cmd === "purchase-training") {
+    const { log } = await import("../cdr/logger.js");
+    const { purchaseSkillFromListing } = await import("../cdr/purchase-from-listing.js");
+    const { requireAgentPrivateKey } = await import("../arkiv/lib/agent-wallet.js");
+    const { fetchTrainingListings } = await import("../arkiv/services/query-catalog.js");
+    const { skillName, outputDir, catalogSnapshot } = parseJsonArg() as {
+      skillName: string;
+      outputDir: string;
+      catalogSnapshot?: { entityKey: string; payload: unknown };
+    };
+    if (!skillName || !outputDir) {
+      throw new Error("purchase-training requires skillName and outputDir");
+    }
+    log.section(`Purchase training data: ${skillName}`);
+    const privateKey = requireAgentPrivateKey();
+    let snapshot = catalogSnapshot;
+    if (!snapshot) {
+      const rows = await fetchTrainingListings({ skillSlug: skillName, limit: 1 });
+      if (!rows.length) throw new Error(`No training listing for "${skillName}"`);
+      snapshot = { entityKey: rows[0].entityKey, payload: rows[0].payload };
+    }
+    const result = await purchaseSkillFromListing({
+      skillName,
+      privateKey,
+      outputDir,
+      catalogSnapshot: snapshot,
+    });
+    console.log(JSON.stringify(result));
     return;
   }
   if (cmd === "purchase") {

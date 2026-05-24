@@ -5,6 +5,7 @@ export const PROJECT_ATTRIBUTE = {
 
 export const ENTITY_TYPE = {
   skillListing: "skillListing",
+  trainingDataListing: "trainingDataListing",
   skillTag: "skillTag",
   listingVersion: "listingVersion",
 } as const;

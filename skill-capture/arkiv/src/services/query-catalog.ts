@@ -11,10 +11,12 @@ import {
 } from "../lib/constants.js";
 import {
   SkillListingPayloadSchema,
+  TrainingDataListingPayloadSchema,
   SkillTagPayloadSchema,
   type QueryMatch,
   type PurchaseInfo,
   type SkillListingPayload,
+  type TrainingDataListingPayload,
 } from "../lib/types.js";
 
 export type ListingQueryScope = "marketplace" | "mine";
@@ -264,6 +266,124 @@ export async function searchNaturalLanguage(
     };
     if (filters.full) {
       match.payload = row.payload;
+      const listingKey = row.entityKey as Hex;
+      const next = await getNextVersionNumber(listingKey);
+      match.arkivVersion = Math.max(1, next - 1);
+      match.tags = await fetchTagsForListing(listingKey);
+    }
+    matches.push(match);
+  }
+  return matches;
+}
+
+function trainingListingQueryBuilder(filters: ListingFilters = {}) {
+  const preds = [
+    eq(PROJECT_ATTRIBUTE.key, PROJECT_ATTRIBUTE.value),
+    eq(ATTR.entityType, ENTITY_TYPE.trainingDataListing),
+  ];
+  if (filters.status) preds.push(eq(ATTR.status, filters.status));
+  if (filters.skillSlug) preds.push(eq(ATTR.skillSlug, filters.skillSlug));
+  if (filters.since) preds.push(gte(ATTR.publishedAt, filters.since));
+  if (filters.until) preds.push(lte(ATTR.publishedAt, filters.until));
+
+  let qb = createArkivPublicClient()
+    .buildQuery()
+    .where(and(preds))
+    .withPayload(true)
+    .withAttributes(true)
+    .withMetadata(true)
+    .orderBy(desc(ATTR.publishedAt, "number"));
+
+  qb = applyWalletScope(qb, filters);
+  if (filters.limit) qb = qb.limit(filters.limit);
+  return qb;
+}
+
+function parseTrainingListingEntity(entity: Entity): {
+  payload: TrainingDataListingPayload;
+  entityKey: string;
+  status: string;
+  owner?: string;
+  creator?: string;
+} {
+  const raw = entity.toJson();
+  const payload = TrainingDataListingPayloadSchema.parse(raw);
+  const statusAttr = entity.attributes.find((a) => a.key === ATTR.status);
+  const wallet = entityWalletMeta(entity);
+  return {
+    payload,
+    entityKey: entity.key,
+    status: String(statusAttr?.value ?? "published"),
+    owner: wallet.owner,
+    creator: wallet.creator,
+  };
+}
+
+export async function fetchTrainingListings(filters: ListingFilters = {}): Promise<
+  Array<{
+    entityKey: string;
+    status: string;
+    payload: TrainingDataListingPayload;
+    owner?: string;
+    creator?: string;
+  }>
+> {
+  const qb = trainingListingQueryBuilder(normalizeListingFilters(filters));
+  const entities = await fetchAllPages(qb);
+  let rows = entities.map(parseTrainingListingEntity);
+
+  if (filters.listingKey) {
+    rows = rows.filter((r) => r.entityKey.toLowerCase() === filters.listingKey!.toLowerCase());
+  }
+
+  if (filters.tag) {
+    const keys = await listingKeysForTag(filters.tag, {
+      scope: filters.scope,
+      ownerAddress: filters.ownerAddress,
+    });
+    const set = new Set(keys.map((k) => k.toLowerCase()));
+    rows = rows.filter((r) => set.has(r.entityKey.toLowerCase()));
+  }
+
+  return rows;
+}
+
+export async function searchTrainingNaturalLanguage(
+  query: string,
+  filters: ListingFilters = {},
+): Promise<QueryMatch[]> {
+  const rows = await fetchTrainingListings(normalizeListingFilters(filters));
+  const scored = rows.map((row) => ({
+    row,
+    score: query.trim() ? scoreSearch(query, row.payload.searchText) : 1,
+  }));
+
+  if (query.trim()) {
+    scored.sort((a, b) => b.score - a.score);
+    const withHits = scored.filter((s) => s.score > 0);
+    if (withHits.length) {
+      scored.length = 0;
+      scored.push(...withHits);
+    }
+  }
+
+  const matches: QueryMatch[] = [];
+  for (const { row, score } of scored) {
+    const match: QueryMatch = {
+      score,
+      entityKey: row.entityKey,
+      skillName: row.payload.skillName,
+      title: row.payload.title,
+      description: row.payload.description,
+      triggers: [],
+      purchase: row.payload.purchase as PurchaseInfo,
+      listingKey: row.entityKey,
+      status: row.status,
+      owner: row.owner,
+      creator: row.creator,
+    };
+    if (filters.full) {
+      match.payload = row.payload as unknown as SkillListingPayload;
       const listingKey = row.entityKey as Hex;
       const next = await getNextVersionNumber(listingKey);
       match.arkivVersion = Math.max(1, next - 1);

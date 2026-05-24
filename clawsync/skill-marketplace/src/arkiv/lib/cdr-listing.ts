@@ -1,7 +1,11 @@
 import type { Hex } from "viem";
 import { ArkivError } from "./errors.js";
-import { fetchListings } from "../services/query-catalog.js";
-import { ListingOpsSchema, PurchaseInfoSchema, SkillListingPayloadSchema } from "./types.js";
+import { fetchListings, fetchTrainingListings } from "../services/query-catalog.js";
+import {
+  ListingOpsSchema,
+  PurchaseInfoSchema,
+  SkillListingPayloadSchema,
+} from "./types.js";
 
 /** Same shape as legacy Supabase row — used by CDR purchase/decrypt. */
 export interface SkillCdrListing {
@@ -108,6 +112,27 @@ export async function fetchSkillListingFromArkiv(
   skillName: string,
 ): Promise<SkillCdrListing> {
   const ctx = await fetchSkillPurchaseContext(skillName);
+  return ctx.listing;
+}
+
+export async function fetchTrainingPurchaseContext(
+  skillName: string,
+): Promise<SkillPurchaseContext> {
+  const rows = await fetchTrainingListings({ skillSlug: skillName, limit: 1 });
+  if (!rows.length) {
+    throw new ArkivError(
+      "NOT_FOUND",
+      `No Arkiv training data listing for "${skillName}".`,
+    );
+  }
+  const row = rows[0];
+  return purchaseContextFromCatalogSnapshot(row.entityKey, row.payload);
+}
+
+export async function fetchTrainingListingFromArkiv(
+  skillName: string,
+): Promise<SkillCdrListing> {
+  const ctx = await fetchTrainingPurchaseContext(skillName);
   return ctx.listing;
 }
 

@@ -130,7 +130,7 @@ async function execMarketplaceCli<T>(
     CDR_STORAGE_URL_DEFAULT: cdrStorageDefault,
   } as NodeJS.ProcessEnv;
 
-  if (command === 'purchase') {
+  if (command === 'purchase' || command === 'purchase-training') {
     try {
       const health = await fetch(`${cdrStorageDefault}/health`, {
         signal: AbortSignal.timeout(2500),
@@ -254,5 +254,13 @@ export function getPurchasedSkillsBaseDir(): string {
   return (
     process.env.PURCHASED_SKILLS_DIR?.trim() ||
     path.resolve(clawsyncRoot, 'data', 'purchased-skills')
+  );
+}
+
+export function getPurchasedTrainingDataBaseDir(): string {
+  const clawsyncRoot = findClawsyncRoot();
+  return (
+    process.env.PURCHASED_TRAINING_DATA_DIR?.trim() ||
+    path.resolve(clawsyncRoot, 'data', 'purchased-training-data')
   );
 }

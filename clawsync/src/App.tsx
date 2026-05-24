@@ -13,6 +13,8 @@ import { SyncBoardAgents } from './pages/SyncBoardAgents';
 import { SyncBoardAgentDetail } from './pages/SyncBoardAgentDetail';
 import { SyncBoardAgentFeed } from './pages/SyncBoardAgentFeed';
 import { SyncBoardPurchaseSkills } from './pages/SyncBoardPurchaseSkills';
+import { SyncBoardPurchaseTrainingData } from './pages/SyncBoardPurchaseTrainingData';
+import { SyncBoardTrainingData } from './pages/SyncBoardTrainingData';
 import { PRODUCT_HOME_PATH } from './config/productSurface';
 import { PageBootSkeleton } from './components/ui/skeletons';
 import { Toaster } from 'sonner';
@@ -148,6 +150,8 @@ export function App() {
           <Route path="/syncboard/models" element={<SyncBoardAuthGuard><SyncBoardModels /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills" element={<SyncBoardAuthGuard><SyncBoardSkills /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills/purchase" element={<SyncBoardAuthGuard><SyncBoardPurchaseSkills /></SyncBoardAuthGuard>} />
+          <Route path="/syncboard/training-data" element={<SyncBoardAuthGuard><SyncBoardTrainingData /></SyncBoardAuthGuard>} />
+          <Route path="/syncboard/training-data/purchase" element={<SyncBoardAuthGuard><SyncBoardPurchaseTrainingData /></SyncBoardAuthGuard>} />
           <Route path="/syncboard/skills/purchased" element={<Navigate to="/syncboard/skills" replace />} />
           <Route path="/syncboard/skills/new" element={hiddenRoute} />
           <Route path="/syncboard/skills/:id" element={<SyncBoardAuthGuard><SyncBoardSkillDetail /></SyncBoardAuthGuard>} />

@@ -587,6 +587,24 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index('by_name', ['name']),
 
+  // Training data purchased from Arkiv (encrypted video bundle on disk)
+  purchasedTrainingData: defineTable({
+    skillName: v.string(),
+    title: v.string(),
+    description: v.string(),
+    buyerAddress: v.string(),
+    licenseTokenId: v.string(),
+    mintingFeeIp: v.string(),
+    localPath: v.string(),
+    videoMime: v.string(),
+    status: v.union(v.literal('purchased')),
+    purchasedAt: v.number(),
+    readTxHash: v.optional(v.string()),
+    cid: v.optional(v.string()),
+  })
+    .index('by_skillName', ['skillName'])
+    .index('by_buyerAddress', ['buyerAddress']),
+
   // Skills purchased from Arkiv marketplace (CDR decrypt on disk)
   purchasedSkills: defineTable({
     skillName: v.string(),

@@ -141,6 +141,32 @@ async function postSkillMd(
   return { ok: true };
 }
 
+async function postTrainingMd(
+  form: MetadataForm,
+  selectedDeviceId: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const slug = form.skillSlug.toLowerCase().replace(/\s+/g, "-");
+  const triggers = form.triggers
+    .split("\n")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const res = await fetch(`${ORCH}/jobs/training-md`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
+    body: JSON.stringify({
+      skillSlug: slug,
+      title: form.title,
+      description: form.description,
+      triggers: triggers.length ? triggers : ["general"],
+      expertiseSource: form.expertiseSource || undefined,
+      recordedAt: new Date().toISOString(),
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) return { ok: false, error: data.error ?? "Failed to save TRAINING.md" };
+  return { ok: true };
+}
+
 export default function ContributePage() {
   const router = useRouter();
   const [form, setForm] = useState<MetadataForm>(emptyForm);
@@ -150,6 +176,8 @@ export default function ContributePage() {
   const [draftSaved, setDraftSaved] = useState(false);
   const [captureJobId, setCaptureJobId] = useState<string | null>(null);
   const [distributeJobId, setDistributeJobId] = useState<string | null>(null);
+  const [videoCaptureJobId, setVideoCaptureJobId] = useState<string | null>(null);
+  const [videoDistributeJobId, setVideoDistributeJobId] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [publishSuccess, setPublishSuccess] = useState<PublishSuccess | null>(null);
@@ -164,6 +192,7 @@ export default function ContributePage() {
   const clearDeviceSelection = useDeviceInteractionStore((s) => s.clearDeviceSelection);
 
   const distributeRequested = useRef(false);
+  const videoDistributeRequested = useRef(false);
   const allowNavigationRef = useRef(false);
 
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId) ?? null;
@@ -178,6 +207,31 @@ export default function ContributePage() {
     ) => {
       if (!selectedDeviceId) return;
       await fetch("/api/contributions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deviceId: selectedDeviceId,
+          skillSlug: slug,
+          status,
+          arkivListingKey: pr?.arkivListingKey,
+          arkivVersion: pr?.arkivVersion,
+          title: meta?.title,
+          description: meta?.description,
+        }),
+      });
+    },
+    [selectedDeviceId],
+  );
+
+  const syncTrainingContributionFromJob = useCallback(
+    async (
+      slug: string,
+      status: string,
+      pr?: Partial<DeviceSkill>,
+      meta?: { title?: string; description?: string },
+    ) => {
+      if (!selectedDeviceId) return;
+      await fetch("/api/training-contributions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -527,6 +581,86 @@ export default function ContributePage() {
     return () => clearInterval(id);
   }, [captureJobId, distributeJobId, form, selectedDeviceId, syncContributionFromJob]);
 
+  useEffect(() => {
+    if (!videoCaptureJobId && !videoDistributeJobId) return;
+
+    const id = setInterval(async () => {
+      const jobId = videoDistributeJobId ?? videoCaptureJobId;
+      if (!jobId) return;
+
+      const res = await fetch(`${ORCH}/jobs/${jobId}`, {
+        headers: deviceHeaders(selectedDeviceId),
+      });
+      if (!res.ok) return;
+      const job = await res.json();
+      setLogs(job.logs ?? []);
+
+      if (
+        videoCaptureJobId &&
+        !videoDistributeJobId &&
+        !videoDistributeRequested.current &&
+        job.exitCode === 0 &&
+        job.status === "processing"
+      ) {
+        videoDistributeRequested.current = true;
+        const dRes = await fetch(`${ORCH}/jobs/${videoCaptureJobId}/distribute-training`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
+          body: JSON.stringify({ skillSlug: form.skillSlug }),
+        });
+        const d = await dRes.json();
+        if (dRes.ok && d.jobId) {
+          setVideoDistributeJobId(d.jobId);
+          setVideoCaptureJobId(null);
+          if (d.logs?.length) setLogs(d.logs);
+        } else {
+          videoDistributeRequested.current = false;
+          if (d.logs?.length) setLogs(d.logs);
+          setError(d.error ?? "Failed to start training distribute");
+        }
+      }
+
+      if (videoDistributeJobId && job.status === "failed") {
+        setLogs(job.logs ?? []);
+        setError(job.error ?? "Training distribute failed");
+        setVideoDistributeJobId(null);
+        videoDistributeRequested.current = false;
+      }
+
+      if (videoDistributeJobId && job.status === "published") {
+        const slug = (job.skillSlug as string) || form.skillSlug || "";
+        const pr = job.publishResult as DeviceSkill | undefined;
+        setPublishSuccess({
+          slug,
+          listingKey: pr?.arkivListingKey,
+          version: pr?.arkivVersion,
+          message: `Training data "${slug}" is listed on Arkiv.`,
+        });
+        setVideoCaptureJobId(null);
+        setVideoDistributeJobId(null);
+        videoDistributeRequested.current = false;
+        await syncTrainingContributionFromJob(slug, "published", pr, {
+          title: form.title,
+          description: form.description,
+        });
+      }
+
+      if (videoCaptureJobId && job.status === "failed") {
+        setLogs(job.logs ?? []);
+        setError(job.error ?? "Video recording failed");
+        setVideoCaptureJobId(null);
+      }
+    }, 2000);
+
+    return () => clearInterval(id);
+  }, [
+    videoCaptureJobId,
+    videoDistributeJobId,
+    form,
+    selectedDeviceId,
+    syncTrainingContributionFromJob,
+  ]);
+
   async function saveDraft(): Promise<boolean> {
     if (!ensureDeviceSelected()) return false;
     setError("");
@@ -542,8 +676,17 @@ export default function ContributePage() {
       setError(saved.error ?? "Failed to save draft");
       return false;
     }
+    const trainingSaved = await postTrainingMd({ ...form, skillSlug: slug }, selectedDeviceId);
+    if (!trainingSaved.ok) {
+      setError(trainingSaved.error ?? "Failed to save training draft");
+      return false;
+    }
 
     await syncContributionFromJob(slug, "draft", undefined, {
+      title: form.title,
+      description: form.description,
+    });
+    await syncTrainingContributionFromJob(slug, "draft", undefined, {
       title: form.title,
       description: form.description,
     });
@@ -585,6 +728,40 @@ export default function ContributePage() {
 
     await syncContributionFromJob(captureSlug, "capturing");
   }
+
+  async function startVideoCapture() {
+    if (!ensureDeviceSelected()) return;
+    const captureSlug = form.skillSlug || makeSkillSlug(form.title, slugSuffix);
+    if (!form.skillSlug && captureSlug) {
+      setForm((current) => ({ ...current, skillSlug: captureSlug }));
+    }
+
+    if (!draftSaved) {
+      const ok = await saveDraft();
+      if (!ok) return;
+    }
+
+    setError("");
+    videoDistributeRequested.current = false;
+    setLogs(["Starting video recording…"]);
+
+    const res = await fetch(`${ORCH}/jobs/video-capture`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...deviceHeaders(selectedDeviceId) },
+      body: JSON.stringify({ skillSlug: captureSlug }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error ?? "Video recording failed to start");
+      return;
+    }
+
+    setVideoCaptureJobId(data.jobId);
+    await syncTrainingContributionFromJob(captureSlug, "capturing");
+  }
+
+  const recordingBusy =
+    !!captureJobId || !!distributeJobId || !!videoCaptureJobId || !!videoDistributeJobId;
 
   return (
     <div className="flex w-full flex-col gap-8">
@@ -727,7 +904,7 @@ export default function ContributePage() {
                 type="button"
                 onClick={() => void saveDraft()}
                 variant="secondary"
-                disabled={!selectedDeviceId || !!captureJobId || !!distributeJobId}
+                disabled={!selectedDeviceId || recordingBusy}
               >
                 Save draft
               </Button>
@@ -738,19 +915,37 @@ export default function ContributePage() {
                   !form.title.trim() ||
                   !form.description.trim() ||
                   !selectedDeviceId ||
-                  !!captureJobId ||
-                  !!distributeJobId
+                  recordingBusy
                 }
               >
                 Start recording
               </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void startVideoCapture()}
+                disabled={
+                  !form.title.trim() ||
+                  !form.description.trim() ||
+                  !selectedDeviceId ||
+                  recordingBusy
+                }
+              >
+                Record Training data
+              </Button>
             </div>
 
-            {captureJobId || distributeJobId || logs.length > 0 ? (
+            {captureJobId || distributeJobId || videoCaptureJobId || videoDistributeJobId || logs.length > 0 ? (
               <div className="max-h-64 overflow-auto rounded-lg border bg-muted/50 p-3 font-mono text-xs text-muted-foreground">
                 {captureJobId ? (
                   <p className="mb-2 text-foreground">
                     Type <strong>q</strong> and press Enter in the <strong>orchestrator</strong> terminal to stop recording.
+                  </p>
+                ) : null}
+                {videoCaptureJobId ? (
+                  <p className="mb-2 text-foreground">
+                    Type <strong>q</strong> and press Enter in the <strong>orchestrator</strong> terminal to stop{" "}
+                    <strong>video recording</strong>.
                   </p>
                 ) : null}
                 {logs.slice(-60).map((line, index) => (

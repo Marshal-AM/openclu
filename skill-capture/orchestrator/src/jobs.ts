@@ -11,6 +11,7 @@ import {
   spawnVenvPython,
 } from "../../lib/spawn-util.js";
 import { readPublishResult, type PublishResult } from "./skill-manifest.js";
+import { readTrainingPublishResult } from "./training-manifest.js";
 import { startCaptureQuitListener, stopCaptureQuitListener } from "./capture-quit-listener.js";
 
 export type JobStatus =
@@ -21,9 +22,12 @@ export type JobStatus =
   | "published"
   | "failed";
 
+export type JobKind = "skill" | "training";
+
 export interface Job {
   id: string;
   skillSlug: string;
+  jobKind: JobKind;
   status: JobStatus;
   logs: string[];
   exitCode: number | null;
@@ -104,6 +108,7 @@ export function startCaptureJob(skillSlug: string): Job {
   const job: Job = {
     id,
     skillSlug,
+    jobKind: "skill",
     status: "capturing",
     logs: [
       `Starting capture for "${skillSlug}" - type q and press Enter in this terminal to stop.`,
@@ -159,11 +164,68 @@ export function startCaptureJob(skillSlug: string): Job {
   return job;
 }
 
+export function startVideoCaptureJob(skillSlug: string): Job {
+  const id = randomUUID();
+  const job: Job = {
+    id,
+    skillSlug,
+    jobKind: "training",
+    status: "capturing",
+    logs: [
+      `Starting video recording for "${skillSlug}" - type q and press Enter in this terminal to stop.`,
+      `Python: ${resolveVenvPython()}`,
+    ],
+    exitCode: null,
+  };
+  jobs.set(id, job);
+
+  const trainingMd = resolve(SKILL_CAPTURE_ROOT, "training-data", skillSlug, "TRAINING.md");
+  if (!existsSync(trainingMd)) {
+    job.status = "failed";
+    job.exitCode = 1;
+    job.error = `Draft TRAINING.md missing at training-data/${skillSlug}/TRAINING.md - save metadata first`;
+    appendLog(job, job.error);
+    return job;
+  }
+
+  const videoB64 = resolve(SKILL_CAPTURE_ROOT, "training-data", skillSlug, "video.b64");
+  if (existsSync(videoB64)) {
+    appendLog(job, "Note: existing video.b64 will be replaced when recording completes.");
+  }
+
+  try {
+    const child = spawnVenvPython(
+      resolve(SKILL_CAPTURE_ROOT, "video_capture.py"),
+      [skillSlug, "--no-distribute"],
+      { env: captureEnv(), stdio: ["pipe", "pipe", "pipe"] },
+    );
+    startCaptureQuitListener(child);
+    attachChildHandlers(
+      job,
+      child,
+      `video-capture:${skillSlug}`,
+      () => {
+        job.status = "processing";
+        appendLog(job, "Video recording finished - bundle ready for distribute.");
+      },
+      (code) => `Video capture exited with code ${code}`,
+    );
+  } catch (e) {
+    job.status = "failed";
+    job.exitCode = 1;
+    job.error = e instanceof Error ? e.message : String(e);
+    appendLog(job, job.error);
+  }
+
+  return job;
+}
+
 export function startDistributeJob(skillSlug: string): Job {
   const id = randomUUID();
   const job: Job = {
     id,
     skillSlug,
+    jobKind: "skill",
     status: "distributing",
     logs: ["Starting local distribute (Story + Helia + Arkiv)..."],
     exitCode: null,
@@ -214,6 +276,71 @@ export function startDistributeJob(skillSlug: string): Job {
   return job;
 }
 
+export function startDistributeTrainingJob(skillSlug: string): Job {
+  const id = randomUUID();
+  const job: Job = {
+    id,
+    skillSlug,
+    jobKind: "training",
+    status: "distributing",
+    logs: ["Starting training data distribute (Story + Helia + Arkiv)..."],
+    exitCode: null,
+  };
+  jobs.set(id, job);
+
+  const bundleDir = resolve(SKILL_CAPTURE_ROOT, "training-data", skillSlug);
+  const videoB64 = resolve(bundleDir, "video.b64");
+  if (!existsSync(videoB64)) {
+    job.status = "failed";
+    job.exitCode = 1;
+    job.error = `video.b64 missing at training-data/${skillSlug}/ - complete video recording first`;
+    appendLog(job, job.error);
+    return job;
+  }
+
+  try {
+    resolveTsxCli();
+  } catch (e) {
+    job.status = "failed";
+    job.exitCode = 1;
+    job.error = e instanceof Error ? e.message : String(e);
+    appendLog(job, job.error);
+    return job;
+  }
+
+  const cliDir = resolve(SKILL_CAPTURE_ROOT, "cli");
+  const pipeline = resolve(cliDir, "src", "pipeline.ts");
+
+  try {
+    const child = spawnNodeTsx(pipeline, ["distribute-training", skillSlug, bundleDir], {
+      cwd: cliDir,
+      env: process.env,
+      tsxDirs: [cliDir],
+    });
+    attachChildHandlers(
+      job,
+      child,
+      `distribute-training:${skillSlug}`,
+      () => {
+        job.status = "published";
+        job.publishResult = readTrainingPublishResult(skillSlug) ?? undefined;
+        appendLog(job, "Training data publish complete.");
+        if (job.publishResult?.arkivListingKey) {
+          appendLog(job, `Arkiv listing ${job.publishResult.arkivListingKey}`);
+        }
+      },
+      (code) => `Distribute training exited with code ${code}`,
+    );
+  } catch (e) {
+    job.status = "failed";
+    job.exitCode = 1;
+    job.error = e instanceof Error ? e.message : String(e);
+    appendLog(job, job.error);
+  }
+
+  return job;
+}
+
 export function startArkivJob(
   script: "archive-skill" | "extend-skill" | "republish-skill" | "update-catalog",
   skillSlug: string,
@@ -222,6 +349,7 @@ export function startArkivJob(
   const job: Job = {
     id,
     skillSlug,
+    jobKind: "skill",
     status: "distributing",
     logs: [`Running ${script}...`],
     exitCode: null,

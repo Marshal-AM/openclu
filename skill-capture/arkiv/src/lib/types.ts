@@ -67,7 +67,13 @@ export const ListingVersionPayloadSchema = z.object({
 
 export type PurchaseInfo = z.infer<typeof PurchaseInfoSchema>;
 export type ListingOps = z.infer<typeof ListingOpsSchema>;
+export const TrainingDataListingPayloadSchema = SkillListingPayloadSchema.extend({
+  contentKind: z.literal("trainingData"),
+  videoMime: z.string(),
+});
+
 export type SkillListingPayload = z.infer<typeof SkillListingPayloadSchema>;
+export type TrainingDataListingPayload = z.infer<typeof TrainingDataListingPayloadSchema>;
 export type SkillTagPayload = z.infer<typeof SkillTagPayloadSchema>;
 export type ListingVersionPayload = z.infer<typeof ListingVersionPayloadSchema>;
 
