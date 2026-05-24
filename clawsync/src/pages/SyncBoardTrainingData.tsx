@@ -29,11 +29,11 @@ export function SyncBoardTrainingData() {
         {!rows ? <SkillCardGridSkeleton count={6} /> : null}
 
         {rows && rows.length === 0 ? (
-          <div className="empty-state">
-            <p>No purchased training data yet.</p>
-            <Link to="/syncboard/training-data/purchase" className="btn btn-primary">
-              Browse marketplace
-            </Link>
+          <div className="training-data-empty">
+            <p className="training-data-empty-title">No purchased training data yet.</p>
+            <p className="training-data-empty-hint">
+              Videos you purchase from the marketplace will appear here, ready for local fine-tuning.
+            </p>
           </div>
         ) : null}
 
@@ -66,17 +66,33 @@ export function SyncBoardTrainingData() {
       </div>
 
       <style>{`
-        .empty-state {
+        .training-data-empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: var(--space-2);
+          min-height: 12rem;
+          padding: var(--space-12) var(--space-6);
           text-align: center;
-          padding: var(--space-12);
           background-color: var(--bg-secondary);
           border-radius: var(--radius-lg);
           border: 1px solid var(--border);
         }
 
-        .empty-state p {
+        .training-data-empty-title {
+          margin: 0;
+          font-size: var(--text-base);
+          font-weight: 500;
+          color: var(--text-primary);
+        }
+
+        .training-data-empty-hint {
+          margin: 0;
+          max-width: 22rem;
+          font-size: var(--text-sm);
+          line-height: var(--leading-relaxed);
           color: var(--text-secondary);
-          margin-bottom: var(--space-4);
         }
       `}</style>
     </SyncBoardLayout>
