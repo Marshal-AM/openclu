@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme/theme-provider";
 
 const NAV = [
-  { href: "/contribute", label: "Contribute Skill", icon: PenToolIcon },
+  { href: "/contribute", label: "Contribute Data", icon: PenToolIcon },
   { href: "/contributions", label: "My Contributions", icon: BarChart3Icon },
   { href: "/devices", label: "My Devices", icon: MonitorIcon },
 ];

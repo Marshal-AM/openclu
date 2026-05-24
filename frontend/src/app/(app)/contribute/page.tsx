@@ -829,9 +829,9 @@ export default function ContributePage() {
     <div className="flex w-full flex-col gap-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Contribute Agent Skills</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Contribute Data</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Prepare the skill, choose a recording device, then publish the captured session.
+            Prepare the Data, choose a recording device, then publish the captured session.
           </p>
         </div>
         <div className="flex items-center gap-2">
