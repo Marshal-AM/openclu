@@ -15,7 +15,6 @@ OpenClu records voice, video, and activity data from a **Clu device** (currently
 The system spans three integration layers:
 
 | Layer | Role in OpenClu |
-
 |-------|-----------------|
 | **[Arkiv Network](https://arkiv.network)** | Decentralized catalog and registry. Stores searchable `skillListing` and `trainingDataListing` entities, device registration (`portalDevice`), and user profiles. Provides `$owner` / `$creator` attribution on Braga testnet. |
 | **Story CDR** | Confidential Data Rails — encrypts skill bundles on-device before publication. Decryption requires a valid Story license token; raw audio and video are never stored in plaintext on Arkiv or IPFS. |
