@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/server.ts",
+    "start:d": "tsx src/server.ts -d",
     "dev": "tsx watch src/server.ts"
   },
   "dependencies": {

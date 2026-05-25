@@ -10,7 +10,7 @@ import { ContributionListingCard } from "@/components/skills/ContributionListing
 import { SkillModalDialog } from "@/components/skills/SkillModalDialog";
 import { CatalogDetailSkeleton, SkillCardGridSkeleton } from "@/components/skills/skill-skeletons";
 import { useOrchestratorJob } from "@/hooks/useOrchestratorJob";
-import type { OwnedDevice } from "@/lib/device-types";
+import type { Contribution } from "@/lib/contributions-from-arkiv";
 import { splitArkivTrace, type ArkivQueryTrace } from "@/lib/arkiv-trace";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,23 +33,10 @@ type MetadataForm = {
   recordedAt: string;
 };
 
-type Contribution = {
-  id: string;
-  device_id: string;
-  device_name?: string | null;
-  skill_slug: string;
-  status: string;
-  title?: string | null;
-  description?: string | null;
-  arkiv_listing_key?: string;
-  arkiv_version?: number | null;
-};
-
 type DeviceSkill = {
   skillSlug: string;
   arkivListingKey?: string;
   arkivVersion?: number;
-  arkivStatus?: string;
 };
 
 type PublishSuccess = {
@@ -73,10 +60,6 @@ type DraftPayload = {
 };
 
 const ORCH = "/api/orch";
-
-function isPublishedOnDevice(s: DeviceSkill): boolean {
-  return s.arkivStatus === "published" || !!s.arkivListingKey;
-}
 
 function draftToForm(d: DraftPayload): MetadataForm {
   return {
@@ -161,128 +144,27 @@ export default function ContributionsPage() {
 
   const loadContributions = useCallback(async () => {
     const res = await fetch("/api/contributions");
+    const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      const data = await res.json();
       setContributions((data.contributions ?? []) as Contribution[]);
-      setContributionsError("");
+      const warnings = (data as { warnings?: string[] }).warnings ?? [];
+      setContributionsError(warnings.length > 0 ? warnings.join("; ") : "");
     } else {
-      const data = await res.json().catch(() => ({}));
+      setContributions([]);
       setContributionsError(
         (data as { error?: string }).error ?? `Could not load contributions (${res.status})`,
       );
     }
   }, []);
 
-  const syncContributionFromJob = useCallback(
-    async (
-      deviceId: string,
-      slug: string,
-      status: string,
-      pr?: Partial<DeviceSkill>,
-      meta?: { title?: string; description?: string },
-    ) => {
-      await fetch("/api/contributions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deviceId,
-          skillSlug: slug,
-          status,
-          arkivListingKey: pr?.arkivListingKey,
-          arkivVersion: pr?.arkivVersion,
-          title: meta?.title,
-          description: meta?.description,
-        }),
-      });
-      await loadContributions();
-    },
-    [loadContributions],
-  );
-
-  const syncPublishedFromDevice = useCallback(async (deviceId: string) => {
-    const res = await fetch(`${ORCH}/skills`, {
-      headers: deviceHeaders(deviceId),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      if (res.status === 404) {
-        setContributionsError(
-          "A device portal is missing GET /api/v1/skills — restart the portal (npm run start) and refresh.",
-        );
-      } else {
-        setContributionsError(
-          (err as { error?: string }).error ??
-            `Cannot read skills from a device (${res.status}). Is the portal running?`,
-        );
-      }
-      return;
-    }
-
-    const data = await res.json();
-    const skills = (data.skills ?? []) as DeviceSkill[];
-    const onDevice = skills.filter(
-      (s) => isPublishedOnDevice(s) || s.arkivStatus === "archived",
-    );
-    if (onDevice.length === 0) return;
-
-    const failures: string[] = [];
-    for (const skill of onDevice) {
-      const postRes = await fetch("/api/contributions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deviceId,
-          skillSlug: skill.skillSlug,
-          status:
-            skill.arkivStatus === "archived"
-              ? "archived"
-              : isPublishedOnDevice(skill)
-                ? "published"
-                : "draft",
-          arkivListingKey: skill.arkivListingKey,
-          arkivVersion: skill.arkivVersion,
-        }),
-      });
-      if (!postRes.ok) {
-        const err = await postRes.json().catch(() => ({}));
-        failures.push(`${skill.skillSlug}: ${(err as { error?: string }).error ?? postRes.status}`);
-      }
-    }
-
-    if (failures.length > 0) {
-      setContributionsError(`Failed to save to Supabase: ${failures.join("; ")}`);
-    }
-  }, []);
-
-  const syncAllDevices = useCallback(
-    async (deviceList: OwnedDevice[]) => {
-      for (const device of deviceList) {
-        await syncPublishedFromDevice(device.id);
-      }
-    },
-    [syncPublishedFromDevice],
-  );
-
   const refreshAll = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/devices");
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setContributionsError((data as { error?: string }).error ?? `Could not load devices (${res.status})`);
-        setContributions([]);
-        return;
-      }
-      const list = ((data as { devices?: OwnedDevice[] }).devices ?? []) as OwnedDevice[];
-      if (list.length > 0) {
-        await syncAllDevices(list);
-      }
       await loadContributions();
     } finally {
       setLoading(false);
     }
-  }, [loadContributions, syncAllDevices]);
+  }, [loadContributions]);
 
   function requireDeviceId(): string | null {
     const deviceId = selectedContribution?.device_id ?? actionDeviceIdRef.current;
@@ -338,10 +220,7 @@ export default function ContributionsPage() {
         setEditingSlug(null);
         setEditForm(null);
         setEditDraftMeta(null);
-        await syncContributionFromJob(deviceId, slug, "published", pr, {
-          title: editFormRef.current?.title,
-          description: editFormRef.current?.description,
-        });
+        await loadContributions();
       } else if (label === "archive") {
         setPublishSuccess({
           slug,
@@ -350,7 +229,7 @@ export default function ContributionsPage() {
         setEditingSlug(null);
         setEditForm(null);
         setEditDraftMeta(null);
-        await syncContributionFromJob(deviceId, slug, "archived", pr);
+        await loadContributions();
       } else if (label === "republish") {
         setPublishSuccess({
           slug,
@@ -361,7 +240,7 @@ export default function ContributionsPage() {
         setEditingSlug(null);
         setEditForm(null);
         setEditDraftMeta(null);
-        await syncContributionFromJob(deviceId, slug, "published", pr);
+        await loadContributions();
       }
     },
     onFailed: (job) => {
@@ -439,10 +318,7 @@ export default function ContributionsPage() {
         setDistributeJobId(null);
         distributeRequested.current = false;
         recaptureDistributeRequested.current = false;
-        await syncContributionFromJob(deviceId, slug, "published", pr, {
-          title: editForm?.title,
-          description: editForm?.description,
-        });
+        await loadContributions();
         setEditingSlug(null);
         setEditForm(null);
         setEditDraftMeta(null);
@@ -457,7 +333,7 @@ export default function ContributionsPage() {
     }, 2000);
 
     return () => clearInterval(id);
-  }, [captureJobId, distributeJobId, editingSlug, editForm, syncContributionFromJob]);
+  }, [captureJobId, distributeJobId, editingSlug, editForm, loadContributions]);
 
   async function openEdit(slug: string) {
     const deviceId = requireDeviceId();
@@ -585,14 +461,26 @@ export default function ContributionsPage() {
     setOrchJobId(data.jobId);
   }
 
-  async function viewSkill(slug: string) {
+  async function viewSkill(contribution: Contribution) {
+    const slug = contribution.skill_slug;
     setSelectedSkill(slug);
     setCatalogDetail(null);
     setCatalogArkivTrace(null);
     setCatalogError(null);
     setCatalogLoading(true);
     try {
-      const res = await fetch(`/api/catalog/${encodeURIComponent(slug)}`);
+      const params = new URLSearchParams();
+      if (contribution.device_wallet_address) {
+        params.set("ownerAddress", contribution.device_wallet_address);
+      }
+      if (contribution.arkiv_listing_key) {
+        params.set("listingKey", contribution.arkiv_listing_key);
+      }
+      params.set("kind", contribution.kind);
+      const qs = params.toString();
+      const res = await fetch(
+        `/api/catalog/${encodeURIComponent(slug)}${qs ? `?${qs}` : ""}`,
+      );
       const payload = (await res.json().catch(() => ({}))) as Record<string, unknown> & {
         error?: string;
         arkivTrace?: ArkivQueryTrace;
@@ -621,7 +509,7 @@ export default function ContributionsPage() {
     setSelectedSkill(contribution.skill_slug);
     setCatalogDetail(null);
     if (contribution.status === "published") {
-      await viewSkill(contribution.skill_slug);
+      await viewSkill(contribution);
     }
   }
 
@@ -640,6 +528,7 @@ export default function ContributionsPage() {
         status: selectedContribution.status,
         arkivVersion: selectedContribution.arkiv_version,
         listingKey: selectedContribution.arkiv_listing_key,
+        kind: selectedContribution.kind,
       }
     : undefined;
 
@@ -722,7 +611,7 @@ export default function ContributionsPage() {
       <header className="skill-page-toolbar">
         <h1>My contributions</h1>
         <p>
-          All skills across your registered devices — drafts, catalog metadata, and published listings.
+          Skill and training listings on Arkiv across your registered devices.
         </p>
       </header>
 
@@ -738,7 +627,7 @@ export default function ContributionsPage() {
 
       {!loading && visibleContributions.length === 0 && !contributionsError ? (
         <div className="skill-empty-state">
-          <p>No active contributions. Save a draft or publish a skill from any device.</p>
+          <p>No active contributions. Publish a skill or training data from Contribute.</p>
         </div>
       ) : null}
 
@@ -756,6 +645,7 @@ export default function ContributionsPage() {
                 status={contribution.status}
                 deviceName={contribution.device_name}
                 version={contribution.arkiv_version}
+                kind={contribution.kind}
                 onClick={() => void openContributionDialog(contribution)}
               />
             ))}
@@ -769,7 +659,7 @@ export default function ContributionsPage() {
         title={dialogTitle}
         subtitle={dialogSubtitle}
         footer={
-          selectedContribution ? (
+          selectedContribution?.kind === "skill" ? (
             <>
               <Button type="button" variant="outline" onClick={() => void openEdit(selectedContribution.skill_slug)}>
                 Edit

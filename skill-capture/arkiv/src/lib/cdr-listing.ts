@@ -57,8 +57,14 @@ function payloadToListing(
 
 export async function fetchSkillListingFromArkiv(
   skillName: string,
+  ownerAddress?: Hex,
 ): Promise<SkillCdrListing> {
-  const rows = await fetchListings({ skillSlug: skillName, limit: 1 });
+  const rows = await fetchListings({
+    skillSlug: skillName,
+    limit: 1,
+    scope: ownerAddress ? "mine" : undefined,
+    ownerAddress,
+  });
   if (!rows.length) {
     throw new ArkivError(
       "NOT_FOUND",

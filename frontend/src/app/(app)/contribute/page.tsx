@@ -84,10 +84,6 @@ function Stage({
   );
 }
 
-function isPublishedOnDevice(s: DeviceSkill): boolean {
-  return s.arkivStatus === "published" || !!s.arkivListingKey;
-}
-
 function CaptureModeOptionCard({
   title,
   subtitle,
@@ -250,108 +246,6 @@ export default function ContributePage() {
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId) ?? null;
   const hasProgress = hasDraftProgress(form);
 
-  const syncContributionFromJob = useCallback(
-    async (
-      slug: string,
-      status: string,
-      pr?: Partial<DeviceSkill>,
-      meta?: { title?: string; description?: string },
-    ) => {
-      if (!selectedDeviceId) return;
-      await fetch("/api/contributions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deviceId: selectedDeviceId,
-          skillSlug: slug,
-          status,
-          arkivListingKey: pr?.arkivListingKey,
-          arkivVersion: pr?.arkivVersion,
-          title: meta?.title,
-          description: meta?.description,
-        }),
-      });
-    },
-    [selectedDeviceId],
-  );
-
-  const syncTrainingContributionFromJob = useCallback(
-    async (
-      slug: string,
-      status: string,
-      pr?: Partial<DeviceSkill>,
-      meta?: { title?: string; description?: string },
-    ) => {
-      if (!selectedDeviceId) return;
-      await fetch("/api/training-contributions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deviceId: selectedDeviceId,
-          skillSlug: slug,
-          status,
-          arkivListingKey: pr?.arkivListingKey,
-          arkivVersion: pr?.arkivVersion,
-          title: meta?.title,
-          description: meta?.description,
-        }),
-      });
-    },
-    [selectedDeviceId],
-  );
-
-  const syncPublishedFromDevice = useCallback(
-    async (deviceIdOverride?: string) => {
-      const deviceId = deviceIdOverride ?? selectedDeviceId;
-      if (!deviceId) return;
-      const res = await fetch(`${ORCH}/skills`, {
-        headers: deviceHeaders(deviceId),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setSyncWarning(
-          (err as { error?: string }).error ??
-            `Cannot read skills from device (${res.status}). Is the portal running?`,
-        );
-        return;
-      }
-      const data = await res.json();
-      const skills = (data.skills ?? []) as DeviceSkill[];
-      const onDevice = skills.filter(
-        (s) => isPublishedOnDevice(s) || s.arkivStatus === "archived",
-      );
-      if (onDevice.length === 0) return;
-
-      const failures: string[] = [];
-      for (const s of onDevice) {
-        const postRes = await fetch("/api/contributions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            deviceId,
-            skillSlug: s.skillSlug,
-            status:
-              s.arkivStatus === "archived"
-                ? "archived"
-                : isPublishedOnDevice(s)
-                  ? "published"
-                  : "draft",
-            arkivListingKey: s.arkivListingKey,
-            arkivVersion: s.arkivVersion,
-          }),
-        });
-        if (!postRes.ok) {
-          const err = await postRes.json().catch(() => ({}));
-          failures.push(`${s.skillSlug}: ${(err as { error?: string }).error ?? postRes.status}`);
-        }
-      }
-      if (failures.length > 0) {
-        setSyncWarning(`Failed to sync some skills to Supabase: ${failures.join("; ")}`);
-      }
-    },
-    [selectedDeviceId],
-  );
-
   const loadDevices = useCallback(async () => {
     const res = await fetch("/api/devices");
     const data = await res.json().catch(() => ({}));
@@ -380,10 +274,9 @@ export default function ContributePage() {
       setDeviceChoiceId(null);
       setError("");
       setSyncWarning("");
-      await syncPublishedFromDevice(deviceId);
       toast.success("Device selected.");
     },
-    [chooseDevice, syncPublishedFromDevice],
+    [chooseDevice],
   );
 
   function ensureDeviceSelected(): boolean {
@@ -536,11 +429,6 @@ export default function ContributePage() {
   }, [clearDeviceSelection]);
 
   useEffect(() => {
-    if (!selectedDeviceId) return;
-    void syncPublishedFromDevice();
-  }, [selectedDeviceId, syncPublishedFromDevice]);
-
-  useEffect(() => {
     if (!syncWarning) return;
     toast.warning("Sync warning", { description: syncWarning });
   }, [syncWarning]);
@@ -617,10 +505,6 @@ export default function ContributePage() {
         setCaptureJobId(null);
         setDistributeJobId(null);
         distributeRequested.current = false;
-        await syncContributionFromJob(slug, "published", pr, {
-          title: form.title,
-          description: form.description,
-        });
       }
 
       if (captureJobId && job.status === "failed") {
@@ -631,7 +515,7 @@ export default function ContributePage() {
     }, 2000);
 
     return () => clearInterval(id);
-  }, [captureJobId, distributeJobId, form, selectedDeviceId, syncContributionFromJob]);
+  }, [captureJobId, distributeJobId, form, selectedDeviceId]);
 
   useEffect(() => {
     if (!videoCaptureJobId && !videoDistributeJobId) return;
@@ -691,10 +575,6 @@ export default function ContributePage() {
         setVideoCaptureJobId(null);
         setVideoDistributeJobId(null);
         videoDistributeRequested.current = false;
-        await syncTrainingContributionFromJob(slug, "published", pr, {
-          title: form.title,
-          description: form.description,
-        });
       }
 
       if (videoCaptureJobId && job.status === "failed") {
@@ -705,13 +585,7 @@ export default function ContributePage() {
     }, 2000);
 
     return () => clearInterval(id);
-  }, [
-    videoCaptureJobId,
-    videoDistributeJobId,
-    form,
-    selectedDeviceId,
-    syncTrainingContributionFromJob,
-  ]);
+  }, [videoCaptureJobId, videoDistributeJobId, form, selectedDeviceId]);
 
   async function saveDraft(): Promise<boolean> {
     if (!ensureDeviceSelected()) return false;
@@ -733,15 +607,6 @@ export default function ContributePage() {
       setError(trainingSaved.error ?? "Failed to save training draft");
       return false;
     }
-
-    await syncContributionFromJob(slug, "draft", undefined, {
-      title: form.title,
-      description: form.description,
-    });
-    await syncTrainingContributionFromJob(slug, "draft", undefined, {
-      title: form.title,
-      description: form.description,
-    });
 
     setDraftSaved(true);
     setForm((f) => ({ ...f, skillSlug: slug }));
@@ -778,8 +643,6 @@ export default function ContributePage() {
 
     setCaptureJobId(data.jobId);
     setActiveCaptureMode("skill");
-
-    await syncContributionFromJob(captureSlug, "capturing");
   }
 
   async function startVideoCapture() {
@@ -811,7 +674,6 @@ export default function ContributePage() {
 
     setVideoCaptureJobId(data.jobId);
     setActiveCaptureMode("training");
-    await syncTrainingContributionFromJob(captureSlug, "capturing");
   }
 
   const recordingBusy =

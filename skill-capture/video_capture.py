@@ -245,6 +245,69 @@ def _probe_webm_duration(ffprobe: str, webm_path: Path) -> float | None:
         return None
 
 
+def _transcode_input_to_webm(ffmpeg: str, input_path: Path, out_path: Path) -> None:
+    cmd = [
+        ffmpeg,
+        "-y",
+        "-i",
+        str(input_path),
+        "-c:v",
+        "libvpx-vp9",
+        "-crf",
+        "32",
+        "-b:v",
+        "0",
+        "-c:a",
+        "libopus",
+        str(out_path),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg failed: {result.stderr[-2000:]}")
+
+
+def _capture_from_media_input(
+    slug: str,
+    media_path: Path,
+    skip_distribute: bool,
+    run_dir: Path,
+    ffmpeg: str,
+) -> None:
+    device = _camera_device_index()
+    print(f"\n=== Training data video: {slug} ===")
+    print(f"Output dir: {run_dir}")
+    print(f"Camera device index: {device} (override with TRAINING_CAMERA_INDEX)")
+    print("\nStarting in 3 seconds...")
+    time.sleep(3)
+    print(
+        "\nVideo recording started (camera + microphone). "
+        "Type q and press Enter in the orchestrator terminal to stop.\n",
+        flush=True,
+    )
+    start_time = time.time()
+    webm_path = run_dir / "recording.webm"
+    _transcode_input_to_webm(ffmpeg, media_path, webm_path)
+    if not webm_path.is_file():
+        print(f"Error: recording file missing at {webm_path}")
+        sys.exit(1)
+
+    ffprobe = _find_ffprobe(ffmpeg)
+    duration = _probe_webm_duration(ffprobe, webm_path) if ffprobe else None
+    if duration is None:
+        duration = max(0.1, time.time() - start_time)
+    frame_count = max(1, int(duration / FRAME_INTERVAL))
+    print(f"\nStopped video recording after {duration:.1f}s wall time.")
+    save_bundle(slug, webm_path, duration, frame_count, ffmpeg)
+
+    if not skip_distribute:
+        from cdr_publish import publish_training_to_cdr
+
+        bundle_dir = OUTPUT_BUNDLE / slug
+        publish_training_to_cdr(slug, str(bundle_dir))
+
+    print("\n=== Done ===")
+
+
 def _mux_to_webm(ffmpeg: str, run_dir: Path, wav_path: Path) -> Path:
     frames_dir = run_dir / "frames"
     frames_dir.mkdir(parents=True, exist_ok=True)
@@ -366,6 +429,15 @@ def main():
             "pip install -r requirements.txt  (or: npm run setup)",
         )
         sys.exit(1)
+
+    media_input = os.environ.get("SKILL_CAPTURE_MEDIA_INPUT", "").strip()
+    if media_input:
+        path = Path(media_input)
+        if not path.is_file():
+            print(f"Error: media input not found at {path}")
+            sys.exit(1)
+        _capture_from_media_input(slug, path, skip_distribute, run_dir, ffmpeg)
+        return
 
     device = _camera_device_index()
     print(f"\n=== Training data video: {slug} ===")

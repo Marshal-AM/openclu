@@ -2,13 +2,16 @@
  * Server-only catalog reads for Next.js (public client — no private key).
  */
 import { loadArkivEnv } from "./lib/env.js";
-import { fetchSkillCatalogDetail } from "./lib/catalog-detail.js";
+import {
+  fetchSkillCatalogDetail,
+  fetchTrainingCatalogDetail,
+  type CatalogDetailScope,
+} from "./lib/catalog-detail.js";
 import { fetchSkillListingFromArkiv } from "./lib/cdr-listing.js";
 import {
   getCatalogStats,
   searchNaturalLanguage,
   searchTrainingNaturalLanguage,
-  fetchTrainingListings,
   fetchTagsForListing,
   type ListingFilters,
   type ListingQueryScope,
@@ -56,8 +59,16 @@ export async function catalogGetSkill(skillName: string) {
 }
 
 /** Full listing: metadata, purchase, ops, tags, version, owner/creator. */
-export async function catalogGetSkillDetail(skillName: string) {
-  return fetchSkillCatalogDetail(skillName);
+export async function catalogGetSkillDetail(
+  skillName: string,
+  ownerAddress?: string,
+  listingKey?: string,
+) {
+  const scope: CatalogDetailScope = {
+    ownerAddress: ownerAddress as CatalogDetailScope["ownerAddress"],
+    listingKey: listingKey as CatalogDetailScope["listingKey"],
+  };
+  return fetchSkillCatalogDetail(skillName, scope);
 }
 
 export async function catalogStats(scope: ListingQueryScope = "marketplace", ownerAddress?: string) {
@@ -83,19 +94,14 @@ export async function catalogQueryTraining(body: CatalogQueryBody) {
   return { matchCount: filtered.length, matches: filtered, filters };
 }
 
-export async function catalogGetTrainingDetail(skillName: string) {
-  const rows = await fetchTrainingListings({ skillSlug: skillName, limit: 1 });
-  if (!rows.length) {
-    throw new Error(`No training data listing for "${skillName}"`);
-  }
-  const row = rows[0];
-  const tags = await fetchTagsForListing(row.entityKey as `0x${string}`);
-  return {
-    entityKey: row.entityKey,
-    payload: row.payload,
-    status: row.status,
-    owner: row.owner,
-    creator: row.creator,
-    tags,
+export async function catalogGetTrainingDetail(
+  skillName: string,
+  ownerAddress?: string,
+  listingKey?: string,
+) {
+  const scope: CatalogDetailScope = {
+    ownerAddress: ownerAddress as CatalogDetailScope["ownerAddress"],
+    listingKey: listingKey as CatalogDetailScope["listingKey"],
   };
+  return fetchTrainingCatalogDetail(skillName, scope);
 }

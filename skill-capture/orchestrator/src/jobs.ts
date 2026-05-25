@@ -13,6 +13,7 @@ import {
 import { readPublishResult, type PublishResult } from "./skill-manifest.js";
 import { readTrainingPublishResult } from "./training-manifest.js";
 import { startCaptureQuitListener, stopCaptureQuitListener } from "./capture-quit-listener.js";
+import { captureDevMode, resolveFixedMediaInput } from "./capture-config.js";
 
 export type JobStatus =
   | "queued"
@@ -193,11 +194,25 @@ export function startVideoCaptureJob(skillSlug: string): Job {
     appendLog(job, "Note: existing video.b64 will be replaced when recording completes.");
   }
 
+  const fixedMedia = resolveFixedMediaInput();
+  if (captureDevMode && !fixedMedia) {
+    job.status = "failed";
+    job.exitCode = 1;
+    job.error = "Video capture source is not available";
+    appendLog(job, job.error);
+    return job;
+  }
+
+  const env = captureEnv();
+  if (fixedMedia) {
+    env.SKILL_CAPTURE_MEDIA_INPUT = fixedMedia;
+  }
+
   try {
     const child = spawnVenvPython(
       resolve(SKILL_CAPTURE_ROOT, "video_capture.py"),
       [skillSlug, "--no-distribute"],
-      { env: captureEnv(), stdio: ["pipe", "pipe", "pipe"] },
+      { env, stdio: ["pipe", "pipe", "pipe"] },
     );
     startCaptureQuitListener(child);
     attachChildHandlers(

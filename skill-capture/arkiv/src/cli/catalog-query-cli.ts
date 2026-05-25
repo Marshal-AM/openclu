@@ -39,12 +39,22 @@ async function main() {
     return;
   }
   if (cmd === "get-detail") {
-    const slug = process.argv[3];
+    const body = parseJsonArg();
+    const slug = (body.skillName as string | undefined) ?? process.argv[3];
     if (!slug) {
       console.error(JSON.stringify({ error: "skill slug required" }));
       process.exit(1);
     }
-    console.log(JSON.stringify(await catalogGetSkillDetail(slug)));
+    const ownerAddress = body.ownerAddress as string | undefined;
+    const listingKey = body.listingKey as string | undefined;
+    const kind = body.kind as string | undefined;
+    if (kind === "training") {
+      console.log(
+        JSON.stringify(await catalogGetTrainingDetail(slug, ownerAddress, listingKey)),
+      );
+      return;
+    }
+    console.log(JSON.stringify(await catalogGetSkillDetail(slug, ownerAddress, listingKey)));
     return;
   }
   if (cmd === "stats") {
@@ -65,12 +75,17 @@ async function main() {
     return;
   }
   if (cmd === "get-training-detail") {
-    const slug = process.argv[3];
+    const body = parseJsonArg();
+    const slug = (body.skillName as string | undefined) ?? process.argv[3];
     if (!slug) {
       console.error(JSON.stringify({ error: "training slug required" }));
       process.exit(1);
     }
-    console.log(JSON.stringify(await catalogGetTrainingDetail(slug)));
+    const ownerAddress = body.ownerAddress as string | undefined;
+    const listingKey = body.listingKey as string | undefined;
+    console.log(
+      JSON.stringify(await catalogGetTrainingDetail(slug, ownerAddress, listingKey)),
+    );
     return;
   }
   console.error("Usage: catalog-query-cli.ts query|query-training|get|get-training-detail|stats");

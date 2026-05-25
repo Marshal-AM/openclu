@@ -60,6 +60,7 @@ type ContributionMeta = {
   status?: string;
   arkivVersion?: number | null;
   listingKey?: string | null;
+  kind?: "skill" | "training";
 };
 
 export function ContributionDraftPanel({
@@ -82,6 +83,12 @@ export function ContributionDraftPanel({
           <dt className="text-xs uppercase tracking-wide text-muted-foreground">Status</dt>
           <dd className="mt-1 text-sm text-foreground">{contributionMeta.status ?? "Unavailable"}</dd>
         </div>
+        {contributionMeta.kind ? (
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Type</dt>
+            <dd className="mt-1 text-sm capitalize text-foreground">{contributionMeta.kind}</dd>
+          </div>
+        ) : null}
         {contributionMeta.arkivVersion != null ? (
           <div>
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">Arkiv version</dt>

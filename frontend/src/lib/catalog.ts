@@ -64,12 +64,27 @@ export type CatalogQueryBody = {
   full?: boolean;
 };
 
-export function getCatalogSkillDetail(skillName: string) {
-  return runCli<Record<string, unknown>>("get-detail", skillName);
+export type CatalogDetailParams = {
+  ownerAddress?: string;
+  listingKey?: string;
+  kind?: "skill" | "training";
+};
+
+export function getCatalogSkillDetail(skillName: string, params?: CatalogDetailParams) {
+  return runCli<Record<string, unknown>>("get-detail", {
+    skillName,
+    kind: params?.kind ?? "skill",
+    ownerAddress: params?.ownerAddress,
+    listingKey: params?.listingKey,
+  });
 }
 
 export function queryCatalog(body: CatalogQueryBody) {
   return runCli<{ matchCount: number; matches: unknown[] }>("query", body);
+}
+
+export function queryCatalogTraining(body: CatalogQueryBody) {
+  return runCli<{ matchCount: number; matches: unknown[] }>("query-training", body);
 }
 
 export function getCatalogSkill(skillName: string) {

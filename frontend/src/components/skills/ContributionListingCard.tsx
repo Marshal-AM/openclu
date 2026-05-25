@@ -9,6 +9,7 @@ type ContributionListingCardProps = {
   status: string;
   deviceName?: string | null;
   version?: number | null;
+  kind?: "skill" | "training";
   onClick: () => void;
 };
 
@@ -18,10 +19,12 @@ export function ContributionListingCard({
   status,
   deviceName,
   version,
+  kind,
   onClick,
 }: ContributionListingCardProps) {
   const headerBadge =
     status === "published" && version != null ? `v${version}` : status;
+  const kindLabel = kind === "training" ? "Training" : kind === "skill" ? "Skill" : null;
 
   return (
     <button
@@ -50,6 +53,7 @@ export function ContributionListingCard({
       <footer className="catalog-listing-card-footer flex items-center justify-between gap-3 border-t border-border px-4 py-3 pb-4">
         <span className="catalog-listing-card-meta text-xs text-muted-foreground">
           {deviceName ?? "Unknown device"}
+          {kindLabel ? ` · ${kindLabel}` : ""}
         </span>
         <span className="catalog-listing-card-meta text-xs capitalize text-muted-foreground">{status}</span>
       </footer>
