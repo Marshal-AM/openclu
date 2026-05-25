@@ -247,263 +247,210 @@ The same Arkiv entity carries **public discovery metadata** and **private conten
 | [clawsync/skill-marketplace/](clawsync/skill-marketplace/) | Vendored CDR + Arkiv read/purchase CLI |
 | [landing/](landing/) | Next.js marketing site |
 
+**End-to-end in one pass:** you record on your device → the device builds a skill bundle → Story registers it as on-chain IP → CDR encrypts the bundle and stores ciphertext on IPFS → Arkiv publishes a searchable listing with pointers (not plaintext) → a buyer finds the listing on Arkiv, pays Story for a license token → CDR validators authorize decrypt → the buyer gets the plaintext skill locally.
+
 ---
 
 ### Phase 1 — Device registration
 
 <img width="1140" height="525" alt="Screenshot 2026-05-25 at 4 17 36 PM" src="https://github.com/user-attachments/assets/a50384a0-5b24-4fed-bb64-df77ec7dc059" />
 
-Registration binds three identities:
+Before any recording, the contributor machine must be linked to a human account. Three things get bound together:
 
-1. **Owner wallet** (Privy) — human who owns devices and receives portal UI access.
-2. **Device wallet** (deterministic local key) — signs Story IP, CDR encrypt, Arkiv catalog `$owner`.
-3. **Orchestrator URL** (ngrok) — how the hosted dashboard proxies jobs to the contributor machine.
+1. **Your login wallet (Privy)** — the wallet you connect in the browser. This is the *owner*: you see the dashboard, manage devices, and receive royalties.
+2. **A device wallet (generated on the Pi)** — a separate crypto key derived locally from the machine ID. This wallet *signs* everything the device publishes: Story IP registration, CDR encryption, and Arkiv catalog ownership. It never leaves the device as a private key in normal operation.
+3. **An orchestrator URL (ngrok tunnel)** — the hosted dashboard lives on the internet; your Pi runs the capture software locally. ngrok exposes `http://127.0.0.1:8790` as a public HTTPS URL so the dashboard can start jobs on your machine.
 
-#### Step 1.1 — Local wallet + pending row
+**What happens step by step:**
 
-**Script:** `skill-capture/register.sh`
+1. You run [`skill-capture/register.sh`](skill-capture/register.sh) on the Pi. It derives the device wallet, waits for the local orchestrator to start, and writes keys plus a one-time registration token into `skill-capture/.env`.
+2. The script calls the dashboard API (`POST /api/devices/pending`). That creates a temporary **pending registration** row on **Arkiv** (project `openclu-portal-v1`) with the device wallet address, device name, and ngrok URL. Pending rows expire after ~24 hours.
+3. You scan a QR code or open a link in the browser, connect Privy, and confirm. The dashboard checks that the pending row matches, then writes a permanent **`portalDevice`** entity on Arkiv linking *your* owner wallet to *the device's* wallet and orchestrator URL. The pending row is deleted.
+4. Optionally you set a display name and avatar — stored as a **`portalUser`** entity on Arkiv.
+5. From then on, when you click "Record" in the dashboard, requests go through [`frontend/src/app/api/orch/[...path]/route.ts`](frontend/src/app/api/orch/[...path]/route.ts), which looks up your device's ngrok URL from Arkiv and forwards the job to the orchestrator running on your Pi.
 
-1. Load `skill-capture/.env`.
-2. `DEVICE_ID` = SHA256(hostname).
-3. `scripts/register-wallet.mjs` derives viem account: `sha256(salt:deviceId)`.
-4. Poll orchestrator `GET http://127.0.0.1:8790/health` for `publicUrl` (ngrok).
-5. Write `DEVICE_WALLET_*`, `REGISTRATION_TOKEN`, `FRONTEND_URL`, `ORCHESTRATOR_PUBLIC_URL` to `.env`.
-6. `POST ${FRONTEND_URL}/api/devices/pending` with token, device metadata, orchestrator URL.
-
-**API route:** `frontend/src/app/api/devices/pending/route.ts`
-
-```typescript
-await upsertPendingRegistration({ token, deviceWallet, deviceId, deviceName, orchestratorUrl });
-```
-
-**Arkiv mutation:** `skill-capture/arkiv/src/services/mutate-portal.ts` → `upsertPendingRegistration()`
-
-- Entity type: `deviceRegistrationPending` (`PORTAL_ENTITY_TYPE.pendingRegistration`)
-- Project attribute: `openclu-portal-v1` (`portal-constants.ts:1-4`)
-- Attributes: `registrationToken`, `deviceWallet`, `deviceId`, `orchestratorUrl`, `expiresAt`
-- TTL: `portal-expiration.ts` (~24h)
-
-#### Step 1.2 — Browser confirmation
-
-**Page:** `frontend/src/app/register/page.tsx`  
-Query params: `?token=&address=&deviceName=&deviceId=&orchestratorUrl=`
-
-User connects Privy wallet → `POST /api/devices/register`
-
-**API route:** `frontend/src/app/api/devices/register/route.ts`
-
-1. `getSessionWallet()` — owner must be logged in.
-2. `getPendingRegistrationByToken(token)` — validate device wallet + orchestrator URL match pending row.
-3. `upsertPortalDevice({ ownerWallet, deviceWallet, deviceId, deviceName, orchestratorUrl })`.
-4. `deletePendingRegistration(token)`.
-
-**Arkiv entities written:**
-
-| Entity | File | Function |
-|--------|------|----------|
-| `portalDevice` | [skill-capture/arkiv/src/entities/portal-device.ts](skill-capture/arkiv/src/entities/portal-device.ts) | `buildPortalDeviceCreate()` |
-| (delete pending) | [skill-capture/arkiv/src/services/mutate-portal.ts](skill-capture/arkiv/src/services/mutate-portal.ts) | `deletePendingRegistration()` |
-
-**Portal bridge (frontend never calls SDK directly):**
-
-```typescript
-// frontend/src/lib/portal-db.ts
-spawn("tsx", ["skill-capture/arkiv/src/cli/portal-db-cli.ts", command], {
-  env: { ...process.env, SKILL_CAPTURE_PORTAL_JSON: JSON.stringify(payload) },
-});
-```
-
-#### Step 1.3 — Profile (optional)
-
-**Routes:** `frontend/src/app/api/profile/route.ts`, `avatar/route.ts`  
-**Arkiv:** `upsertPortalUser()` → entity `portalUser` with display name, avatar bytes reference.
-
-#### Step 1.4 — Device list for contribute
-
-**Route:** `GET /api/devices` → `listDevicesForOwner(ownerWallet)`  
-**Arkiv query:** `fetchPortalDevicesForOwner()` in `query-portal.ts`
-
-#### Step 1.5 — Job proxy
-
-**Route:** `frontend/src/app/api/orch/[...path]/route.ts`
-
-Forwards to `{portalDevice.orchestratorUrl}/api/v1/{path}` with header `x-device-id`. Resolves orchestrator URL from Arkiv portal device record via `getPortalDeviceOrchestratorUrl()` (`frontend/src/lib/session.ts`).
+Nothing is encrypted in this phase — it is pure identity and routing setup.
 
 ---
 
 ### Phase 2 — Contribution
 
+This is the core loop: **capture → process → encrypt → store pointers → publish catalog metadata**.
 
-#### 2.1 Skill contribution (screen + voice → SKILL.md)
-
-##### 2.1.1 Draft metadata
-
-**UI:** `frontend/src/app/(app)/contribute/page.tsx`  
-**Proxy:** `POST /api/orch/jobs/skill-md` → orchestrator `writeDraftSkillMd()`
-
-Writes `skill-capture/skills/<slug>/SKILL.md` with YAML frontmatter (title, description, triggers, tags).
-
-##### 2.1.2 Capture
-
-**Orchestrator:** `POST /api/v1/jobs/capture` → `startCaptureJob()` (`orchestrator/src/jobs.ts`)
-
-Spawns:
-
-```bash
-python capture.py <slug> --no-distribute
-```
-
-**`capture.py`:**
-
-| Function | Output |
-|----------|--------|
-| `record_audio()` | WAV via PyAudio |
-| `record_screen()` | PNG frames every 5s via `mss` |
-| `wait_for_terminal_quit()` | Blocks until `q` (forwarded by [skill-capture/orchestrator/src/capture-quit-listener.ts](skill-capture/orchestrator/src/capture-quit-listener.ts)) |
-| `save_outputs()` | `skills/raw/<slug>/<timestamp>/` |
-
-##### 2.1.3 Process (Groq)
-
-**`process.py`** (invoked from `capture.py`):
-
-| Step | Model | Output |
-|------|-------|--------|
-| Transcribe | `whisper-large-v3` | `transcript.json` |
-| Frame annotate | `llama-4-scout-17b-16e-instruct` | `frame_annotations.json` |
-| Skill extract | `llama-3.3-70b-versatile` | `SKILL.md` body merged with user frontmatter |
-
-Env: `GROQ_API_KEY` in `skill-capture/.env`.
-
-##### 2.1.4 Distribute (Story + CDR + Helia + Arkiv)
-
-UI auto-triggers when capture job succeeds: `POST /api/orch/jobs/{id}/distribute`
-
-**Pipeline:** `skill-capture/cli/src/distribute.ts` → `distributeSkill()`
-
-| # | Step | File | Function |
-|---|------|------|----------|
-| 1 | Load device signer | [skill-capture/arkiv/src/lib/device-wallet.ts](skill-capture/arkiv/src/lib/device-wallet.ts) | `loadDeviceAccount()` |
-| 2 | Register Story IP | [skill-capture/cdr/src/services/publish-service.ts](skill-capture/cdr/src/services/publish-service.ts) | `registerSkillIp()` |
-| 3 | Zip bundle | [skill-capture/cli/src/distribute.ts](skill-capture/cli/src/distribute.ts) | `readBundleZip()` |
-| 4 | Boot Helia | [skill-capture/cdr/src/helia-storage.ts](skill-capture/cdr/src/helia-storage.ts) | `getHeliaStorage()` |
-| 5 | CDR encrypt | [skill-capture/cdr/src/services/publish-service.ts](skill-capture/cdr/src/services/publish-service.ts) | `encryptBundleToVault()` |
-| 6 | Pin public IPFS | [skill-capture/cdr/src/pinata-ipfs.ts](skill-capture/cdr/src/pinata-ipfs.ts) | `pinCiphertextToPublicIpfs()` |
-| 7 | Local manifest | [skill-capture/cli/src/distribute.ts](skill-capture/cli/src/distribute.ts) | `writeLocalManifest()` → `cdr-manifest.json` |
-| 8 | **Arkiv publish** | [skill-capture/arkiv/src/services/publish-catalog.ts](skill-capture/arkiv/src/services/publish-catalog.ts) | `publishCatalogToArkiv()` |
-
-**Arkiv publish detail** (`publishCatalogToArkiv`, line 68+):
-
-1. `buildListingPayload()` — merges `SKILL.md`, `cdr-manifest.json`, ops block (`build-listing.ts`).
-2. Query existing listing by slug: `fetchListings({ skillSlug, scope: "mine" })`.
-3. If exists: `updateEntity` on `skillListing`; else `createEntity`.
-4. Delete + recreate `skillTag` entities for search tags (`deriveTags()` from frontmatter).
-5. Create `listingVersion` snapshot with incremented version (`getNextVersionNumber()`).
-6. Write `arkivListingKey`, `arkivStatus`, `arkivVersion` back to manifest + registry JSON.
-
-**Entity attributes stamped** (`constants.ts`):
-
-```typescript
-export const PROJECT_ATTRIBUTE = {
-  key: "project",
-  value: "skill-capture-ai-catalog-v1",
-};
-export const ENTITY_TYPE = { skillListing: "skillListing", skillTag: "skillTag", ... };
-```
-
-Every query filters `eq("project", PROJECT_ATTRIBUTE.value)` — required by [Arkiv best practices](./themes.md).
-
-##### 2.1.5 Lifecycle jobs (orchestrator)
-
-| Job | Orchestrator route | Arkiv job | Effect |
-|-----|-------------------|-----------|--------|
-| Update metadata | `POST /jobs/update-catalog` | [skill-capture/arkiv/src/jobs/update-catalog.ts](skill-capture/arkiv/src/jobs/update-catalog.ts) | Re-index listing, same CDR vault |
-| Archive | `POST /jobs/archive` | [skill-capture/arkiv/src/services/archive-catalog.ts](skill-capture/arkiv/src/services/archive-catalog.ts) | `status: archived`, tags deleted |
-| Extend TTL | CLI `npm run extend` | [skill-capture/arkiv/src/services/extend-catalog.ts](skill-capture/arkiv/src/services/extend-catalog.ts) | `extendEntity` |
-| Re-publish | distribute again | full pipeline | new IP + vault + version |
-
-**Contributions UI:** `frontend/src/app/(app)/contributions/page.tsx` lists owner skills by querying Arkiv per registered device (`contributions-from-arkiv.ts`).
+There are two contribution paths — **agent skills** (screen + voice → structured skill file) and **training data** (camera + voice → raw video). Both share the same encryption, storage, and licensing machinery after capture.
 
 ---
 
-#### 2.2 Training data contribution (video → TRAINING.md)
+#### 2.1 Skill contribution (screen + voice → agent skill)
 
-Parallel path for **ML/AI model training** (not agent `SKILL.md`):
+##### A. Draft metadata (before recording)
 
-| Aspect | Skill | Training data |
-|--------|-------|---------------|
-| Metadata | `skills/<slug>/SKILL.md` | `training-data/<slug>/TRAINING.md` |
-| Capture | `capture.py` (screen + mic) | [skill-capture/video_capture.py](skill-capture/video_capture.py) (camera + mic → webm → `video.b64`) |
-| Groq | Yes (`process.py`) | No — raw video preserved |
-| Distribute | `distributeSkill()` | `distributeTraining()` ([skill-capture/cli/src/distribute-training.ts](skill-capture/cli/src/distribute-training.ts)) |
-| Arkiv entity | `skillListing` | `trainingDataListing` |
-| Publish fn | `publishCatalogToArkiv()` | `publishTrainingCatalogToArkiv()` ([skill-capture/arkiv/src/services/publish-training-catalog.ts](skill-capture/arkiv/src/services/publish-training-catalog.ts)) |
-| Payload builder | [skill-capture/arkiv/src/lib/build-listing.ts](skill-capture/arkiv/src/lib/build-listing.ts) | [skill-capture/arkiv/src/lib/build-training-listing.ts](skill-capture/arkiv/src/lib/build-training-listing.ts) (`contentKind: "trainingData"`) |
+In the dashboard Contribute UI you enter a title, description, and tags. The orchestrator writes an initial [`SKILL.md`](skill-capture/skills/) file on the Pi with YAML frontmatter (name, description, triggers). This is the skeleton the AI will fill in after recording.
 
-**UI:** Contribute page "Record training data" card → `startVideoCaptureJob` → `startDistributeTrainingJob`.
+##### B. Capture — what the device records
 
-**Buyer utility:** ClawSync `SyncBoardPurchaseTrainingData.tsx` + `trainingDataPurchaseActions.purchaseTrainingData` → decrypt bundle → `clawsync/local-trainer/` (MobileViT fine-tuning on purchased video).
+When you start a capture job, the orchestrator runs [`capture.py`](skill-capture/capture.py) on the Pi. While you work:
+
+1. **Microphone** — PyAudio records your voice continuously into memory as 44.1 kHz mono PCM.
+2. **Screen** — every 5 seconds, `mss` grabs a screenshot and saves it as a JPEG frame.
+3. **Stop** — you press `q` in the orchestrator terminal (or the dashboard sends quit). Recording stops.
+
+Everything at this stage is **plaintext on your local disk only**, under `skill-capture/skills/raw/<slug>/<timestamp>/`:
+
+- `audio.wav` — full voice track
+- `frames/frame_XXXX.jpg` — screen snapshots
+- `frame_manifest.json` — timestamps linking frames to the audio
+
+**Nothing has left your machine yet.** No encryption, no upload.
+
+##### C. Processing — turning raw A/V into a skill bundle
+
+[`process.py`](skill-capture/process.py) runs automatically after capture stops. It sends data to **Groq** (cloud LLM API; requires `GROQ_API_KEY` in `.env`):
+
+1. **Transcribe** — `audio.wav` → Groq Whisper → `transcript.json` (what you said, with timestamps).
+2. **Annotate frames** — each screenshot → Groq Llama vision → `frame_annotations.json` (what was on screen at each moment).
+3. **Extract skill** — transcript + annotations → Groq Llama → prose body for `SKILL.md`, merged with your frontmatter from step A.
+
+The finished **skill bundle** lands in `skill-capture/skills/<slug>/`:
+
+| File | Contents |
+|------|----------|
+| `SKILL.md` | Agent-readable skill instructions (title, triggers, body) |
+| `transcript.json` | Full speech transcript |
+| `frame_annotations.json` | Screen descriptions tied to timestamps |
+| `scripts/` | Optional helper scripts directory |
+
+This bundle is still **plaintext locally**. Groq sees the audio transcript and frame images during processing; that is the one cloud exposure before encryption.
+
+##### D. Register on-chain IP (Story Protocol)
+
+When you publish (the dashboard auto-triggers **Distribute** after capture succeeds), [`distribute.ts`](skill-capture/cli/src/distribute.ts) runs on the Pi using the **device wallet**.
+
+**Story Protocol** (Aeneid testnet) registers your skill as intellectual property:
+
+1. IP metadata JSON (title, description, creator = device wallet) is uploaded to **IPFS via local Helia**.
+2. An **SPG NFT** is minted and an **IP Asset** is registered on-chain with a **commercial remix license** attached — this defines the mint fee (default 1 IP token) and royalty percentage back to your device wallet.
+3. You receive an **`ipId`** (on-chain IP identifier) and **`licenseTermsId`** — these become the license gate for decryption later.
+
+##### E. Package and encrypt (Story CDR)
+
+The skill bundle directory is zipped. Then **Story CDR** (Confidential Data Rails — [`@piplabs/cdr-sdk`](skill-capture/cdr/)) encrypts it **on the Pi using WASM crypto**, before any buyer can access it:
+
+1. **Local AES encryption** — the zip bytes are encrypted with a fresh AES key. The result is ciphertext (meaningless without the key).
+2. **Threshold encryption of the key** — the AES key plus the storage pointer are encrypted using CDR's **TDH2 threshold scheme** against the network's DKG public key. No single party holds the full decryption key; Story validators must cooperate to release it.
+3. **Access conditions are baked into the vault:**
+   - **Write condition** — only the contributor's **device wallet** can create or update this vault (`OWNER_WRITE_CONDITION` contract).
+   - **Read condition** — only a wallet holding a valid **Story license token** for this skill's `ipId` can request decryption (`LICENSE_READ_CONDITION` + `LICENSE_TOKEN` contract).
+4. A **CDR vault** is allocated on-chain with a **`vaultUuid`**. The encrypted key material lives in the vault; the encrypted file bytes are stored separately.
+
+In plain terms: **the skill zip is locked in a box; the box can only be opened by someone who paid for a Story license.**
+
+##### F. Where the encrypted bytes are stored
+
+The ciphertext (encrypted zip) is stored in **two places**:
+
+1. **Local Helia node on the Pi** — a local IPFS node ([`helia-storage.ts`](skill-capture/cdr/src/helia-storage.ts)) pins the file during upload. This gives a **content ID (CID)** — a hash-addressed pointer to the blob.
+2. **Public IPFS via Pinata** — the same ciphertext is re-pinned to Pinata ([`pinata-ipfs.ts`](skill-capture/cdr/src/pinata-ipfs.ts)) so buyers worldwide can fetch it by CID through a gateway URL. **The file on IPFS is still encrypted** — publishing the CID does not expose your voice, screen, or skill text.
+
+A local **`cdr-manifest.json`** is written into the bundle folder recording `vaultUuid`, `cid`, `ipId`, license terms, mint fee, Helia peer hints, and gateway URL.
+
+##### G. Publish catalog metadata (Arkiv)
+
+Finally [`publishCatalogToArkiv()`](skill-capture/arkiv/src/services/publish-catalog.ts) writes a **`skillListing`** entity to **Arkiv Network** (Braga testnet), signed by the device wallet:
+
+**What Arkiv stores (public, searchable):**
+
+- Title, description, tags, search text, triggers
+- Status (`published`), slug, version number
+- **`purchase` block** — `vaultUuid`, IPFS `cid`, Story `ipId`, `licenseTermsId`, mint fee, publisher address
+- **`ops` block** — Helia peer addresses, Story RPC/API URLs, IPFS gateway URL, CDR condition contract addresses
+
+**What Arkiv does *not* store:**
+
+- Raw audio, video, or screen frames
+- Plaintext `SKILL.md` body
+- The AES key or decrypted bundle
+
+Arkiv is the **index card in a public library** — anyone can find your skill and see what it costs, but the book itself stays encrypted until licensed.
+
+Tag entities (`skillTag`) and version snapshots (`listingVersion`) are also written for search and history.
+
+##### H. Lifecycle after publish
+
+- **Update metadata** — change title/tags in the UI; Arkiv listing is re-indexed; same encrypted vault and CID are reused.
+- **Archive** — listing status set to `archived`; removed from marketplace browse.
+- **Extend TTL** — Arkiv entity expiration extended.
+- **Re-publish** — full distribute pipeline again (new Story IP, new vault, new version).
 
 ---
 
-### Phase 3 — Utility (agents & model trainers)
+#### 2.2 Training data contribution (camera + voice → ML dataset)
 
-#### 3.1 Browse / search (Arkiv read path)
+The training path targets **model trainers** rather than agent operators. The encrypt → store → license flow is identical; capture and bundle contents differ.
 
-**Frontend:**
+1. **Capture** — [`video_capture.py`](skill-capture/video_capture.py) records **camera + microphone** on the Pi (OpenCV + PyAudio), muxes to WebM, then base64-encodes as `video.b64`. Raw files sit under `training-data/raw/<slug>/<timestamp>/`.
+2. **No Groq processing** — video is kept as-is to preserve training signal.
+3. **Bundle** — `training-data/<slug>/TRAINING.md` (metadata) + `video.b64` + manifest files.
+4. **Distribute** — [`distribute-training.ts`](skill-capture/cli/src/distribute-training.ts) runs the same Story IP → CDR encrypt → Helia → Pinata → Arkiv pipeline, but publishes a **`trainingDataListing`** entity instead of `skillListing`.
 
-```
-POST /api/catalog/query
-  → frontend/src/lib/catalog.ts::queryCatalog()
-  → arkiv/src/cli/catalog-query-cli.ts
-  → catalog-read-bridge.ts::catalogQuery()
-  → query-catalog.ts::searchNaturalLanguage() | fetchListings()
-```
+Buyers decrypt the same way (Story license → CDR threshold decrypt → unzip) and can feed video into fine-tuning tools (e.g. ClawSync `local-trainer/`).
 
-**ClawSync SyncBoard:**
+---
 
-```
-SyncBoardPurchaseSkills.tsx
-  → convex/catalogActions.ts::query | getDetail
-  → convex/lib/marketplaceCli.ts::runMarketplaceCli('query')
-  → skill-marketplace/src/cli/marketplace-cli.ts
-  → (vendored) query-catalog.ts
-```
+### Phase 3 — Buying, decrypting, and using a skill
 
-**Agent chat:**
+When an agent operator or developer wants your skill, they never contact your Pi directly. They read **Arkiv**, pay **Story**, and decrypt via **CDR**.
 
-```
-marketplaceTools.ts → executeSearchArkivSkills
-  → marketplace-cli query + get-detail fallback
-```
+##### A. Discovery (Arkiv read — no payment yet)
 
-Marketplace scope defaults to `status: published` (`query-catalog.ts:41-49`).
+1. The buyer searches Arkiv — by tags, filters, or natural language (e.g. `"code review typescript"`). Queries run via [`query-catalog.ts`](skill-capture/arkiv/src/services/query-catalog.ts) from the dashboard, ClawSync SyncBoard, or CLI.
+2. Results show **public metadata only**: title, description, tags, mint fee, contributor device wallet address.
+3. Selecting a skill loads the **`purchase` + `ops` blocks** — vault UUID, IPFS CID, Story `ipId`, gateway URL, Helia peer hints. Still no plaintext content.
 
-#### 3.2 Purchase & decrypt
+##### B. Purchase (Story Protocol — on-chain payment)
 
-**ClawSync purchase action:** `convex/skillPurchaseActions.ts` → `purchaseSkill`
+The buyer's wallet (agent operator or CLI user) executes three Story transactions ([`purchase-from-listing.ts`](clawsync/skill-marketplace/src/cdr/purchase-from-listing.ts)):
 
-**Core logic:** `clawsync/skill-marketplace/src/cdr/purchase-from-listing.ts`
+1. **Deposit** — wrap IP tokens into WIP (Wrapped IP) to pay the license fee.
+2. **Approve** — allow Story's Royalty Module to spend the WIP.
+3. **Mint license token** — call `mintLicenseTokens` for this skill's `ipId` and `licenseTermsId`. The buyer receives a **license token ID** (an ERC-721–style token proving they paid). Royalty flows to the contributor's **device wallet** per the on-chain license terms.
 
-1. Load listing from inline `catalogSnapshot` or live `fetchSkillListingFromArkiv()` (`arkiv/src/lib/cdr-listing.ts`).
-2. Story: `wipClient.deposit` → `approve` → `license.mintLicenseTokens`.
-3. CDR: `downloadFileWithLogs()` with license token in read condition aux data.
-4. Unzip to `data/purchased-skills/<slug>/`.
-5. Convex: `insertPurchased` + optional `importPurchasedSkill` to attach to agent.
+Without this token, CDR will reject the decrypt request.
 
-**Standalone CLI:** `skill-capture/cdr/src/purchase-skill.ts` — same flow for developers without ClawSync.
+##### C. Decryption (Story CDR — threshold unlock)
 
-#### 3.3 Owner contributions dashboard
+With the license token in hand, the buyer's machine runs CDR decrypt ([`decrypt-with-logs.ts`](skill-capture/cdr/src/decrypt-with-logs.ts)):
 
-```typescript
-// frontend/src/lib/contributions-from-arkiv.ts:67-101
-const devices = await listDevicesForOwner(ownerWallet); // Arkiv portalDevice
-for (const device of devices) {
-  queryCatalog({ scope: "mine", ownerAddress: device.wallet_address, full: true });
-  queryCatalogTraining({ scope: "mine", ownerAddress: device.wallet_address, full: true });
-}
-```
+1. **Read request on-chain** — the buyer submits a CDR read request for `vaultUuid`, attaching the license token ID as `accessAuxData`. The **LICENSE_READ_CONDITION** smart contract verifies the buyer holds a valid token for this `ipId`.
+2. **Validator threshold decrypt** — Story CDR validators return partial decryptions until the threshold is met. The client combines them to recover the **AES key** and storage pointer.
+3. **Download ciphertext** — the encrypted zip is fetched from **IPFS** (Pinata gateway and/or contributor's Helia peer using the CID from the Arkiv listing).
+4. **Local AES decrypt** — the buyer's machine decrypts the zip bytes client-side. Plaintext never passes through Arkiv or a central server.
 
-No Supabase — portal devices and catalog listings both live on Arkiv Braga.
+##### D. Use the skill
+
+1. The zip is extracted to a local folder (`SKILL.md`, `transcript.json`, `frame_annotations.json`, etc.).
+2. In **ClawSync**, the skill is imported into an agent's context ([`skillPurchaseImport.ts`](clawsync/convex/skillPurchaseImport.ts)) — the agent can now follow your recorded heuristics.
+3. A **`purchase-receipt.json`** is saved with license token ID, vault UUID, read transaction hash, and buyer address for audit.
+
+The standalone CLI ([`purchase-skill.ts`](skill-capture/cdr/src/purchase-skill.ts)) runs the same purchase + decrypt flow without ClawSync.
+
+##### E. Contributor dashboard
+
+Owners see their published skills by querying Arkiv per registered device wallet ([`contributions-from-arkiv.ts`](frontend/src/lib/contributions-from-arkiv.ts)). No centralized database — portal devices and catalog listings both live on Arkiv Braga.
+
+---
+
+### What is public vs private (summary)
+
+| Data | Where it lives | Who can see it |
+|------|----------------|----------------|
+| Skill title, tags, description | Arkiv `skillListing` | Anyone (marketplace browse) |
+| Vault UUID, IPFS CID, Story `ipId`, mint fee | Arkiv `purchase` block | Anyone |
+| Encrypted skill zip | IPFS (Pinata + Helia) | Anyone can **download the blob**, but it is **encrypted gibberish** without a license |
+| AES key + decrypt authorization | CDR vault on-chain | Hidden until license token proves payment |
+| Plaintext `SKILL.md`, audio, video | Buyer's disk **after** licensed decrypt | License holder only |
+| Raw capture during recording | Pi local disk (`skills/raw/`) | Contributor only, until distribute |
+| Groq processing | Groq API (transcript + frames) | Groq during processing step only, before encryption |
 
 ---
 
