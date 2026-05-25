@@ -1,24 +1,24 @@
 # OpenClu
 
-**Record your expertise and monetize instantly as skills or training data — powered by [Arkiv](https://arkiv.network).**
+**Record your expertise and monetize instantly as training data or agent skills — powered by [Arkiv](https://arkiv.network).**
 
 <p align="center">
 <img width="200" height="200" alt="ChatGPT_Image_May_23__2026__02_30_41_PM-removebg-preview" src="https://github.com/user-attachments/assets/bf504203-4223-4d3a-8f63-cac887497751" />
 </p>
 
-OpenClu is a full-stack system for capturing real human activity on contributor-owned hardware, converting that activity into structured **agent skills** or **ML training data**, encrypting and registering it on-chain, and licensing it to AI agents and model trainers. Contributors earn royalties when their data is used; agents get practitioner-grade knowledge instead of generic web scrape.
+OpenClu is a full-stack system for capturing real human activity on contributor-owned hardware, converting that activity into structured **ML training data** or **agent skills**, encrypting and registering it on-chain, and licensing it to model trainers and AI agents. Contributors earn royalties when their data is used; model trainers get consent-aligned, high-signal activity video instead of scraped noise; agents get practitioner-grade procedural knowledge.
 
 ### Overview
 
-OpenClu records voice, video, and activity data from a **Clu device** (currently a Raspberry Pi; target: dedicated wearable hardware), processes it locally into either an **agent skill** (`SKILL.md` + context) or a **training data bundle** (`TRAINING.md` + encoded video), and publishes it to a public marketplace. Contributors retain ownership via a device wallet; buyers license content through Story Protocol and decrypt via CDR.
+OpenClu records voice, video, and activity data from a **Clu device** (currently a Raspberry Pi; target: dedicated wearable hardware), processes it locally into either a **training data bundle** (`TRAINING.md` + encoded video) or an **agent skill** (`SKILL.md` + context), and publishes it to a public marketplace. Contributors retain ownership via a device wallet; buyers license content through Story Protocol and decrypt via CDR.
 
 The system spans three integration layers:
 
 | Layer | Role in OpenClu |
 |-------|-----------------|
 | **[Arkiv Network](https://arkiv.network)** | Decentralized catalog and registry. Stores searchable `skillListing` and `trainingDataListing` entities, device registration (`portalDevice`), and user profiles. Provides `$owner` / `$creator` attribution on Braga testnet. |
-| **Story CDR** | Confidential Data Rails — encrypts skill bundles on-device before publication. Decryption requires a valid Story license token; raw audio and video are never stored in plaintext on Arkiv or IPFS. |
-| **Story Protocol** | Registers each skill as on-chain IP on Aeneid testnet. License mints gate CDR vault access and route royalty payments to the contributor's device wallet. |
+| **Story CDR** | Confidential Data Rails — encrypts training bundles and skill bundles on-device before publication. Decryption requires a valid Story license token; raw audio and video are never stored in plaintext on Arkiv or IPFS. |
+| **Story Protocol** | Registers each listing as on-chain IP on Aeneid testnet. License mints gate CDR vault access and route royalty payments to the contributor's device wallet. |
 
 OpenClu is built as a **hybrid of the Arkiv builder themes** ([see `docs/themes.md`](docs/themes.md)): **DePIN** (device-origin capture with wallet-attributed telemetry), **Privacy** (CDR-encrypted payloads with license-gated access), and **AI** (structured skills and training datasets consumable by agents and models). Arkiv serves as the shared index that connects device capture, encrypted storage, and agent discovery without a centralized database.
 
@@ -38,14 +38,14 @@ OpenClu is built as a **hybrid of the Arkiv builder themes** ([see `docs/themes.
 ## Table of contents
 
 1. [Introduction](#introduction)
-2. [Example: code review skill end-to-end](#example-code-review-skill-end-to-end)
+2. [Example: sitting and standing training data end-to-end](#example-sitting-and-standing-training-data-end-to-end)
 3. [OpenClu = AI + Privacy + DePIN](#openclu--ai--privacy--depin)
 4. [How it works](#how-it-works)
    - [Phase 1 — Device registration](#phase-1--device-registration)
    - [Phase 2 — Contribution](#phase-2--contribution)
-     - [2.1 Skill contribution (screen + voice → SKILL.md)](#21-skill-contribution-screen--voice--skillmd)
-     - [2.2 Training data contribution (video → TRAINING.md)](#22-training-data-contribution-video--trainingmd)
-   - [Phase 3 — Utility (agents & model trainers)](#phase-3--utility-agents--model-trainers)
+     - [2.1 Training data contribution (video → TRAINING.md)](#21-training-data-contribution-camera--voice--ml-dataset)
+     - [2.2 Skill contribution (screen + voice → SKILL.md)](#22-skill-contribution-screen--voice--agent-skill)
+   - [Phase 3 — Utility (model trainers & agents)](#phase-3--buying-decrypting-and-using-training-data--skills)
 5. [How Arkiv powers OpenClu (feature matrix)](#how-arkiv-powers-openclu-feature-matrix)
 6. [Our vision](#our-vision)
 7. [What we are currently working on](#what-we-are-currently-working-on)
@@ -69,79 +69,74 @@ On the contributor machine, a local pipeline:
 
 1. **Transcribes and understands** the recording (Groq: Whisper + vision + LLM extraction).
 2. **Structures** the output as either:
-   - **Agent skill** — a `SKILL.md` knowledge artifact plus transcript/annotations, published as a `skillListing` on Arkiv; or
-   - **Training data** — a `TRAINING.md` manifest plus encoded video (`video.b64`), published as a `trainingDataListing` on Arkiv.
+   - **Training data** — a `TRAINING.md` manifest plus encoded video (`video.b64`), published as a `trainingDataListing` on Arkiv; or
+   - **Agent skill** — a `SKILL.md` knowledge artifact plus transcript/annotations, published as a `skillListing` on Arkiv.
 3. **Encrypts** the bundle with **Story [Confidential Data Rails (CDR)](https://docs.story.foundation/developers/cdr-sdk)** — threshold encryption keyed to Story license terms. Ciphertext is pinned to local Helia and public IPFS (Pinata).
 4. **Registers IP** on **Story Protocol (Aeneid testnet)** — mints an IP asset and commercial license terms so royalties flow to the contributor's device wallet.
 5. **Publishes catalog metadata** on **Arkiv Network (Braga testnet)** — searchable `skillListing` / `trainingDataListing` entities with tags, CIDs, vault UUIDs, and `$owner` attribution tied to the device wallet.
 
-Buyers (AI agents via ClawSync, or standalone CLI) discover listings on Arkiv, purchase a Story license token, decrypt via CDR, and import the skill into an agent or feed video into a training pipeline.
+Buyers (model trainers via ClawSync **Train your AI**, standalone CLI, or custom pipelines; agent operators via ClawSync SyncBoard) discover listings on Arkiv, purchase a Story license token, decrypt via CDR, and either **fine-tune a vision model on licensed video** or **import a skill into an agent's runtime context**.
 
-**Why this matters:** Generic LLMs know *about* code review; a senior engineer's captured review sessions encode *how they actually review* — what they skip, when they escalate, how they phrase feedback. OpenClu turns that tacit knowledge into a **licensable, attributable asset**. Contributors monetize expertise they already have; agent operators get skills grounded in real professional behavior; model trainers get consent-aligned, high-signal activity data instead of scraped noise.
+**Why this matters:** Most ML datasets are scraped, unlabeled, and unattributed. OpenClu captures **real human activity** — sitting and standing transitions, craft motions, clinical gestures — with explicit consent and on-chain provenance. A model trainer licensing `sitting-standing-example` gets synchronized camera + audio footage they can frame-sample and label for activity recognition, not a vague web clip. Separately, a senior engineer's captured review sessions encode *how they actually review* — what they skip, when they escalate, how they phrase feedback. OpenClu turns both kinds of tacit knowledge into **licensable, attributable assets**: contributors monetize expertise they already have; model trainers get high-signal training video; agent operators get skills grounded in real professional behavior.
 
 **Economics:** Story Protocol enforces license fees and royalty splits on-chain. CDR gates decryption behind a valid license token. Arkiv provides tamper-proof discovery and `$creator` / `$owner` metadata so attribution cannot be spoofed.
 
 ---
 
-## Example: code review skill end-to-end
+## Example: sitting and standing training data end-to-end
 
-**Scenario:** Alex is a staff engineer who reviews PRs daily. They register a Clu device, record a 45-minute review session (screen + voice), and publish a skill called `alex-code-review`.
+**Scenario:** Sam wants to publish egocentric video of a person **sitting down and standing up** so a model trainer can fine-tune an activity classifier. Sam registers a Clu device, records a short camera session, and publishes a bundle called `sitting-standing-example`.
 
 ### Contributor side
 
 | Step | What happens | Stack |
 |------|----------------|-------|
-| 1 | Alex runs `register.sh` → device wallet derived, QR links to dashboard | [skill-capture/register.sh](skill-capture/register.sh), [skill-capture/scripts/register-wallet.mjs](skill-capture/scripts/register-wallet.mjs) |
-| 2 | Alex confirms registration in browser; `portalDevice` written to Arkiv | [frontend/src/app/api/devices/register/route.ts](frontend/src/app/api/devices/register/route.ts) |
-| 3 | Alex drafts metadata in Contribute UI → `SKILL.md` frontmatter saved | [skill-capture/orchestrator/src/skill-md.ts](skill-capture/orchestrator/src/skill-md.ts) |
-| 4 | Alex starts recording → `capture.py` records mic + screen until `q` | [skill-capture/capture.py](skill-capture/capture.py) |
-| 5 | `process.py` transcribes audio, annotates frames, extracts skill body via Groq | [skill-capture/process.py](skill-capture/process.py) |
-| 6 | Distribute job runs → Story IP mint + CDR encrypt + Arkiv publish | [skill-capture/cli/src/distribute.ts](skill-capture/cli/src/distribute.ts) |
+| 1 | Sam runs `register.sh` → device wallet derived, QR links to dashboard | [skill-capture/register.sh](skill-capture/register.sh), [skill-capture/scripts/register-wallet.mjs](skill-capture/scripts/register-wallet.mjs) |
+| 2 | Sam confirms registration in browser; `portalDevice` written to Arkiv | [frontend/src/app/api/devices/register/route.ts](frontend/src/app/api/devices/register/route.ts) |
+| 3 | Sam enters title, description, and tags (`sitting`, `standing`) in the Contribute UI | Dashboard training-data form |
+| 4 | Sam starts recording → `video_capture.py` records camera + mic until `q` | [skill-capture/video_capture.py](skill-capture/video_capture.py) |
+| 5 | Raw WebM is base64-encoded as `video.b64`; `TRAINING.md` manifest written with `content_kind: trainingData` | Example bundle: [clawsync/data/purchased-training-data/sitting-standing-example-xfy61/TRAINING.md](clawsync/data/purchased-training-data/sitting-standing-example-xfy61/TRAINING.md) |
+| 6 | Distribute job runs → Story IP mint + CDR encrypt + Arkiv publish as `trainingDataListing` | [skill-capture/cli/src/distribute-training.ts](skill-capture/cli/src/distribute-training.ts) |
 
-**Story transactions (contributor device wallet signs):**
+**What gets captured:** synchronized **camera video + microphone audio** of a human performing sit/stand transitions. Unlike the skill path, **no Groq processing** runs — the video is preserved as-is so frame-level labels and motion signal stay intact for training.
 
-1. Upload IP/NFT metadata JSON to Helia/IPFS.
-2. `storyClient.ipAsset.registerIpAsset()` — mints SPG NFT, registers IP on Aeneid, attaches `PILFlavor.commercialRemix` license (rev share + mint fee, default 1 IP).
-3. Returns `ipId`, `licenseTermsId`, `txHash` — stored in `cdr-manifest.json`.
+**Story, CDR, and Arkiv** follow the same pipeline as skills (device wallet registers IP on Aeneid, CDR encrypts the zip bundle, ciphertext pins to Helia + Pinata, Arkiv stores a searchable `trainingDataListing` with vault UUID, CID, and Story `ipId`). Only the entity type and bundle contents differ (`TRAINING.md` + `video.b64` instead of `SKILL.md` + transcript).
 
-**CDR (encrypt before publish):**
-
-```typescript
-// skill-capture/cdr/src/services/publish-service.ts
-const writeConditionData = encodeAbiParameters([{ type: "address" }], [owner]);
-const readConditionData = encodeAbiParameters(
-  [{ type: "address" }, { type: "address" }],
-  [LICENSE_TOKEN, ipId],
-);
-await client.uploader.uploadFile({ /* zip bundle */ });
-```
-
-Only wallets holding a Story license token for this `ipId` can threshold-decrypt.
-
-**Arkiv publish:** `publishCatalogToArkiv()` creates/updates:
-
-- Entity type `skillListing` (project `skill-capture-ai-catalog-v1`)
-- Tags (`skillTag`) for search: e.g. `code-review`, `typescript`, `security`
-- Version snapshot (`listingVersion`)
-- Payload includes `purchase` (vault UUID, CID, ipId, fees) and `ops` (IPFS gateway, Story addresses)
-
-### Buyer side (agent wants to review code)
+### Buyer side (model trainer wants activity footage)
 
 | Step | What happens | Stack |
 |------|----------------|-------|
-| 1 | Agent operator searches Arkiv: `"code review typescript"` | [skill-capture/arkiv/src/services/query-catalog.ts](skill-capture/arkiv/src/services/query-catalog.ts) → `searchNaturalLanguage()` |
-| 2 | Selects `alex-code-review` → reads listing payload (CID, ipId, vault, fees) | `fetchSkillCatalogDetail()` / ClawSync `catalogActions.getDetail` |
+| 1 | Trainer searches Arkiv: `"sitting standing human activity"` | [skill-capture/arkiv/src/services/query-catalog.ts](skill-capture/arkiv/src/services/query-catalog.ts) → `searchTrainingNaturalLanguage()` |
+| 2 | Selects `sitting-standing-example` → reads listing payload (CID, ipId, vault, fees) | `fetchTrainingCatalogDetail()` / ClawSync training catalog |
 | 3 | Buyer wallet mints Story license token | `storyClient.license.mintLicenseTokens()` |
-| 4 | CDR decrypts bundle using license token as read condition | [clawsync/skill-marketplace/src/cdr/purchase-from-listing.ts](clawsync/skill-marketplace/src/cdr/purchase-from-listing.ts) / [clawsync/skill-marketplace/src/cdr/decrypt-with-logs.ts](clawsync/skill-marketplace/src/cdr/decrypt-with-logs.ts) |
-| 5 | Agent imports `SKILL.md` + context into ClawSync agent | `skillPurchaseImport.importPurchasedSkill` |
+| 4 | CDR decrypts bundle using license token as read condition | [clawsync/skill-marketplace/src/cdr/purchase-from-listing.ts](clawsync/skill-marketplace/src/cdr/purchase-from-listing.ts) |
+| 5 | Decrypted `video.b64` saved locally; trainer loads it in **Train your AI** | [clawsync/convex/trainingDataPurchaseActions.ts](clawsync/convex/trainingDataPurchaseActions.ts) → [clawsync/local-trainer/](clawsync/local-trainer/) |
 
-**Story transactions (buyer agent wallet signs):**
+**How the data trains a model:**
 
-1. `wipClient.deposit()` — wrap IP for license payment.
-2. `wipClient.approve()` — royalty module allowance.
-3. `license.mintLicenseTokens({ licensorIpId, licenseTermsId, amount: 1 })` — pays mint fee; royalty routed per license terms to Alex's device wallet.
+1. **Purchase + decrypt** — the trainer receives `TRAINING.md`, `video.b64`, and a `purchase-receipt.json` audit trail under `clawsync/data/purchased-training-data/sitting-standing-example-xfy61/`.
+2. **Frame extraction** — the local trainer decodes the WebM and samples frames (e.g. 1 fps). Labels like `sitting,standing` split frames across classes.
+3. **Fine-tune** — a small vision model (CLIP, ViT, or MobileViT) trains on those labeled frames via PyTorch on the trainer's machine. Weights never leave local disk.
+4. **Inference** — the fine-tuned classifier can distinguish sitting vs standing in new camera footage — useful for ergonomics research, assistive robotics, or activity monitoring.
 
-**Result:** The agent's system prompt / skill file now encodes Alex's review heuristics. Every purchase is attributable on-chain; Alex earns per license without exposing raw video/audio publicly.
+**Story transactions (buyer wallet signs):** deposit WIP → approve royalty module → `mintLicenseTokens` for Sam's `ipId`. Royalty flows to Sam's device wallet per on-chain license terms.
+
+**Result:** The trainer holds licensed, attributable activity video and a model trained on it. Sam earns per license without exposing raw video publicly on Arkiv or IPFS.
+
+---
+
+### Secondary example: code review skill for agents
+
+OpenClu also supports a **skill path** for agent operators who want procedural knowledge rather than raw video. Alex, a staff engineer, records a 45-minute PR review (screen + voice) and publishes `alex-code-review`.
+
+| Phase | Training data path (primary) | Skill path (secondary) |
+|-------|------------------------------|------------------------|
+| Capture | Camera + mic → `video.b64` | Screen + mic → frames + transcript |
+| Processing | None (preserve raw video) | Groq Whisper + vision + LLM → `SKILL.md` |
+| Arkiv entity | `trainingDataListing` | `skillListing` |
+| Buyer use | Fine-tune vision model on frames | Import `SKILL.md` into ClawSync agent context |
+
+After the same Story license + CDR decrypt flow, Alex's buyer extracts `SKILL.md`, `transcript.json`, and frame annotations. ClawSync imports the skill via [`skillPurchaseImport.ts`](clawsync/convex/skillPurchaseImport.ts) — the agent's system prompt now encodes Alex's review heuristics (what to skip, when to escalate, how to phrase feedback). See [Phase 2.2](#22-skill-contribution-screen--voice--agent-skill) and [Phase 3](#phase-3--buying-decrypting-and-using-training-data--skills) for the full skill workflow.
 
 ---
 
@@ -153,13 +148,13 @@ OpenClu is a deliberate **hybrid of all three [Arkiv ETHNS Builder Challenge the
 
 | Requirement (themes.md) | How OpenClu delivers |
 |-------------------------|----------------------|
-| Memory on Arkiv, wallet-owned | Skills are `skillListing` entities; `$owner` = contributor device wallet; `$creator` immutable |
+| Memory on Arkiv, wallet-owned | Training data and skills are `trainingDataListing` / `skillListing` entities; `$owner` = contributor device wallet; `$creator` immutable |
 | Portable across tools | Any client that reads Arkiv + Story + CDR can consume listings (frontend, ClawSync, MCP-style CLI) |
 | Entity types | **Catalog:** `skillListing`, `trainingDataListing`, `skillTag`, `listingVersion`. **Portal:** `portalUser`, `portalDevice`, `deviceRegistrationPending` |
 | Retrieval by tag / time | [skill-capture/arkiv/src/services/query-catalog.ts](skill-capture/arkiv/src/services/query-catalog.ts): `eq`, `and`, `gte`, `lte`, `desc` on typed attributes; NL search via `searchNaturalLanguage()` |
 | Differentiated expiration | `listingExpiresIn()`, [skill-capture/arkiv/src/lib/portal-expiration.ts](skill-capture/arkiv/src/lib/portal-expiration.ts) — portal pending 24h TTL; listings extendable via `extendSkillListing()` |
 
-**Components:** Groq extraction → structured `SKILL.md` / knowledge graph (roadmap); Arkiv payload stores triggers, tags, transcript refs; ClawSync agents attach purchased skills as runtime memory.
+**Components:** Groq extraction → structured `SKILL.md` / knowledge graph (roadmap); Arkiv payload stores triggers, tags, transcript refs; **local-trainer** fine-tunes vision models on purchased training video; ClawSync agents attach purchased skills as runtime memory.
 
 ### Privacy — confidential data on a public layer
 
@@ -192,7 +187,7 @@ Most "AI marketplaces" centralize data in a vendor DB. Most "privacy" projects n
 OpenClu connects all three in one loop:
 
 ```
-Device (DePIN) → encrypt (Privacy) → catalog (Arkiv) → agent skill (AI) → royalty (Story)
+Device (DePIN) → encrypt (Privacy) → catalog (Arkiv) → model training / agent skill (AI) → royalty (Story)
 ```
 
 The same Arkiv entity carries **public discovery metadata** and **private content pointers**; the same device wallet signs **capture attribution** and **IP ownership**; the same license token gates **decryption** and **pays the contributor**.
@@ -203,8 +198,8 @@ The same Arkiv entity carries **public discovery metadata** and **private conten
 
 > **Diagrams:** Three Excalidraw flows are planned for this section:
 > 1. Device registration flow
-> 2. Skill contribution + agent consumption flow
-> 3. Training data contribution + model training flow
+> 2. Training data contribution + model training flow
+> 3. Skill contribution + agent consumption flow
 >
 > Placeholder paths: `docs/diagrams/registration.excalidraw`, `docs/diagrams/skill-contribution.excalidraw`, `docs/diagrams/training-contribution.excalidraw`
 
@@ -229,7 +224,7 @@ The same Arkiv entity carries **public discovery metadata** and **private conten
                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                     CLAWSYNC (agent platform + SyncBoard)                   │
-│  Convex actions → query / purchase / import skills                          │
+│  Convex actions → query / purchase training data & skills                   │
 │  Signs with: AGENT_PRIVATE_KEY (buyer)                                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -247,7 +242,7 @@ The same Arkiv entity carries **public discovery metadata** and **private conten
 | [clawsync/skill-marketplace/](clawsync/skill-marketplace/) | Vendored CDR + Arkiv read/purchase CLI |
 | [landing/](landing/) | Next.js marketing site |
 
-**End-to-end in one pass:** you record on your device → the device builds a skill bundle → Story registers it as on-chain IP → CDR encrypts the bundle and stores ciphertext on IPFS → Arkiv publishes a searchable listing with pointers (not plaintext) → a buyer finds the listing on Arkiv, pays Story for a license token → CDR validators authorize decrypt → the buyer gets the plaintext skill locally.
+**End-to-end in one pass:** you record activity on your device → the device builds a training bundle (or skill bundle) → Story registers it as on-chain IP → CDR encrypts the bundle and stores ciphertext on IPFS → Arkiv publishes a searchable listing with pointers (not plaintext) → a buyer finds the listing on Arkiv, pays Story for a license token → CDR validators authorize decrypt → the buyer gets licensed video for model training, or a plaintext skill for agent import.
 
 ---
 
@@ -275,168 +270,196 @@ Nothing is encrypted in this phase — it is pure identity and routing setup.
 
 ### Phase 2 — Contribution
 
-This is the core loop: **capture → process → encrypt → store pointers → publish catalog metadata**.
+This is the core loop: **capture → (optional process) → encrypt → store pointers → publish catalog metadata**.
 
-There are two contribution paths — **agent skills** (screen + voice → structured skill file) and **training data** (camera + voice → raw video). Both share the same encryption, storage, and licensing machinery after capture.
+OpenClu supports two contribution paths. **Training data** (camera + voice → raw video bundle) is the primary path — it preserves full motion and audio signal for model fine-tuning. **Agent skills** (screen + voice → structured `SKILL.md`) are secondary — they distill a session into prose instructions for agents. Both share the same Story IP registration, CDR encryption, Helia/Pinata storage, and Arkiv publish machinery after capture.
 
 ---
 
-#### 2.1 Skill contribution (screen + voice → agent skill)
+#### 2.1 Training data contribution (camera + voice → ML dataset)
+
+This is the main workflow. Example: record a person **sitting and standing** in front of the Clu camera so a model trainer can license the footage and fine-tune an activity classifier.
 
 ##### A. Draft metadata (before recording)
 
-In the dashboard Contribute UI you enter a title, description, and tags. The orchestrator writes an initial [`SKILL.md`](skill-capture/skills/) file on the Pi with YAML frontmatter (name, description, triggers). This is the skeleton the AI will fill in after recording.
+In the dashboard Contribute UI you enter a title, description, and tags (e.g. `sitting`, `standing`, `human-activity`). The orchestrator writes a [`TRAINING.md`](skill-capture/training-data/) manifest on the Pi with YAML frontmatter including `content_kind: trainingData`, triggers, and `recorded_at`.
 
 ##### B. Capture — what the device records
 
-When you start a capture job, the orchestrator runs [`capture.py`](skill-capture/capture.py) on the Pi. While you work:
+When you start a training capture job, the orchestrator runs [`video_capture.py`](skill-capture/video_capture.py) on the Pi:
 
-1. **Microphone** — PyAudio records your voice continuously into memory as 44.1 kHz mono PCM.
-2. **Screen** — every 5 seconds, `mss` grabs a screenshot and saves it as a JPEG frame.
-3. **Stop** — you press `q` in the orchestrator terminal (or the dashboard sends quit). Recording stops.
+1. **Camera** — OpenCV grabs egocentric or scene video at ~10 fps (platform-specific backends: AVFoundation on macOS, DShow on Windows).
+2. **Microphone** — PyAudio records voice and ambient audio at 44.1 kHz mono, muxed with video.
+3. **Stop** — press `q` in the terminal or stop from the dashboard. The pipeline muxes frames + audio into **WebM**, then base64-encodes the result as `video.b64`.
 
-Everything at this stage is **plaintext on your local disk only**, under `skill-capture/skills/raw/<slug>/<timestamp>/`:
+Everything at this stage is **plaintext on your local disk only**, under `skill-capture/training-data/raw/<slug>/<timestamp>/`:
 
-- `audio.wav` — full voice track
-- `frames/frame_XXXX.jpg` — screen snapshots
-- `frame_manifest.json` — timestamps linking frames to the audio
+- Raw WebM and intermediate frames
+- `video.b64` — the encoded training payload
 
 **Nothing has left your machine yet.** No encryption, no upload.
 
-##### C. Processing — turning raw A/V into a skill bundle
+##### C. Bundle assembly — no cloud processing
 
-[`process.py`](skill-capture/process.py) runs automatically after capture stops. It sends data to **Groq** (cloud LLM API; requires `GROQ_API_KEY` in `.env`):
+Unlike the skill path, **no Groq step runs**. Video is kept as-is so trainers retain full frame timing, motion blur, and audio sync — critical for activity recognition, ergonomics studies, and robotics datasets.
 
-1. **Transcribe** — `audio.wav` → Groq Whisper → `transcript.json` (what you said, with timestamps).
-2. **Annotate frames** — each screenshot → Groq Llama vision → `frame_annotations.json` (what was on screen at each moment).
-3. **Extract skill** — transcript + annotations → Groq Llama → prose body for `SKILL.md`, merged with your frontmatter from step A.
-
-The finished **skill bundle** lands in `skill-capture/skills/<slug>/`:
+The finished **training bundle** lands in `skill-capture/training-data/<slug>/`:
 
 | File | Contents |
 |------|----------|
-| `SKILL.md` | Agent-readable skill instructions (title, triggers, body) |
-| `transcript.json` | Full speech transcript |
-| `frame_annotations.json` | Screen descriptions tied to timestamps |
-| `scripts/` | Optional helper scripts directory |
+| `TRAINING.md` | Dataset manifest (title, tags, triggers, `content_kind: trainingData`) |
+| `video.b64` | Base64-encoded WebM (camera + mic) |
+| `video.meta.json` | Duration, mime type, byte size |
 
-This bundle is still **plaintext locally**. Groq sees the audio transcript and frame images during processing; that is the one cloud exposure before encryption.
+This bundle is still **plaintext locally**. The only cloud touchpoint before encryption is optional metadata you typed in the dashboard.
 
 ##### D. Register on-chain IP (Story Protocol)
 
-When you publish (the dashboard auto-triggers **Distribute** after capture succeeds), [`distribute.ts`](skill-capture/cli/src/distribute.ts) runs on the Pi using the **device wallet**.
+When you publish, [`distribute-training.ts`](skill-capture/cli/src/distribute-training.ts) runs on the Pi using the **device wallet**:
 
-**Story Protocol** (Aeneid testnet) registers your skill as intellectual property:
-
-1. IP metadata JSON (title, description, creator = device wallet) is uploaded to **IPFS via local Helia**.
-2. An **SPG NFT** is minted and an **IP Asset** is registered on-chain with a **commercial remix license** attached — this defines the mint fee (default 1 IP token) and royalty percentage back to your device wallet.
-3. You receive an **`ipId`** (on-chain IP identifier) and **`licenseTermsId`** — these become the license gate for decryption later.
+1. IP metadata JSON (title, description, creator = device wallet) uploads to **IPFS via local Helia**.
+2. An **SPG NFT** mints and an **IP Asset** registers on Aeneid with a **commercial remix license** — mint fee (default 1 IP) and royalty percentage to your device wallet.
+3. You receive **`ipId`** and **`licenseTermsId`** — the license gate for decryption later.
 
 ##### E. Package and encrypt (Story CDR)
 
-The skill bundle directory is zipped. Then **Story CDR** (Confidential Data Rails — [`@piplabs/cdr-sdk`](skill-capture/cdr/)) encrypts it **on the Pi using WASM crypto**, before any buyer can access it:
+The training bundle directory is zipped. **Story CDR** ([`@piplabs/cdr-sdk`](skill-capture/cdr/)) encrypts it **on the Pi using WASM crypto**:
 
-1. **Local AES encryption** — the zip bytes are encrypted with a fresh AES key. The result is ciphertext (meaningless without the key).
-2. **Threshold encryption of the key** — the AES key plus the storage pointer are encrypted using CDR's **TDH2 threshold scheme** against the network's DKG public key. No single party holds the full decryption key; Story validators must cooperate to release it.
-3. **Access conditions are baked into the vault:**
-   - **Write condition** — only the contributor's **device wallet** can create or update this vault (`OWNER_WRITE_CONDITION` contract).
-   - **Read condition** — only a wallet holding a valid **Story license token** for this skill's `ipId` can request decryption (`LICENSE_READ_CONDITION` + `LICENSE_TOKEN` contract).
-4. A **CDR vault** is allocated on-chain with a **`vaultUuid`**. The encrypted key material lives in the vault; the encrypted file bytes are stored separately.
+1. **Local AES encryption** — zip bytes encrypted with a fresh AES key.
+2. **Threshold encryption of the key** — TDH2 scheme against CDR validators; no single party holds the full key.
+3. **Access conditions baked into the vault:**
+   - **Write condition** — only your **device wallet** can create/update the vault.
+   - **Read condition** — only a wallet holding a valid **Story license token** for this `ipId` can decrypt.
+4. A **CDR vault** is allocated with a **`vaultUuid`**.
 
-In plain terms: **the skill zip is locked in a box; the box can only be opened by someone who paid for a Story license.**
+In plain terms: **the video zip is locked; only a licensed buyer can open it.**
 
 ##### F. Where the encrypted bytes are stored
 
-The ciphertext (encrypted zip) is stored in **two places**:
+1. **Local Helia on the Pi** — pins ciphertext; yields a **CID**.
+2. **Public IPFS via Pinata** — same ciphertext re-pinned for global fetch. **Still encrypted** — the CID alone does not expose your video.
 
-1. **Local Helia node on the Pi** — a local IPFS node ([`helia-storage.ts`](skill-capture/cdr/src/helia-storage.ts)) pins the file during upload. This gives a **content ID (CID)** — a hash-addressed pointer to the blob.
-2. **Public IPFS via Pinata** — the same ciphertext is re-pinned to Pinata ([`pinata-ipfs.ts`](skill-capture/cdr/src/pinata-ipfs.ts)) so buyers worldwide can fetch it by CID through a gateway URL. **The file on IPFS is still encrypted** — publishing the CID does not expose your voice, screen, or skill text.
-
-A local **`cdr-manifest.json`** is written into the bundle folder recording `vaultUuid`, `cid`, `ipId`, license terms, mint fee, Helia peer hints, and gateway URL.
+A **`cdr-manifest.json`** records `vaultUuid`, `cid`, `ipId`, license terms, mint fee, and gateway URL.
 
 ##### G. Publish catalog metadata (Arkiv)
 
-Finally [`publishCatalogToArkiv()`](skill-capture/arkiv/src/services/publish-catalog.ts) writes a **`skillListing`** entity to **Arkiv Network** (Braga testnet), signed by the device wallet:
+[`publishTrainingCatalogToArkiv()`](skill-capture/arkiv/src/services/publish-training-catalog.ts) writes a **`trainingDataListing`** entity to **Arkiv** (Braga testnet), signed by the device wallet:
 
-**What Arkiv stores (public, searchable):**
+**What Arkiv stores (public, searchable):** title, description, tags, `contentKind: trainingData`, status, slug, version, **`purchase` block** (vault UUID, CID, `ipId`, fees), **`ops` block** (Helia peers, Story URLs, gateway).
 
-- Title, description, tags, search text, triggers
-- Status (`published`), slug, version number
-- **`purchase` block** — `vaultUuid`, IPFS `cid`, Story `ipId`, `licenseTermsId`, mint fee, publisher address
-- **`ops` block** — Helia peer addresses, Story RPC/API URLs, IPFS gateway URL, CDR condition contract addresses
+**What Arkiv does *not* store:** raw video, plaintext `TRAINING.md` body, AES keys, or decrypted bundles.
 
-**What Arkiv does *not* store:**
-
-- Raw audio, video, or screen frames
-- Plaintext `SKILL.md` body
-- The AES key or decrypted bundle
-
-Arkiv is the **index card in a public library** — anyone can find your skill and see what it costs, but the book itself stays encrypted until licensed.
-
-Tag entities (`skillTag`) and version snapshots (`listingVersion`) are also written for search and history.
+Tag entities and version snapshots are written for search and history — same pattern as skills.
 
 ##### H. Lifecycle after publish
 
-- **Update metadata** — change title/tags in the UI; Arkiv listing is re-indexed; same encrypted vault and CID are reused.
-- **Archive** — listing status set to `archived`; removed from marketplace browse.
+Update metadata, archive, extend TTL, or full re-publish — identical lifecycle to skill listings ([section 2.2 H](#h-lifecycle-after-publish-skill-path) mirrors this for skills).
+
+---
+
+#### 2.2 Skill contribution (screen + voice → agent skill)
+
+The skill path targets **agent operators** who want distilled procedural knowledge rather than raw video. Example: a staff engineer records a PR review session; Groq extracts a `SKILL.md` the agent can follow at runtime.
+
+##### A. Draft metadata (before recording)
+
+In the Contribute UI you enter title, description, and tags. The orchestrator writes an initial [`SKILL.md`](skill-capture/skills/) with YAML frontmatter (name, description, triggers) — the skeleton Groq fills after recording.
+
+##### B. Capture — screen + voice
+
+[`capture.py`](skill-capture/capture.py) runs on the Pi:
+
+1. **Microphone** — PyAudio, 44.1 kHz mono PCM.
+2. **Screen** — `mss` screenshot every 5 seconds as JPEG frames.
+3. **Stop** — `q` or dashboard quit.
+
+Raw files land under `skill-capture/skills/raw/<slug>/<timestamp>/` (`audio.wav`, `frames/`, `frame_manifest.json`). **Plaintext local only** until distribute.
+
+##### C. Processing — Groq extraction
+
+[`process.py`](skill-capture/process.py) sends data to **Groq** (`GROQ_API_KEY` required):
+
+1. **Transcribe** — Whisper → `transcript.json`.
+2. **Annotate frames** — Llama vision → `frame_annotations.json`.
+3. **Extract skill** — Llama → prose body merged into `SKILL.md`.
+
+Finished bundle in `skill-capture/skills/<slug>/`: `SKILL.md`, transcript, annotations, optional `scripts/`. Groq is the one cloud exposure before encryption.
+
+##### D–G. Story IP, CDR encrypt, IPFS storage, Arkiv publish
+
+Identical to the training data path ([sections 2.1 D–G](#d-register-on-chain-ip-story-protocol)), except:
+
+- [`distribute.ts`](skill-capture/cli/src/distribute.ts) zips the skill bundle instead of training files.
+- [`publishCatalogToArkiv()`](skill-capture/arkiv/src/services/publish-catalog.ts) writes a **`skillListing`** entity (not `trainingDataListing`).
+
+##### H. Lifecycle after publish (skill path)
+
+- **Update metadata** — change title/tags; Arkiv re-indexed; same vault/CID reused.
+- **Archive** — status `archived`; removed from browse.
 - **Extend TTL** — Arkiv entity expiration extended.
-- **Re-publish** — full distribute pipeline again (new Story IP, new vault, new version).
+- **Re-publish** — full distribute again (new Story IP, vault, version).
 
 ---
 
-#### 2.2 Training data contribution (camera + voice → ML dataset)
+### Phase 3 — Buying, decrypting, and using training data & skills
 
-The training path targets **model trainers** rather than agent operators. The encrypt → store → license flow is identical; capture and bundle contents differ.
-
-1. **Capture** — [`video_capture.py`](skill-capture/video_capture.py) records **camera + microphone** on the Pi (OpenCV + PyAudio), muxes to WebM, then base64-encodes as `video.b64`. Raw files sit under `training-data/raw/<slug>/<timestamp>/`.
-2. **No Groq processing** — video is kept as-is to preserve training signal.
-3. **Bundle** — `training-data/<slug>/TRAINING.md` (metadata) + `video.b64` + manifest files.
-4. **Distribute** — [`distribute-training.ts`](skill-capture/cli/src/distribute-training.ts) runs the same Story IP → CDR encrypt → Helia → Pinata → Arkiv pipeline, but publishes a **`trainingDataListing`** entity instead of `skillListing`.
-
-Buyers decrypt the same way (Story license → CDR threshold decrypt → unzip) and can feed video into fine-tuning tools (e.g. ClawSync `local-trainer/`).
-
----
-
-### Phase 3 — Buying, decrypting, and using a skill
-
-When an agent operator or developer wants your skill, they never contact your Pi directly. They read **Arkiv**, pay **Story**, and decrypt via **CDR**.
+Buyers never contact your Pi directly. Whether they want **licensed video for model training** or a **skill for an agent**, the purchase rail is the same: read **Arkiv**, pay **Story**, decrypt via **CDR**. What differs is what they do with the plaintext after decrypt.
 
 ##### A. Discovery (Arkiv read — no payment yet)
 
-1. The buyer searches Arkiv — by tags, filters, or natural language (e.g. `"code review typescript"`). Queries run via [`query-catalog.ts`](skill-capture/arkiv/src/services/query-catalog.ts) from the dashboard, ClawSync SyncBoard, or CLI.
-2. Results show **public metadata only**: title, description, tags, mint fee, contributor device wallet address.
-3. Selecting a skill loads the **`purchase` + `ops` blocks** — vault UUID, IPFS CID, Story `ipId`, gateway URL, Helia peer hints. Still no plaintext content.
+1. The buyer searches Arkiv — by tags, filters, or natural language. Training queries use `searchTrainingNaturalLanguage()`; skill queries use `searchNaturalLanguage()` ([`query-catalog.ts`](skill-capture/arkiv/src/services/query-catalog.ts)). Available from the dashboard, ClawSync SyncBoard (**Train your AI** tab or skill marketplace), or CLI.
+2. Results show **public metadata only**: title, description, tags, `contentKind` (training vs skill), mint fee, contributor device wallet.
+3. Selecting a listing loads **`purchase` + `ops` blocks** — vault UUID, IPFS CID, Story `ipId`, gateway URL, Helia peer hints. Still no plaintext video or skill body.
 
 ##### B. Purchase (Story Protocol — on-chain payment)
 
-The buyer's wallet (agent operator or CLI user) executes three Story transactions ([`purchase-from-listing.ts`](clawsync/skill-marketplace/src/cdr/purchase-from-listing.ts)):
+The buyer's wallet executes three Story transactions ([`purchase-from-listing.ts`](clawsync/skill-marketplace/src/cdr/purchase-from-listing.ts) for skills; `purchase-training` for training data):
 
-1. **Deposit** — wrap IP tokens into WIP (Wrapped IP) to pay the license fee.
+1. **Deposit** — wrap IP tokens into WIP to pay the license fee.
 2. **Approve** — allow Story's Royalty Module to spend the WIP.
-3. **Mint license token** — call `mintLicenseTokens` for this skill's `ipId` and `licenseTermsId`. The buyer receives a **license token ID** (an ERC-721–style token proving they paid). Royalty flows to the contributor's **device wallet** per the on-chain license terms.
+3. **Mint license token** — `mintLicenseTokens` for the listing's `ipId` and `licenseTermsId`. The buyer receives a **license token ID** proving payment. Royalty flows to the contributor's **device wallet**.
 
-Without this token, CDR will reject the decrypt request.
+Without this token, CDR rejects the decrypt request.
 
 ##### C. Decryption (Story CDR — threshold unlock)
 
-With the license token in hand, the buyer's machine runs CDR decrypt ([`decrypt-with-logs.ts`](skill-capture/cdr/src/decrypt-with-logs.ts)):
+With the license token, the buyer's machine runs CDR decrypt ([`decrypt-with-logs.ts`](skill-capture/cdr/src/decrypt-with-logs.ts)):
 
-1. **Read request on-chain** — the buyer submits a CDR read request for `vaultUuid`, attaching the license token ID as `accessAuxData`. The **LICENSE_READ_CONDITION** smart contract verifies the buyer holds a valid token for this `ipId`.
-2. **Validator threshold decrypt** — Story CDR validators return partial decryptions until the threshold is met. The client combines them to recover the **AES key** and storage pointer.
-3. **Download ciphertext** — the encrypted zip is fetched from **IPFS** (Pinata gateway and/or contributor's Helia peer using the CID from the Arkiv listing).
-4. **Local AES decrypt** — the buyer's machine decrypts the zip bytes client-side. Plaintext never passes through Arkiv or a central server.
+1. **Read request on-chain** — CDR read request for `vaultUuid` with license token as `accessAuxData`; **LICENSE_READ_CONDITION** verifies payment.
+2. **Validator threshold decrypt** — partial decryptions combine into the **AES key** and storage pointer.
+3. **Download ciphertext** — encrypted zip fetched from **IPFS** (Pinata gateway and/or contributor Helia peer).
+4. **Local AES decrypt** — zip bytes decrypted client-side. Plaintext never passes through Arkiv or a central server.
 
-##### D. Use the skill
+A **`purchase-receipt.json`** records license token ID, vault UUID, read tx hash, and buyer address for audit.
 
-1. The zip is extracted to a local folder (`SKILL.md`, `transcript.json`, `frame_annotations.json`, etc.).
-2. In **ClawSync**, the skill is imported into an agent's context ([`skillPurchaseImport.ts`](clawsync/convex/skillPurchaseImport.ts)) — the agent can now follow your recorded heuristics.
-3. A **`purchase-receipt.json`** is saved with license token ID, vault UUID, read transaction hash, and buyer address for audit.
+##### D. Use training data — fine-tune a model (primary path)
 
-The standalone CLI ([`purchase-skill.ts`](skill-capture/cdr/src/purchase-skill.ts)) runs the same purchase + decrypt flow without ClawSync.
+After decrypting a **`trainingDataListing`** (e.g. `sitting-standing-example`):
 
-##### E. Contributor dashboard
+1. **Extract bundle** — `TRAINING.md`, `video.b64`, and metadata land under `clawsync/data/purchased-training-data/<slug>/` ([`trainingDataPurchaseActions.ts`](clawsync/convex/trainingDataPurchaseActions.ts)).
+2. **Decode video** — `video.b64` decodes to WebM (camera + mic). The trainer previews it in SyncBoard or loads it into the local trainer.
+3. **Frame sampling + labeling** — [local-trainer](clawsync/local-trainer/) extracts frames at a configurable rate (e.g. 1 fps). Labels like `sitting,standing` split frames across classes for supervised learning.
+4. **Fine-tune** — a small vision model (CLIP, ViT, or MobileViT) trains on labeled frames via PyTorch on the trainer's CPU/GPU. Weights stay local under `local-trainer/output/runs/<job_id>/`.
+5. **Inference** — the fine-tuned classifier predicts activity classes on new images or video — e.g. distinguish sitting vs standing for ergonomics, assistive robotics, or health monitoring.
 
-Owners see their published skills by querying Arkiv per registered device wallet ([`contributions-from-arkiv.ts`](frontend/src/lib/contributions-from-arkiv.ts)). No centralized database — portal devices and catalog listings both live on Arkiv Braga.
+**Why trainers buy instead of scrape:** the footage is **consent-aligned**, **wallet-attributed** on Arkiv, and **license-gated** via Story. The contributor earns royalties; the trainer gets provenance for compliance and model cards.
+
+Custom pipelines can skip ClawSync entirely — run `purchase-training` from the marketplace CLI and feed decrypted video into any fine-tuning stack (PyTorch, Hugging Face, custom data loaders).
+
+##### E. Use a skill — equip an agent (secondary path)
+
+After decrypting a **`skillListing`** (e.g. `alex-code-review`):
+
+1. **Extract bundle** — `SKILL.md`, `transcript.json`, `frame_annotations.json`, and optional scripts.
+2. **Import into agent runtime** — in **ClawSync**, [`skillPurchaseImport.ts`](clawsync/convex/skillPurchaseImport.ts) attaches the skill to an agent's context. The agent's system prompt and tool instructions now encode the contributor's recorded heuristics.
+3. **Runtime behavior** — when the agent faces a matching task (triggers like `code-review`, `typescript`), it follows the skill's procedural guidance: what to check first, when to escalate, how to phrase feedback — grounded in a real session, not generic LLM knowledge.
+4. **Transcript + annotations as context** — the full speech transcript and screen annotations provide additional grounding the agent can reference during multi-step tasks.
+
+The standalone CLI ([`purchase-skill.ts`](skill-capture/cdr/src/purchase-skill.ts)) runs purchase + decrypt without ClawSync — useful for importing skills into other agent frameworks that read `SKILL.md` files.
+
+##### F. Contributor dashboard
+
+Owners see published **training data and skills** by querying Arkiv per registered device wallet ([`contributions-from-arkiv.ts`](frontend/src/lib/contributions-from-arkiv.ts)). No centralized database — portal devices and catalog listings both live on Arkiv Braga.
 
 ---
 
@@ -444,13 +467,14 @@ Owners see their published skills by querying Arkiv per registered device wallet
 
 | Data | Where it lives | Who can see it |
 |------|----------------|----------------|
-| Skill title, tags, description | Arkiv `skillListing` | Anyone (marketplace browse) |
+| Training/skill title, tags, description | Arkiv `trainingDataListing` / `skillListing` | Anyone (marketplace browse) |
 | Vault UUID, IPFS CID, Story `ipId`, mint fee | Arkiv `purchase` block | Anyone |
-| Encrypted skill zip | IPFS (Pinata + Helia) | Anyone can **download the blob**, but it is **encrypted gibberish** without a license |
+| Encrypted training/skill zip | IPFS (Pinata + Helia) | Anyone can **download the blob**, but it is **encrypted gibberish** without a license |
 | AES key + decrypt authorization | CDR vault on-chain | Hidden until license token proves payment |
-| Plaintext `SKILL.md`, audio, video | Buyer's disk **after** licensed decrypt | License holder only |
-| Raw capture during recording | Pi local disk (`skills/raw/`) | Contributor only, until distribute |
-| Groq processing | Groq API (transcript + frames) | Groq during processing step only, before encryption |
+| Plaintext `video.b64`, `TRAINING.md` | Trainer's disk **after** licensed decrypt | License holder only |
+| Plaintext `SKILL.md`, transcript, screen frames | Agent operator's disk **after** licensed decrypt | License holder only |
+| Raw capture during recording | Pi local disk (`training-data/raw/` or `skills/raw/`) | Contributor only, until distribute |
+| Groq processing (skill path only) | Groq API (transcript + frames) | Groq during processing step only, before encryption |
 
 ---
 
@@ -571,7 +595,7 @@ Today, OpenClu runs on a **Raspberry Pi** with microphone, camera, and screen ca
 - **Build rich knowledge graphs** from sessions — entities, relationships, decision points, skill primitives — rather than a single flat `SKILL.md` file. Agents traverse the graph at runtime.
 - **Emit training-grade datasets** with synchronized multimodal streams, provenance metadata, and consent scopes — the kind of data ML teams currently cannot buy ethically at scale.
 
-The economics stay the same: **device wallet owns the IP**, Story enforces licenses, CDR encrypts, Arkiv catalogs. Contributors wear Clu during their workday, week, or craft session; skills and datasets accumulate as a **portfolio of licensable assets**. Agent platforms plug into Arkiv; model labs license training bundles with on-chain attribution.
+The economics stay the same: **device wallet owns the IP**, Story enforces licenses, CDR encrypts, Arkiv catalogs. Contributors wear Clu during their workday, week, or craft session; **training datasets and skills accumulate as a portfolio of licensable assets**. Model labs license video bundles with on-chain attribution; agent platforms plug into Arkiv for procedural skills.
 
 This is production-realistic with focused R&D:
 
