@@ -27,10 +27,16 @@ FRAME_INTERVAL = 0.1  # ~10 fps for mux
 OUTPUT_RAW = Path("training-data/raw")
 OUTPUT_BUNDLE = Path("training-data")
 MAX_VIDEO_BYTES = 100 * 1024 * 1024  # 100 MB soft cap
+WARMUP_READS = 45
+BLACK_LUMA_THRESHOLD = 15.0
+MIN_BYTES_PER_FRAME = 8_000  # heuristic vs healthy captures (~15KB/frame)
 
 stop_flag = threading.Event()
 frames_audio: list[bytes] = []
 video_frames: list = []
+
+_latest_frame_lock = threading.Lock()
+_latest_frame = None
 
 
 def _camera_device_index() -> int:
@@ -54,6 +60,34 @@ def _open_camera(device_index: int) -> cv2.VideoCapture:
     return cv2.VideoCapture(device_index)
 
 
+def _mean_luma(frame) -> float:
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    small = cv2.resize(gray, (64, 36), interpolation=cv2.INTER_AREA)
+    return float(small.mean())
+
+
+def _warmup_camera(cap: cv2.VideoCapture) -> None:
+    """Discard initial frames while the camera auto-exposure stabilizes."""
+    print(f"  [video] warming up camera ({WARMUP_READS} frames)...")
+    for _ in range(WARMUP_READS):
+        cap.grab()
+    # One retrieve to flush pipeline
+    cap.retrieve()
+
+
+def _camera_grab_loop(cap: cv2.VideoCapture) -> None:
+    """Continuously grab frames so blocking read() does not limit sample rate."""
+    global _latest_frame
+    while not stop_flag.is_set():
+        if not cap.grab():
+            time.sleep(0.001)
+            continue
+        ok, frame = cap.retrieve()
+        if ok and frame is not None:
+            with _latest_frame_lock:
+                _latest_frame = frame.copy()
+
+
 def record_audio():
     pa = pyaudio.PyAudio()
     stream = pa.open(
@@ -73,7 +107,8 @@ def record_audio():
     print("  [video] audio stopped.")
 
 
-def record_camera_frames():
+def record_camera_frames(wall_clock_start: float):
+    global _latest_frame
     device = _camera_device_index()
     cap = _open_camera(device)
     if not cap.isOpened():
@@ -86,20 +121,59 @@ def record_camera_frames():
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     cap.set(cv2.CAP_PROP_FPS, max(1, int(1.0 / FRAME_INTERVAL)))
 
+    _warmup_camera(cap)
+
     print(f"  [video] camera recording (device {device})...")
-    last_grab = 0.0
+    grab_thread = threading.Thread(target=_camera_grab_loop, args=(cap,), daemon=True)
+    grab_thread.start()
+
+    target_fps = 1.0 / FRAME_INTERVAL
+    last_sample = 0.0
+    failed_reads = 0
     try:
         while not stop_flag.is_set():
             now = time.time()
-            if now - last_grab >= FRAME_INTERVAL:
-                ok, frame = cap.read()
-                if ok and frame is not None:
+            if now - last_sample >= FRAME_INTERVAL:
+                with _latest_frame_lock:
+                    frame = None if _latest_frame is None else _latest_frame.copy()
+                if frame is not None:
                     video_frames.append(frame)
-                    last_grab = now
-            time.sleep(0.01)
+                    last_sample = now
+                else:
+                    failed_reads += 1
+            time.sleep(0.005)
     finally:
+        grab_thread.join(timeout=2)
         cap.release()
-    print(f"  [video] camera stopped. {len(video_frames)} frames captured.")
+
+    elapsed = time.time() - wall_clock_start
+    expected = max(1, int(elapsed * target_fps))
+    captured = len(video_frames)
+    ratio = captured / expected if expected else 0
+    print(
+        f"  [video] camera stopped. {captured} frames captured "
+        f"(expected ~{expected} at {target_fps:.0f} fps, ratio {ratio:.0%}).",
+    )
+    if failed_reads:
+        print(f"  [video] warning: {failed_reads} sample ticks had no frame yet.")
+    if ratio < 0.5:
+        print(
+            "  [video] warning: frame count is far below wall-clock duration — "
+            "check TRAINING_CAMERA_INDEX and camera permissions.",
+        )
+
+    if video_frames:
+        luma = _mean_luma(video_frames[0])
+        print(f"  [video] first frame mean luma: {luma:.1f}")
+        if luma < BLACK_LUMA_THRESHOLD:
+            msg = (
+                f"  [video] error: first captured frame looks black (luma {luma:.1f} < "
+                f"{BLACK_LUMA_THRESHOLD}). Try another TRAINING_CAMERA_INDEX or wait for "
+                "the camera to expose."
+            )
+            print(msg)
+            if os.environ.get("TRAINING_ALLOW_BLACK_FRAMES", "").strip() != "1":
+                raise RuntimeError(msg.strip())
 
 
 def wait_for_terminal_quit():
@@ -139,6 +213,38 @@ def _find_ffmpeg() -> str | None:
     return None
 
 
+def _find_ffprobe(ffmpeg: str | None) -> str | None:
+    probe = shutil.which("ffprobe")
+    if probe:
+        return probe
+    if ffmpeg:
+        name = "ffprobe.exe" if sys.platform == "win32" else "ffprobe"
+        sibling = Path(ffmpeg).parent / name
+        if sibling.is_file():
+            return str(sibling)
+    return None
+
+
+def _probe_webm_duration(ffprobe: str, webm_path: Path) -> float | None:
+    cmd = [
+        ffprobe,
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        str(webm_path),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        return None
+    try:
+        return float(result.stdout.strip())
+    except ValueError:
+        return None
+
+
 def _mux_to_webm(ffmpeg: str, run_dir: Path, wav_path: Path) -> Path:
     frames_dir = run_dir / "frames"
     frames_dir.mkdir(parents=True, exist_ok=True)
@@ -150,6 +256,8 @@ def _mux_to_webm(ffmpeg: str, run_dir: Path, wav_path: Path) -> Path:
     cmd = [
         ffmpeg,
         "-y",
+        "-start_number",
+        "0",
         "-framerate",
         str(fps),
         "-i",
@@ -167,14 +275,20 @@ def _mux_to_webm(ffmpeg: str, run_dir: Path, wav_path: Path) -> Path:
         "-shortest",
         str(out_path),
     ]
-    print(f"  [video] encoding with ffmpeg ({len(video_frames)} frames)...")
+    print(f"  [video] encoding with ffmpeg ({len(video_frames)} frames @ {fps} fps)...")
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(f"ffmpeg failed: {result.stderr[-2000:]}")
     return out_path
 
 
-def save_bundle(slug: str, webm_path: Path, duration_sec: float):
+def save_bundle(
+    slug: str,
+    webm_path: Path,
+    wall_clock_sec: float,
+    frame_count: int,
+    ffmpeg: str,
+):
     bundle_dir = OUTPUT_BUNDLE / slug
     bundle_dir.mkdir(parents=True, exist_ok=True)
 
@@ -185,19 +299,45 @@ def save_bundle(slug: str, webm_path: Path, duration_sec: float):
             f"(recommended max {MAX_VIDEO_BYTES // (1024*1024)} MB)",
         )
 
+    ffprobe = _find_ffprobe(ffmpeg)
+    webm_duration = _probe_webm_duration(ffprobe, webm_path) if ffprobe else None
+    if webm_duration is None:
+        webm_duration = frame_count / max(1, int(1.0 / FRAME_INTERVAL))
+        print(
+            f"  [video] warning: ffprobe unavailable; durationSec estimated as {webm_duration:.2f}",
+        )
+
+    target_fps = 1.0 / FRAME_INTERVAL
+    expected_frames = max(1, int(wall_clock_sec * target_fps))
+    if frame_count < expected_frames * 0.5:
+        print(
+            f"  [video] warning: only {frame_count} frames for {wall_clock_sec:.1f}s wall time "
+            f"(expected ~{expected_frames}).",
+        )
+    if frame_count > 0 and len(raw_bytes) < frame_count * MIN_BYTES_PER_FRAME:
+        print(
+            f"  [video] warning: byteLength {len(raw_bytes)} is low for {frame_count} frames "
+            f"(expected roughly >{frame_count * MIN_BYTES_PER_FRAME} bytes).",
+        )
+
     b64 = base64.b64encode(raw_bytes).decode("ascii")
     (bundle_dir / "video.b64").write_text(b64, encoding="utf-8")
 
     meta = {
         "mimeType": "video/webm",
-        "durationSec": round(duration_sec, 2),
+        "durationSec": round(webm_duration, 2),
+        "wallClockSec": round(wall_clock_sec, 2),
+        "frameCount": frame_count,
         "byteLength": len(raw_bytes),
         "recordedAt": datetime.utcnow().isoformat() + "Z",
         "contentKind": "trainingData",
         "captureSource": "camera",
     }
     (bundle_dir / "video.meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
-    print(f"  [video] bundle -> {bundle_dir}/video.b64 ({len(b64)} chars base64)")
+    print(
+        f"  [video] bundle -> {bundle_dir}/video.b64 "
+        f"({len(b64)} chars base64, durationSec={meta['durationSec']})",
+    )
     return bundle_dir
 
 
@@ -241,11 +381,15 @@ def main():
 
     start_time = time.time()
     audio_thread = threading.Thread(target=record_audio, daemon=True)
-    video_thread = threading.Thread(target=record_camera_frames, daemon=True)
+    video_thread = threading.Thread(
+        target=record_camera_frames,
+        args=(start_time,),
+        daemon=True,
+    )
     audio_thread.start()
     video_thread.start()
     wait_for_terminal_quit()
-    duration = time.time() - start_time
+    wall_clock_sec = time.time() - start_time
     stop_flag.set()
     audio_thread.join(timeout=5)
     video_thread.join(timeout=5)
@@ -261,14 +405,15 @@ def main():
     if not video_frames:
         print("Error: no camera frames captured.")
         sys.exit(1)
+    frame_count = len(video_frames)
     webm_path = _mux_to_webm(ffmpeg, run_dir, wav_path)
 
     if not webm_path.is_file():
         print(f"Error: recording file missing at {webm_path}")
         sys.exit(1)
 
-    print(f"\nStopped video recording after {duration:.1f}s.")
-    save_bundle(slug, webm_path, duration)
+    print(f"\nStopped video recording after {wall_clock_sec:.1f}s wall time.")
+    save_bundle(slug, webm_path, wall_clock_sec, frame_count, ffmpeg)
 
     if not skip_distribute:
         from cdr_publish import publish_training_to_cdr

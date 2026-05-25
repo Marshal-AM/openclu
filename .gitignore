@@ -30,6 +30,42 @@ __pycache__/
 # Local capture artifacts (audio, frames, raw video) — stay on device only
 skill-capture/skills/raw/
 skill-capture/training-data/raw/
+skill-capture/**/frames/
+skill-capture/**/audio.wav
+skill-capture/**/recording.webm
+skill-capture/**/restored.webm
+
+# Training data bundles (camera capture + CDR publish) — local device only
+skill-capture/training-data/
+!skill-capture/training-data/.gitkeep
+
+# Encoded video payloads and capture/publish metadata
+**/video.b64
+**/video.meta.json
+skill-capture/**/cdr-manifest.json
+
+# Local publish registries (Story/CDR/IPFS refs per device)
+skill-capture/skills/registry/*.json
+skill-capture/training-data/registry/
+
+# Purchased skill bundles (from marketplace CLI)
+skill-capture/skills/purchased/**
+!skill-capture/skills/purchased/.gitkeep
+
+# Test fixtures (keep test/*.py scripts)
+test/*.mp4
+test/*.webm
+test/*base64*
+test/test_restored.*
+test/restored.webm
+
+# Common video formats (repo should not store media)
+*.mp4
+*.webm
+*.mov
+*.mkv
+*.avi
+*.wav
 
 # Logs and local noise
 *.log
