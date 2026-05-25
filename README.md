@@ -53,7 +53,9 @@ OpenClu is built as a **hybrid of the Arkiv builder themes** ([see `docs/themes.
 ## Introduction
 
 <!-- Replace with hardware photo when available -->
-![OpenClu Clu capture hardware — coming soon](../landing/public/openclu_logo_dark.png)
+<p align="center">
+<img width="660" height="586" alt="WhatsApp Image 2026-05-25 at 15 47 06" src="https://github.com/user-attachments/assets/6df0e7fd-65df-4ecf-9d3f-27f1d4f78dbf" />
+</p>
 
 OpenClu sits at the intersection of **physical activity capture**, **privacy-preserving encryption**, and **on-chain data ownership**.
 
