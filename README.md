@@ -13,9 +13,7 @@ OpenClu is a full-stack system for capturing real human activity on contributor-
 | **Demo video** | Coming soon |
 | **Pitch deck** | Coming soon |
 | **Live app (dashboard)** | [https://openclu-dashboard.vercel.app/login](https://openclu-dashboard.vercel.app/login) |
-| **Landing page** | `landing/` (marketing site) |
-| **Arkiv Braga faucet** | [https://braga.hoodi.arkiv.network/faucet/](https://braga.hoodi.arkiv.network/faucet/) |
-| **Arkiv Braga explorer** | [https://explorer.braga.hoodi.arkiv.network/](https://explorer.braga.hoodi.arkiv.network/) |
+| **Live app (Landing page)** | [https://openclu.vercel.app/login](https://openclu.vercel.app/login) |
 
 ---
 
