@@ -85,12 +85,12 @@ Buyers (AI agents via ClawSync, or standalone CLI) discover listings on Arkiv, p
 
 | Step | What happens | Stack |
 |------|----------------|-------|
-| 1 | Alex runs `register.sh` → device wallet derived, QR links to dashboard | `skill-capture/register.sh`, `scripts/register-wallet.mjs` |
-| 2 | Alex confirms registration in browser; `portalDevice` written to Arkiv | `frontend/src/app/api/devices/register/route.ts` |
-| 3 | Alex drafts metadata in Contribute UI → `SKILL.md` frontmatter saved | `orchestrator/src/skill-md.ts` |
-| 4 | Alex starts recording → `capture.py` records mic + screen until `q` | `skill-capture/capture.py` |
-| 5 | `process.py` transcribes audio, annotates frames, extracts skill body via Groq | `skill-capture/process.py` |
-| 6 | Distribute job runs → Story IP mint + CDR encrypt + Arkiv publish | `cli/src/distribute.ts` |
+| 1 | Alex runs `register.sh` → device wallet derived, QR links to dashboard | [skill-capture/register.sh](skill-capture/register.sh), [skill-capture/scripts/register-wallet.mjs](skill-capture/scripts/register-wallet.mjs) |
+| 2 | Alex confirms registration in browser; `portalDevice` written to Arkiv | [frontend/src/app/api/devices/register/route.ts](frontend/src/app/api/devices/register/route.ts) |
+| 3 | Alex drafts metadata in Contribute UI → `SKILL.md` frontmatter saved | [skill-capture/orchestrator/src/skill-md.ts](skill-capture/orchestrator/src/skill-md.ts) |
+| 4 | Alex starts recording → `capture.py` records mic + screen until `q` | [skill-capture/capture.py](skill-capture/capture.py) |
+| 5 | `process.py` transcribes audio, annotates frames, extracts skill body via Groq | [skill-capture/process.py](skill-capture/process.py) |
+| 6 | Distribute job runs → Story IP mint + CDR encrypt + Arkiv publish | [skill-capture/cli/src/distribute.ts](skill-capture/cli/src/distribute.ts) |
 
 **Story transactions (contributor device wallet signs):**
 
@@ -123,10 +123,10 @@ Only wallets holding a Story license token for this `ipId` can threshold-decrypt
 
 | Step | What happens | Stack |
 |------|----------------|-------|
-| 1 | Agent operator searches Arkiv: `"code review typescript"` | `query-catalog.ts` → `searchNaturalLanguage()` |
+| 1 | Agent operator searches Arkiv: `"code review typescript"` | [skill-capture/arkiv/src/services/query-catalog.ts](skill-capture/arkiv/src/services/query-catalog.ts) → `searchNaturalLanguage()` |
 | 2 | Selects `alex-code-review` → reads listing payload (CID, ipId, vault, fees) | `fetchSkillCatalogDetail()` / ClawSync `catalogActions.getDetail` |
 | 3 | Buyer wallet mints Story license token | `storyClient.license.mintLicenseTokens()` |
-| 4 | CDR decrypts bundle using license token as read condition | `purchase-from-listing.ts` / `decrypt-with-logs.ts` |
+| 4 | CDR decrypts bundle using license token as read condition | [clawsync/skill-marketplace/src/cdr/purchase-from-listing.ts](clawsync/skill-marketplace/src/cdr/purchase-from-listing.ts) / [clawsync/skill-marketplace/src/cdr/decrypt-with-logs.ts](clawsync/skill-marketplace/src/cdr/decrypt-with-logs.ts) |
 | 5 | Agent imports `SKILL.md` + context into ClawSync agent | `skillPurchaseImport.importPurchasedSkill` |
 
 **Story transactions (buyer agent wallet signs):**
@@ -150,8 +150,8 @@ OpenClu is a deliberate **hybrid of all three [Arkiv ETHNS Builder Challenge the
 | Memory on Arkiv, wallet-owned | Skills are `skillListing` entities; `$owner` = contributor device wallet; `$creator` immutable |
 | Portable across tools | Any client that reads Arkiv + Story + CDR can consume listings (frontend, ClawSync, MCP-style CLI) |
 | Entity types | **Catalog:** `skillListing`, `trainingDataListing`, `skillTag`, `listingVersion`. **Portal:** `portalUser`, `portalDevice`, `deviceRegistrationPending` |
-| Retrieval by tag / time | `query-catalog.ts`: `eq`, `and`, `gte`, `lte`, `desc` on typed attributes; NL search via `searchNaturalLanguage()` |
-| Differentiated expiration | `listingExpiresIn()`, `portal-expiration.ts` — portal pending 24h TTL; listings extendable via `extendSkillListing()` |
+| Retrieval by tag / time | [skill-capture/arkiv/src/services/query-catalog.ts](skill-capture/arkiv/src/services/query-catalog.ts): `eq`, `and`, `gte`, `lte`, `desc` on typed attributes; NL search via `searchNaturalLanguage()` |
+| Differentiated expiration | `listingExpiresIn()`, [skill-capture/arkiv/src/lib/portal-expiration.ts](skill-capture/arkiv/src/lib/portal-expiration.ts) — portal pending 24h TTL; listings extendable via `extendSkillListing()` |
 
 **Components:** Groq extraction → structured `SKILL.md` / knowledge graph (roadmap); Arkiv payload stores triggers, tags, transcript refs; ClawSync agents attach purchased skills as runtime memory.
 
@@ -232,14 +232,14 @@ The same Arkiv entity carries **public discovery metadata** and **private conten
 
 | Path | Stack |
 |------|-------|
-| `skill-capture/` | Python 3.10+, Node 22+, Groq, PyAudio, mss, OpenCV |
-| `skill-capture/cdr/` | `@piplabs/cdr-sdk`, `@story-protocol/core-sdk`, Helia 5, Pinata, viem |
-| `skill-capture/arkiv/` | `@arkiv-network/sdk`, Braga chain, Zod |
-| `skill-capture/orchestrator/` | Express, tsx, ngrok (pyngrok) |
-| `frontend/` | Next.js 15, React 19, Privy, Tailwind 4 |
-| `clawsync/` | React, Vite, Convex, `@convex-dev/agent` |
-| `clawsync/skill-marketplace/` | Vendored CDR + Arkiv read/purchase CLI |
-| `landing/` | Next.js marketing site |
+| [skill-capture/](skill-capture/) | Python 3.10+, Node 22+, Groq, PyAudio, mss, OpenCV |
+| [skill-capture/cdr/](skill-capture/cdr/) | `@piplabs/cdr-sdk`, `@story-protocol/core-sdk`, Helia 5, Pinata, viem |
+| [skill-capture/arkiv/](skill-capture/arkiv/) | `@arkiv-network/sdk`, Braga chain, Zod |
+| [skill-capture/orchestrator/](skill-capture/orchestrator/) | Express, tsx, ngrok (pyngrok) |
+| [frontend/](frontend/) | Next.js 15, React 19, Privy, Tailwind 4 |
+| [clawsync/](clawsync/) | React, Vite, Convex, `@convex-dev/agent` |
+| [clawsync/skill-marketplace/](clawsync/skill-marketplace/) | Vendored CDR + Arkiv read/purchase CLI |
+| [landing/](landing/) | Next.js marketing site |
 
 ---
 
@@ -293,8 +293,8 @@ User connects Privy wallet → `POST /api/devices/register`
 
 | Entity | File | Function |
 |--------|------|----------|
-| `portalDevice` | `entities/portal-device.ts` | `buildPortalDeviceCreate()` |
-| (delete pending) | `mutate-portal.ts` | `deletePendingRegistration()` |
+| `portalDevice` | [skill-capture/arkiv/src/entities/portal-device.ts](skill-capture/arkiv/src/entities/portal-device.ts) | `buildPortalDeviceCreate()` |
+| (delete pending) | [skill-capture/arkiv/src/services/mutate-portal.ts](skill-capture/arkiv/src/services/mutate-portal.ts) | `deletePendingRegistration()` |
 
 **Portal bridge (frontend never calls SDK directly):**
 
@@ -350,7 +350,7 @@ python capture.py <slug> --no-distribute
 |----------|--------|
 | `record_audio()` | WAV via PyAudio |
 | `record_screen()` | PNG frames every 5s via `mss` |
-| `wait_for_terminal_quit()` | Blocks until `q` (forwarded by `capture-quit-listener.ts`) |
+| `wait_for_terminal_quit()` | Blocks until `q` (forwarded by [skill-capture/orchestrator/src/capture-quit-listener.ts](skill-capture/orchestrator/src/capture-quit-listener.ts)) |
 | `save_outputs()` | `skills/raw/<slug>/<timestamp>/` |
 
 ##### 2.1.3 Process (Groq)
@@ -373,14 +373,14 @@ UI auto-triggers when capture job succeeds: `POST /api/orch/jobs/{id}/distribute
 
 | # | Step | File | Function |
 |---|------|------|----------|
-| 1 | Load device signer | `arkiv/src/lib/device-wallet.ts` | `loadDeviceAccount()` |
-| 2 | Register Story IP | `cdr/src/services/publish-service.ts` | `registerSkillIp()` |
-| 3 | Zip bundle | `distribute.ts` | `readBundleZip()` |
-| 4 | Boot Helia | `cdr/src/helia-storage.ts` | `getHeliaStorage()` |
-| 5 | CDR encrypt | `publish-service.ts` | `encryptBundleToVault()` |
-| 6 | Pin public IPFS | `cdr/src/pinata-ipfs.ts` | `pinCiphertextToPublicIpfs()` |
-| 7 | Local manifest | `distribute.ts` | `writeLocalManifest()` → `cdr-manifest.json` |
-| 8 | **Arkiv publish** | `arkiv/src/services/publish-catalog.ts` | `publishCatalogToArkiv()` |
+| 1 | Load device signer | [skill-capture/arkiv/src/lib/device-wallet.ts](skill-capture/arkiv/src/lib/device-wallet.ts) | `loadDeviceAccount()` |
+| 2 | Register Story IP | [skill-capture/cdr/src/services/publish-service.ts](skill-capture/cdr/src/services/publish-service.ts) | `registerSkillIp()` |
+| 3 | Zip bundle | [skill-capture/cli/src/distribute.ts](skill-capture/cli/src/distribute.ts) | `readBundleZip()` |
+| 4 | Boot Helia | [skill-capture/cdr/src/helia-storage.ts](skill-capture/cdr/src/helia-storage.ts) | `getHeliaStorage()` |
+| 5 | CDR encrypt | [skill-capture/cdr/src/services/publish-service.ts](skill-capture/cdr/src/services/publish-service.ts) | `encryptBundleToVault()` |
+| 6 | Pin public IPFS | [skill-capture/cdr/src/pinata-ipfs.ts](skill-capture/cdr/src/pinata-ipfs.ts) | `pinCiphertextToPublicIpfs()` |
+| 7 | Local manifest | [skill-capture/cli/src/distribute.ts](skill-capture/cli/src/distribute.ts) | `writeLocalManifest()` → `cdr-manifest.json` |
+| 8 | **Arkiv publish** | [skill-capture/arkiv/src/services/publish-catalog.ts](skill-capture/arkiv/src/services/publish-catalog.ts) | `publishCatalogToArkiv()` |
 
 **Arkiv publish detail** (`publishCatalogToArkiv`, line 68+):
 
@@ -407,9 +407,9 @@ Every query filters `eq("project", PROJECT_ATTRIBUTE.value)` — required by [Ar
 
 | Job | Orchestrator route | Arkiv job | Effect |
 |-----|-------------------|-----------|--------|
-| Update metadata | `POST /jobs/update-catalog` | `arkiv/src/jobs/update-catalog.ts` | Re-index listing, same CDR vault |
-| Archive | `POST /jobs/archive` | `archive-catalog.ts` | `status: archived`, tags deleted |
-| Extend TTL | CLI `npm run extend` | `extend-catalog.ts` | `extendEntity` |
+| Update metadata | `POST /jobs/update-catalog` | [skill-capture/arkiv/src/jobs/update-catalog.ts](skill-capture/arkiv/src/jobs/update-catalog.ts) | Re-index listing, same CDR vault |
+| Archive | `POST /jobs/archive` | [skill-capture/arkiv/src/services/archive-catalog.ts](skill-capture/arkiv/src/services/archive-catalog.ts) | `status: archived`, tags deleted |
+| Extend TTL | CLI `npm run extend` | [skill-capture/arkiv/src/services/extend-catalog.ts](skill-capture/arkiv/src/services/extend-catalog.ts) | `extendEntity` |
 | Re-publish | distribute again | full pipeline | new IP + vault + version |
 
 **Contributions UI:** `frontend/src/app/(app)/contributions/page.tsx` lists owner skills by querying Arkiv per registered device (`contributions-from-arkiv.ts`).
@@ -423,12 +423,12 @@ Parallel path for **ML/AI model training** (not agent `SKILL.md`):
 | Aspect | Skill | Training data |
 |--------|-------|---------------|
 | Metadata | `skills/<slug>/SKILL.md` | `training-data/<slug>/TRAINING.md` |
-| Capture | `capture.py` (screen + mic) | `video_capture.py` (camera + mic → webm → `video.b64`) |
+| Capture | `capture.py` (screen + mic) | [skill-capture/video_capture.py](skill-capture/video_capture.py) (camera + mic → webm → `video.b64`) |
 | Groq | Yes (`process.py`) | No — raw video preserved |
-| Distribute | `distributeSkill()` | `distributeTraining()` (`cli/src/distribute-training.ts`) |
+| Distribute | `distributeSkill()` | `distributeTraining()` ([skill-capture/cli/src/distribute-training.ts](skill-capture/cli/src/distribute-training.ts)) |
 | Arkiv entity | `skillListing` | `trainingDataListing` |
-| Publish fn | `publishCatalogToArkiv()` | `publishTrainingCatalogToArkiv()` (`publish-training-catalog.ts`) |
-| Payload builder | `build-listing.ts` | `build-training-listing.ts` (`contentKind: "trainingData"`) |
+| Publish fn | `publishCatalogToArkiv()` | `publishTrainingCatalogToArkiv()` ([skill-capture/arkiv/src/services/publish-training-catalog.ts](skill-capture/arkiv/src/services/publish-training-catalog.ts)) |
+| Payload builder | [skill-capture/arkiv/src/lib/build-listing.ts](skill-capture/arkiv/src/lib/build-listing.ts) | [skill-capture/arkiv/src/lib/build-training-listing.ts](skill-capture/arkiv/src/lib/build-training-listing.ts) (`contentKind: "trainingData"`) |
 
 **UI:** Contribute page "Record training data" card → `startVideoCaptureJob` → `startDistributeTrainingJob`.
 
@@ -513,93 +513,93 @@ OpenClu uses **two Arkiv project namespaces** (per [themes.md](./themes.md) `PRO
 
 | # | Feature | Arkiv capability | File | Key function / API |
 |---|---------|------------------|------|-------------------|
-| 1 | Project namespace isolation | `project` attribute on every entity/query | `skill-capture/arkiv/src/lib/constants.ts:1-4` | `PROJECT_ATTRIBUTE` |
-| 2 | Skill listing entity type | `entityType: skillListing` | `skill-capture/arkiv/src/lib/constants.ts:6-7` | `ENTITY_TYPE.skillListing` |
-| 3 | Training listing entity type | `entityType: trainingDataListing` | `skill-capture/arkiv/src/lib/constants.ts:8` | `ENTITY_TYPE.trainingDataListing` |
-| 4 | Search tag entity type | `entityType: skillTag` | `skill-capture/arkiv/src/lib/constants.ts:9` | `ENTITY_TYPE.skillTag` |
-| 5 | Version history entity type | `entityType: listingVersion` | `skill-capture/arkiv/src/lib/constants.ts:10` | `ENTITY_TYPE.listingVersion` |
-| 6 | Listing status index | string attr `status` | `skill-capture/arkiv/src/lib/constants.ts:13-17,25` | `ATTR.status`, `LISTING_STATUS` |
-| 7 | Slug lookup | string attr `skillSlug` | `skill-capture/arkiv/src/lib/constants.ts:23` | `ATTR.skillSlug` |
-| 8 | Publish skill listing | `createEntity` / `updateEntity` | `skill-capture/arkiv/src/services/publish-catalog.ts:68+` | `publishCatalogToArkiv()` |
-| 9 | Build listing payload | JSON payload + attributes | `skill-capture/arkiv/src/lib/build-listing.ts` | `buildListingPayload()` |
-| 10 | Publish training listing | `createEntity` / `updateEntity` | `skill-capture/arkiv/src/services/publish-training-catalog.ts` | `publishTrainingCatalogToArkiv()` |
-| 11 | Training payload builder | `contentKind: trainingData` | `skill-capture/arkiv/src/lib/build-training-listing.ts` | `buildTrainingListingPayload()` |
-| 12 | Tag entities on publish | `createEntity` (skillTag) | `skill-capture/arkiv/src/entities/tag.ts` | `buildTagCreate()` |
-| 13 | Delete tags on re-publish | `mutateEntities` deletes | `skill-capture/arkiv/src/services/publish-catalog.ts:59-66` | `deleteTagEntities()` |
-| 14 | Version snapshot on publish | `createEntity` (listingVersion) | `skill-capture/arkiv/src/entities/version.ts` | `buildVersionCreate()` |
-| 15 | Next version number | numeric query | `skill-capture/arkiv/src/services/query-catalog.ts` | `getNextVersionNumber()` |
-| 16 | Marketplace browse (published only) | `buildQuery` + filters | `skill-capture/arkiv/src/services/query-catalog.ts:41-49` | `normalizeListingFilters()`, `fetchListings()` |
-| 17 | Owner "mine" scope | `.ownedBy(deviceWallet)` | `skill-capture/arkiv/src/services/query-catalog.ts:52-64` | `applyWalletScope()` |
-| 18 | Creator attribution filter | `.createdBy(wallet)` | `skill-capture/arkiv/src/services/query-catalog.ts:56-57` | `applyWalletScope()` |
-| 19 | Natural language search | Arkiv NL query | `skill-capture/arkiv/src/services/query-catalog.ts` | `searchNaturalLanguage()` |
-| 20 | Training NL search | Arkiv NL query | `skill-capture/arkiv/src/services/query-catalog.ts` | `searchTrainingNaturalLanguage()` |
-| 21 | Tag → listing lookup | join via tag entities | `skill-capture/arkiv/src/services/query-catalog.ts` | `listingKeysForTag()`, `fetchTagsForListing()` |
-| 22 | Catalog stats | entity counts | `skill-capture/arkiv/src/services/query-catalog.ts` | `getCatalogStats()` |
-| 23 | Listing detail for UI | fetch + parse payload | `skill-capture/arkiv/src/lib/catalog-detail.ts` | `fetchSkillCatalogDetail()` |
-| 24 | Training listing detail | fetch + parse payload | `skill-capture/arkiv/src/lib/catalog-detail.ts` | `fetchTrainingCatalogDetail()` |
-| 25 | CDR purchase context | map payload → vault/CID | `skill-capture/arkiv/src/lib/cdr-listing.ts` | `fetchSkillListingFromArkiv()` |
-| 26 | Fetch by entity key | direct entity read | `skill-capture/arkiv/src/lib/cdr-listing.ts` | `fetchSkillListingByKey()` |
-| 27 | Archive listing | `updateEntity` status + tag delete | `skill-capture/arkiv/src/services/archive-catalog.ts` | `archiveSkillCatalog()` |
-| 28 | Extend listing TTL | `extendEntity` | `skill-capture/arkiv/src/services/extend-catalog.ts` | `extendSkillListing()` |
-| 29 | Metadata-only re-index | update without re-encrypt | `skill-capture/arkiv/src/jobs/update-catalog.ts` | `indexSkillByName()` |
-| 30 | CDR publish upsert | calls publish service | `skill-capture/cdr/src/arkiv-listing.ts` | `upsertArkivCatalogListing()` |
-| 31 | CDR re-index ops only | refresh ops/peer hints | `skill-capture/cdr/src/index-listing.ts` | `npm run index-arkiv` |
-| 32 | Purchase CLI listing fetch | read before decrypt | `skill-capture/cdr/src/purchase-skill.ts:17+` | `fetchSkillListingFromArkiv()` |
-| 33 | Frontend catalog query API | subprocess bridge | `frontend/src/lib/catalog.ts:8+` | `queryCatalog()` |
-| 34 | Frontend catalog detail API | subprocess bridge | `frontend/src/app/api/catalog/[skillName]/route.ts` | `getCatalogSkillDetail()` |
-| 35 | Frontend catalog stats API | subprocess bridge | `frontend/src/app/api/catalog/stats/route.ts` | `getCatalogStats()` |
-| 36 | Owner contributions merge | per-device mine queries | `frontend/src/lib/contributions-from-arkiv.ts:67-101` | `listContributionsForOwner()` |
-| 37 | Catalog read bridge | CLI stdin JSON | `skill-capture/arkiv/src/catalog-read-bridge.ts` | `catalogQuery()`, `catalogGetSkillDetail()` |
-| 38 | Catalog query CLI | command router | `skill-capture/arkiv/src/cli/catalog-query-cli.ts` | `query`, `get`, `stats` |
-| 39 | Device wallet Arkiv client | Braga wallet client | `skill-capture/arkiv/src/lib/client.ts` | `createArkivWalletClient()` |
-| 40 | Listing entity builder | create/update params | `skill-capture/arkiv/src/entities/listing.ts` | `buildListingCreate/Update()` |
-| 41 | Training entity builder | create/update params | `skill-capture/arkiv/src/entities/training-listing.ts` | `buildTrainingListingCreate/Update()` |
-| 42 | Listing expiration | `expiresIn` duration | `skill-capture/arkiv/src/lib/expiration.ts` | `listingExpiresIn()` |
-| 43 | Explorer links in logs | Braga explorer URLs | `skill-capture/arkiv/src/lib/explorer-links.ts` | `arkivTxUrl()` |
-| 44 | Orchestrator archive job | spawn arkiv job | `skill-capture/orchestrator/src/jobs.ts:277+` | `startArkivJob("archive-skill")` |
-| 45 | Orchestrator update-catalog job | spawn arkiv job | `skill-capture/orchestrator/src/server.ts:182+` | `/api/v1/jobs/update-catalog` |
-| 46 | CLI distribute in-process publish | direct import | `skill-capture/cli/src/distribute.ts:27+` | `publishCatalogToArkiv()` |
-| 47 | CLI distribute-training publish | direct import | `skill-capture/cli/src/distribute-training.ts` | `publishTrainingCatalogToArkiv()` |
-| 48 | ClawSync marketplace query | vendored query-catalog | `clawsync/skill-marketplace/src/arkiv/` | mirror of catalog module |
-| 49 | ClawSync catalogActions | Convex → CLI | `clawsync/convex/catalogActions.ts:7+` | `runMarketplaceCli('query')` |
-| 50 | ClawSync training catalog | Convex → CLI | `clawsync/convex/trainingDataCatalogActions.ts:7+` | `query-training` |
-| 51 | ClawSync purchase w/ snapshot | avoid double fetch | `clawsync/convex/lib/resolvePurchaseCatalog.ts:46+` | `get-detail` fallback |
-| 52 | Agent search tool | NL query in chat | `clawsync/convex/lib/marketplaceExecutions.ts:20+` | `runMarketplaceCli('query')` |
-| 53 | Agent purchase tool | purchase + attach | `clawsync/convex/agent/marketplaceTools.ts:15+` | `purchase_and_attach_skill` |
-| 54 | E2E verify script | smoke test | `test/verify-contributions-arkiv.mjs` | portal + catalog queries |
-| 55 | Deprecated HTTP catalog server | legacy upsert | `skill-capture/arkiv/src/server.ts:1+` | `/api/v1/catalog/upsert` |
+| 1 | Project namespace isolation | `project` attribute on every entity/query | [skill-capture/arkiv/src/lib/constants.ts:1-4](skill-capture/arkiv/src/lib/constants.ts#L1-L4) | `PROJECT_ATTRIBUTE` |
+| 2 | Skill listing entity type | `entityType: skillListing` | [skill-capture/arkiv/src/lib/constants.ts:6-7](skill-capture/arkiv/src/lib/constants.ts#L6-L7) | `ENTITY_TYPE.skillListing` |
+| 3 | Training listing entity type | `entityType: trainingDataListing` | [skill-capture/arkiv/src/lib/constants.ts:8](skill-capture/arkiv/src/lib/constants.ts#L8) | `ENTITY_TYPE.trainingDataListing` |
+| 4 | Search tag entity type | `entityType: skillTag` | [skill-capture/arkiv/src/lib/constants.ts:9](skill-capture/arkiv/src/lib/constants.ts#L9) | `ENTITY_TYPE.skillTag` |
+| 5 | Version history entity type | `entityType: listingVersion` | [skill-capture/arkiv/src/lib/constants.ts:10](skill-capture/arkiv/src/lib/constants.ts#L10) | `ENTITY_TYPE.listingVersion` |
+| 6 | Listing status index | string attr `status` | [skill-capture/arkiv/src/lib/constants.ts:13-17,25](skill-capture/arkiv/src/lib/constants.ts#L13-L25) | `ATTR.status`, `LISTING_STATUS` |
+| 7 | Slug lookup | string attr `skillSlug` | [skill-capture/arkiv/src/lib/constants.ts:23](skill-capture/arkiv/src/lib/constants.ts#L23) | `ATTR.skillSlug` |
+| 8 | Publish skill listing | `createEntity` / `updateEntity` | [skill-capture/arkiv/src/services/publish-catalog.ts:68+](skill-capture/arkiv/src/services/publish-catalog.ts#L68) | `publishCatalogToArkiv()` |
+| 9 | Build listing payload | JSON payload + attributes | [skill-capture/arkiv/src/lib/build-listing.ts](skill-capture/arkiv/src/lib/build-listing.ts) | `buildListingPayload()` |
+| 10 | Publish training listing | `createEntity` / `updateEntity` | [skill-capture/arkiv/src/services/publish-training-catalog.ts](skill-capture/arkiv/src/services/publish-training-catalog.ts) | `publishTrainingCatalogToArkiv()` |
+| 11 | Training payload builder | `contentKind: trainingData` | [skill-capture/arkiv/src/lib/build-training-listing.ts](skill-capture/arkiv/src/lib/build-training-listing.ts) | `buildTrainingListingPayload()` |
+| 12 | Tag entities on publish | `createEntity` (skillTag) | [skill-capture/arkiv/src/entities/tag.ts](skill-capture/arkiv/src/entities/tag.ts) | `buildTagCreate()` |
+| 13 | Delete tags on re-publish | `mutateEntities` deletes | [skill-capture/arkiv/src/services/publish-catalog.ts:59-66](skill-capture/arkiv/src/services/publish-catalog.ts#L59-L66) | `deleteTagEntities()` |
+| 14 | Version snapshot on publish | `createEntity` (listingVersion) | [skill-capture/arkiv/src/entities/version.ts](skill-capture/arkiv/src/entities/version.ts) | `buildVersionCreate()` |
+| 15 | Next version number | numeric query | [skill-capture/arkiv/src/services/query-catalog.ts](skill-capture/arkiv/src/services/query-catalog.ts) | `getNextVersionNumber()` |
+| 16 | Marketplace browse (published only) | `buildQuery` + filters | [skill-capture/arkiv/src/services/query-catalog.ts:41-49](skill-capture/arkiv/src/services/query-catalog.ts#L41-L49) | `normalizeListingFilters()`, `fetchListings()` |
+| 17 | Owner "mine" scope | `.ownedBy(deviceWallet)` | [skill-capture/arkiv/src/services/query-catalog.ts:52-64](skill-capture/arkiv/src/services/query-catalog.ts#L52-L64) | `applyWalletScope()` |
+| 18 | Creator attribution filter | `.createdBy(wallet)` | [skill-capture/arkiv/src/services/query-catalog.ts:56-57](skill-capture/arkiv/src/services/query-catalog.ts#L56-L57) | `applyWalletScope()` |
+| 19 | Natural language search | Arkiv NL query | [skill-capture/arkiv/src/services/query-catalog.ts](skill-capture/arkiv/src/services/query-catalog.ts) | `searchNaturalLanguage()` |
+| 20 | Training NL search | Arkiv NL query | [skill-capture/arkiv/src/services/query-catalog.ts](skill-capture/arkiv/src/services/query-catalog.ts) | `searchTrainingNaturalLanguage()` |
+| 21 | Tag → listing lookup | join via tag entities | [skill-capture/arkiv/src/services/query-catalog.ts](skill-capture/arkiv/src/services/query-catalog.ts) | `listingKeysForTag()`, `fetchTagsForListing()` |
+| 22 | Catalog stats | entity counts | [skill-capture/arkiv/src/services/query-catalog.ts](skill-capture/arkiv/src/services/query-catalog.ts) | `getCatalogStats()` |
+| 23 | Listing detail for UI | fetch + parse payload | [skill-capture/arkiv/src/lib/catalog-detail.ts](skill-capture/arkiv/src/lib/catalog-detail.ts) | `fetchSkillCatalogDetail()` |
+| 24 | Training listing detail | fetch + parse payload | [skill-capture/arkiv/src/lib/catalog-detail.ts](skill-capture/arkiv/src/lib/catalog-detail.ts) | `fetchTrainingCatalogDetail()` |
+| 25 | CDR purchase context | map payload → vault/CID | [skill-capture/arkiv/src/lib/cdr-listing.ts](skill-capture/arkiv/src/lib/cdr-listing.ts) | `fetchSkillListingFromArkiv()` |
+| 26 | Fetch by entity key | direct entity read | [skill-capture/arkiv/src/lib/cdr-listing.ts](skill-capture/arkiv/src/lib/cdr-listing.ts) | `fetchSkillListingByKey()` |
+| 27 | Archive listing | `updateEntity` status + tag delete | [skill-capture/arkiv/src/services/archive-catalog.ts](skill-capture/arkiv/src/services/archive-catalog.ts) | `archiveSkillCatalog()` |
+| 28 | Extend listing TTL | `extendEntity` | [skill-capture/arkiv/src/services/extend-catalog.ts](skill-capture/arkiv/src/services/extend-catalog.ts) | `extendSkillListing()` |
+| 29 | Metadata-only re-index | update without re-encrypt | [skill-capture/arkiv/src/jobs/update-catalog.ts](skill-capture/arkiv/src/jobs/update-catalog.ts) | `indexSkillByName()` |
+| 30 | CDR publish upsert | calls publish service | [skill-capture/cdr/src/arkiv-listing.ts](skill-capture/cdr/src/arkiv-listing.ts) | `upsertArkivCatalogListing()` |
+| 31 | CDR re-index ops only | refresh ops/peer hints | [skill-capture/cdr/src/index-listing.ts](skill-capture/cdr/src/index-listing.ts) | `npm run index-arkiv` |
+| 32 | Purchase CLI listing fetch | read before decrypt | [skill-capture/cdr/src/purchase-skill.ts:17+](skill-capture/cdr/src/purchase-skill.ts#L17) | `fetchSkillListingFromArkiv()` |
+| 33 | Frontend catalog query API | subprocess bridge | [frontend/src/lib/catalog.ts:8+](frontend/src/lib/catalog.ts#L8) | `queryCatalog()` |
+| 34 | Frontend catalog detail API | subprocess bridge | [frontend/src/app/api/catalog/[skillName]/route.ts](frontend/src/app/api/catalog/[skillName]/route.ts) | `getCatalogSkillDetail()` |
+| 35 | Frontend catalog stats API | subprocess bridge | [frontend/src/app/api/catalog/stats/route.ts](frontend/src/app/api/catalog/stats/route.ts) | `getCatalogStats()` |
+| 36 | Owner contributions merge | per-device mine queries | [frontend/src/lib/contributions-from-arkiv.ts:67-101](frontend/src/lib/contributions-from-arkiv.ts#L67-L101) | `listContributionsForOwner()` |
+| 37 | Catalog read bridge | CLI stdin JSON | [skill-capture/arkiv/src/catalog-read-bridge.ts](skill-capture/arkiv/src/catalog-read-bridge.ts) | `catalogQuery()`, `catalogGetSkillDetail()` |
+| 38 | Catalog query CLI | command router | [skill-capture/arkiv/src/cli/catalog-query-cli.ts](skill-capture/arkiv/src/cli/catalog-query-cli.ts) | `query`, `get`, `stats` |
+| 39 | Device wallet Arkiv client | Braga wallet client | [skill-capture/arkiv/src/lib/client.ts](skill-capture/arkiv/src/lib/client.ts) | `createArkivWalletClient()` |
+| 40 | Listing entity builder | create/update params | [skill-capture/arkiv/src/entities/listing.ts](skill-capture/arkiv/src/entities/listing.ts) | `buildListingCreate/Update()` |
+| 41 | Training entity builder | create/update params | [skill-capture/arkiv/src/entities/training-listing.ts](skill-capture/arkiv/src/entities/training-listing.ts) | `buildTrainingListingCreate/Update()` |
+| 42 | Listing expiration | `expiresIn` duration | [skill-capture/arkiv/src/lib/expiration.ts](skill-capture/arkiv/src/lib/expiration.ts) | `listingExpiresIn()` |
+| 43 | Explorer links in logs | Braga explorer URLs | [skill-capture/arkiv/src/lib/explorer-links.ts](skill-capture/arkiv/src/lib/explorer-links.ts) | `arkivTxUrl()` |
+| 44 | Orchestrator archive job | spawn arkiv job | [skill-capture/orchestrator/src/jobs.ts:277+](skill-capture/orchestrator/src/jobs.ts#L277) | `startArkivJob("archive-skill")` |
+| 45 | Orchestrator update-catalog job | spawn arkiv job | [skill-capture/orchestrator/src/server.ts:182+](skill-capture/orchestrator/src/server.ts#L182) | `/api/v1/jobs/update-catalog` |
+| 46 | CLI distribute in-process publish | direct import | [skill-capture/cli/src/distribute.ts:27+](skill-capture/cli/src/distribute.ts#L27) | `publishCatalogToArkiv()` |
+| 47 | CLI distribute-training publish | direct import | [skill-capture/cli/src/distribute-training.ts](skill-capture/cli/src/distribute-training.ts) | `publishTrainingCatalogToArkiv()` |
+| 48 | ClawSync marketplace query | vendored query-catalog | [clawsync/skill-marketplace/src/arkiv/](clawsync/skill-marketplace/src/arkiv/) | mirror of catalog module |
+| 49 | ClawSync catalogActions | Convex → CLI | [clawsync/convex/catalogActions.ts:7+](clawsync/convex/catalogActions.ts#L7) | `runMarketplaceCli('query')` |
+| 50 | ClawSync training catalog | Convex → CLI | [clawsync/convex/trainingDataCatalogActions.ts:7+](clawsync/convex/trainingDataCatalogActions.ts#L7) | `query-training` |
+| 51 | ClawSync purchase w/ snapshot | avoid double fetch | [clawsync/convex/lib/resolvePurchaseCatalog.ts:46+](clawsync/convex/lib/resolvePurchaseCatalog.ts#L46) | `get-detail` fallback |
+| 52 | Agent search tool | NL query in chat | [clawsync/convex/lib/marketplaceExecutions.ts:20+](clawsync/convex/lib/marketplaceExecutions.ts#L20) | `runMarketplaceCli('query')` |
+| 53 | Agent purchase tool | purchase + attach | [clawsync/convex/agent/marketplaceTools.ts:15+](clawsync/convex/agent/marketplaceTools.ts#L15) | `purchase_and_attach_skill` |
+| 54 | E2E verify script | smoke test | [test/verify-contributions-arkiv.mjs](test/verify-contributions-arkiv.mjs) | portal + catalog queries |
+| 55 | Deprecated HTTP catalog server | legacy upsert | [skill-capture/arkiv/src/server.ts:1+](skill-capture/arkiv/src/server.ts#L1) | `/api/v1/catalog/upsert` |
 
 ### Portal project (`openclu-portal-v1`)
 
 | # | Feature | Arkiv capability | File | Key function / API |
 |---|---------|------------------|------|-------------------|
-| 56 | Portal project namespace | `project` attribute | `skill-capture/arkiv/src/lib/portal-constants.ts:1-4` | `PORTAL_PROJECT_ATTRIBUTE` |
-| 57 | Pending registration entity | `deviceRegistrationPending` | `skill-capture/arkiv/src/lib/portal-constants.ts:9` | `PORTAL_ENTITY_TYPE.pendingRegistration` |
-| 58 | Portal device entity | `portalDevice` | `skill-capture/arkiv/src/lib/portal-constants.ts:8` | `PORTAL_ENTITY_TYPE.device` |
-| 59 | Portal user entity | `portalUser` | `skill-capture/arkiv/src/lib/portal-constants.ts:7` | `PORTAL_ENTITY_TYPE.user` |
-| 60 | register.sh → pending | create pending entity | `frontend/src/app/api/devices/pending/route.ts` | `upsertPendingRegistration()` |
-| 61 | Browser register confirm | create device, delete pending | `frontend/src/app/api/devices/register/route.ts` | `upsertPortalDevice()`, `deletePendingRegistration()` |
-| 62 | List owner devices | query by ownerWallet | `skill-capture/arkiv/src/services/query-portal.ts:54+` | `fetchPortalDevicesForOwner()` |
-| 63 | Device by portal ID | query | `skill-capture/arkiv/src/services/query-portal.ts` | `fetchPortalDeviceByPortalId()` |
-| 64 | Device by device wallet | query | `skill-capture/arkiv/src/services/query-portal.ts` | `fetchPortalDeviceByDeviceWallet()` |
-| 65 | Pending by token | query | `skill-capture/arkiv/src/services/query-portal.ts` | `fetchPendingRegistrationByToken()` |
-| 66 | Pending by device wallet | query | `skill-capture/arkiv/src/services/query-portal.ts` | `fetchPendingRegistrationByDeviceWallet()` |
-| 67 | Upsert portal user profile | create/update | `skill-capture/arkiv/src/services/mutate-portal.ts:57+` | `upsertPortalUser()` |
-| 68 | Upsert portal device | create/update | `skill-capture/arkiv/src/services/mutate-portal.ts` | `upsertPortalDevice()` |
-| 69 | Portal device → API row | serializer | `skill-capture/arkiv/src/services/mutate-portal.ts` | `portalDeviceToApiRow()` |
-| 70 | Portal pending → API row | serializer | `skill-capture/arkiv/src/services/mutate-portal.ts` | `pendingToApiRow()` |
-| 71 | Portal DB bridge | subprocess entry | `skill-capture/arkiv/src/portal-db-bridge.ts:1+` | 11 portal commands |
-| 72 | Portal DB CLI | command router | `skill-capture/arkiv/src/cli/portal-db-cli.ts:31+` | stdin `SKILL_CAPTURE_PORTAL_JSON` |
-| 73 | Frontend portal wrapper | spawn CLI | `frontend/src/lib/portal-db.ts:8+` | all portal functions |
-| 74 | Orchestrator URL resolution | read device entity | `frontend/src/lib/session.ts` | `getPortalDeviceOrchestratorUrl()` |
-| 75 | Orchestrator DB helper | list devices | `frontend/src/lib/orchestrator-db.ts:1+` | `listDevicesForOwner()` |
-| 76 | Profile GET/PUT API | portal user CRUD | `frontend/src/app/api/profile/route.ts` | `getPortalUserProfile()`, `upsertPortalUserProfile()` |
-| 77 | Avatar upload API | portal user bytes | `frontend/src/app/api/profile/avatar/route.ts` | `upsertPortalUserAvatar()` |
-| 78 | Portal wallet client | Braga signer | `skill-capture/arkiv/src/lib/portal-client.ts` | `createPortalWalletClient()` |
-| 79 | Portal entity expiration | `expiresIn` on pending | `skill-capture/arkiv/src/lib/portal-expiration.ts` | TTL helpers |
-| 80 | Portal entity builders | create/update params | `skill-capture/arkiv/src/entities/portal-device.ts` | `buildPortalDeviceCreate()`, etc. |
-| 81 | Auth wallet route (no Arkiv) | intentional skip | `frontend/src/app/api/auth/wallet/route.ts:10` | cookie only — no gas on login |
-| 82 | `touchPortalLogin` (unused) | portal user touch | `frontend/src/lib/portal-db.ts` | implemented, not wired to route |
+| 56 | Portal project namespace | `project` attribute | [skill-capture/arkiv/src/lib/portal-constants.ts:1-4](skill-capture/arkiv/src/lib/portal-constants.ts#L1-L4) | `PORTAL_PROJECT_ATTRIBUTE` |
+| 57 | Pending registration entity | `deviceRegistrationPending` | [skill-capture/arkiv/src/lib/portal-constants.ts:9](skill-capture/arkiv/src/lib/portal-constants.ts#L9) | `PORTAL_ENTITY_TYPE.pendingRegistration` |
+| 58 | Portal device entity | `portalDevice` | [skill-capture/arkiv/src/lib/portal-constants.ts:8](skill-capture/arkiv/src/lib/portal-constants.ts#L8) | `PORTAL_ENTITY_TYPE.device` |
+| 59 | Portal user entity | `portalUser` | [skill-capture/arkiv/src/lib/portal-constants.ts:7](skill-capture/arkiv/src/lib/portal-constants.ts#L7) | `PORTAL_ENTITY_TYPE.user` |
+| 60 | register.sh → pending | create pending entity | [frontend/src/app/api/devices/pending/route.ts](frontend/src/app/api/devices/pending/route.ts) | `upsertPendingRegistration()` |
+| 61 | Browser register confirm | create device, delete pending | [frontend/src/app/api/devices/register/route.ts](frontend/src/app/api/devices/register/route.ts) | `upsertPortalDevice()`, `deletePendingRegistration()` |
+| 62 | List owner devices | query by ownerWallet | [skill-capture/arkiv/src/services/query-portal.ts:54+](skill-capture/arkiv/src/services/query-portal.ts#L54) | `fetchPortalDevicesForOwner()` |
+| 63 | Device by portal ID | query | [skill-capture/arkiv/src/services/query-portal.ts](skill-capture/arkiv/src/services/query-portal.ts) | `fetchPortalDeviceByPortalId()` |
+| 64 | Device by device wallet | query | [skill-capture/arkiv/src/services/query-portal.ts](skill-capture/arkiv/src/services/query-portal.ts) | `fetchPortalDeviceByDeviceWallet()` |
+| 65 | Pending by token | query | [skill-capture/arkiv/src/services/query-portal.ts](skill-capture/arkiv/src/services/query-portal.ts) | `fetchPendingRegistrationByToken()` |
+| 66 | Pending by device wallet | query | [skill-capture/arkiv/src/services/query-portal.ts](skill-capture/arkiv/src/services/query-portal.ts) | `fetchPendingRegistrationByDeviceWallet()` |
+| 67 | Upsert portal user profile | create/update | [skill-capture/arkiv/src/services/mutate-portal.ts:57+](skill-capture/arkiv/src/services/mutate-portal.ts#L57) | `upsertPortalUser()` |
+| 68 | Upsert portal device | create/update | [skill-capture/arkiv/src/services/mutate-portal.ts](skill-capture/arkiv/src/services/mutate-portal.ts) | `upsertPortalDevice()` |
+| 69 | Portal device → API row | serializer | [skill-capture/arkiv/src/services/mutate-portal.ts](skill-capture/arkiv/src/services/mutate-portal.ts) | `portalDeviceToApiRow()` |
+| 70 | Portal pending → API row | serializer | [skill-capture/arkiv/src/services/mutate-portal.ts](skill-capture/arkiv/src/services/mutate-portal.ts) | `pendingToApiRow()` |
+| 71 | Portal DB bridge | subprocess entry | [skill-capture/arkiv/src/portal-db-bridge.ts:1+](skill-capture/arkiv/src/portal-db-bridge.ts#L1) | 11 portal commands |
+| 72 | Portal DB CLI | command router | [skill-capture/arkiv/src/cli/portal-db-cli.ts:31+](skill-capture/arkiv/src/cli/portal-db-cli.ts#L31) | stdin `SKILL_CAPTURE_PORTAL_JSON` |
+| 73 | Frontend portal wrapper | spawn CLI | [frontend/src/lib/portal-db.ts:8+](frontend/src/lib/portal-db.ts#L8) | all portal functions |
+| 74 | Orchestrator URL resolution | read device entity | [frontend/src/lib/session.ts](frontend/src/lib/session.ts) | `getPortalDeviceOrchestratorUrl()` |
+| 75 | Orchestrator DB helper | list devices | [frontend/src/lib/orchestrator-db.ts:1+](frontend/src/lib/orchestrator-db.ts#L1) | `listDevicesForOwner()` |
+| 76 | Profile GET/PUT API | portal user CRUD | [frontend/src/app/api/profile/route.ts](frontend/src/app/api/profile/route.ts) | `getPortalUserProfile()`, `upsertPortalUserProfile()` |
+| 77 | Avatar upload API | portal user bytes | [frontend/src/app/api/profile/avatar/route.ts](frontend/src/app/api/profile/avatar/route.ts) | `upsertPortalUserAvatar()` |
+| 78 | Portal wallet client | Braga signer | [skill-capture/arkiv/src/lib/portal-client.ts](skill-capture/arkiv/src/lib/portal-client.ts) | `createPortalWalletClient()` |
+| 79 | Portal entity expiration | `expiresIn` on pending | [skill-capture/arkiv/src/lib/portal-expiration.ts](skill-capture/arkiv/src/lib/portal-expiration.ts) | TTL helpers |
+| 80 | Portal entity builders | create/update params | [skill-capture/arkiv/src/entities/portal-device.ts](skill-capture/arkiv/src/entities/portal-device.ts) | `buildPortalDeviceCreate()`, etc. |
+| 81 | Auth wallet route (no Arkiv) | intentional skip | [frontend/src/app/api/auth/wallet/route.ts:10](frontend/src/app/api/auth/wallet/route.ts#L10) | cookie only — no gas on login |
+| 82 | `touchPortalLogin` (unused) | portal user touch | [frontend/src/lib/portal-db.ts](frontend/src/lib/portal-db.ts) | implemented, not wired to route |
 
 **Arkiv is load-bearing:** Without Braga, OpenClu has no marketplace discovery, no owner-attributed device registry, no contribution dashboard, and no purchase metadata bridge to CDR/Story. The entire multi-user ngrok architecture assumes portal devices on Arkiv; the entire royalty loop assumes catalog listings on Arkiv point to CDR vaults and Story IP IDs.
 
