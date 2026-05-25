@@ -196,12 +196,7 @@ The same Arkiv entity carries **public discovery metadata** and **private conten
 
 ## How it works
 
-> **Diagrams:** Three Excalidraw flows are planned for this section:
-> 1. Device registration flow
-> 2. Training data contribution + model training flow
-> 3. Skill contribution + agent consumption flow
->
-> Placeholder paths: `docs/diagrams/registration.excalidraw`, `docs/diagrams/skill-contribution.excalidraw`, `docs/diagrams/training-contribution.excalidraw`
+<img width="1498" height="517" alt="Screenshot 2026-05-25 at 5 10 17 PM" src="https://github.com/user-attachments/assets/e05b53f2-6e87-48a4-a387-2961eb9f6638" />
 
 ### Architecture overview
 
@@ -269,6 +264,8 @@ Nothing is encrypted in this phase — it is pure identity and routing setup.
 ---
 
 ### Phase 2 — Contribution
+
+<img width="872" height="483" alt="Screenshot 2026-05-25 at 5 21 07 PM" src="https://github.com/user-attachments/assets/6decee67-c0fa-4a7b-98d5-43759ba50418" />
 
 This is the core loop: **capture → (optional process) → encrypt → store pointers → publish catalog metadata**.
 
@@ -402,6 +399,8 @@ Identical to the training data path ([sections 2.1 D–G](#d-register-on-chain-i
 ---
 
 ### Phase 3 — Buying, decrypting, and using training data & skills
+
+<img width="872" height="483" alt="Screenshot 2026-05-25 at 5 21 30 PM" src="https://github.com/user-attachments/assets/da530d89-ebd9-4f72-bd68-e92fbedce14a" />
 
 Buyers never contact your Pi directly. Whether they want **licensed video for model training** or a **skill for an agent**, the purchase rail is the same: read **Arkiv**, pay **Story**, decrypt via **CDR**. What differs is what they do with the plaintext after decrypt.
 
