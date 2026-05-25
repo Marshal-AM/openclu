@@ -251,6 +251,8 @@ The same Arkiv entity carries **public discovery metadata** and **private conten
 
 ### Phase 1 — Device registration
 
+<img width="1140" height="525" alt="Screenshot 2026-05-25 at 4 17 36 PM" src="https://github.com/user-attachments/assets/a50384a0-5b24-4fed-bb64-df77ec7dc059" />
+
 Registration binds three identities:
 
 1. **Owner wallet** (Privy) — human who owns devices and receives portal UI access.
@@ -330,6 +332,7 @@ Forwards to `{portalDevice.orchestratorUrl}/api/v1/{path}` with header `x-device
 ---
 
 ### Phase 2 — Contribution
+
 
 #### 2.1 Skill contribution (screen + voice → SKILL.md)
 
