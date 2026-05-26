@@ -44,9 +44,11 @@ import {
 
 } from "./constants.js";
 
-import { getHeliaPeerHints, getHeliaStorage, uploadJsonToIpfs } from "./helia-storage.js";
+import { getHeliaStorage, uploadJsonToIpfs } from "./helia-storage.js";
 import { upsertArkivCatalogListing } from "./arkiv-listing.js";
-import { pinVaultCidOnPinata, resolvePublicIpfsGateway } from "./pinata-ipfs.js";
+import { resolvePublicIpfsGateway } from "./pinata-ipfs.js";
+import { pinCiphertextToPublicIpfs } from "../../../../skill-capture/cdr/src/services/publish-service.js";
+import { createPinataBackedStorage } from "./storage/pinata-aligned-storage.js";
 import { zipSkillBundle } from "./zip-bundle.js";
 
 
@@ -261,8 +263,8 @@ async function main() {
 
 
 
-  const { helia, storage } = await getHeliaStorage();
-  const peerHints = getHeliaPeerHints(helia);
+  const { helia } = await getHeliaStorage();
+  const storage = createPinataBackedStorage(helia, skillName);
 
   const globalPubKey = await client.observer.getGlobalPubKey();
 
@@ -304,13 +306,7 @@ async function main() {
 
   });
 
-  console.log("  [cdr] Pinning exact vault CID on Pinata (pin-by-CID)…");
-  await storage.download(cid);
-  const { gatewayBase: ipfsGatewayUrl } = await pinVaultCidOnPinata({
-    cid,
-    skillName,
-    hostNodes: peerHints.helia_multiaddrs,
-  });
+  const { ipfsGatewayUrl } = await pinCiphertextToPublicIpfs(cid, storage, skillName);
   console.log(`  [cdr] Buyer gateway: ${resolvePublicIpfsGateway()}/${cid}`);
 
   const manifest = {

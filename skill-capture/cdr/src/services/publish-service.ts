@@ -24,7 +24,11 @@ import {
   hasLocalPin,
   uploadJsonToIpfs,
 } from "../helia-storage.js";
-import { pinVaultCidOnPinata } from "../pinata-ipfs.js";
+import {
+  pinVaultCidOnPinata,
+  resolvePublicIpfsGateway,
+  uploadCiphertextToPinata,
+} from "../pinata-ipfs.js";
 import { zipBundleDir, zipSkillBundle } from "../zip-bundle.js";
 
 export interface PublishStartResult {
@@ -220,23 +224,31 @@ export async function pinCiphertextToPublicIpfs(
   cid: string,
   storageProvider: import("@piplabs/cdr-sdk").StorageProvider,
   skillName: string,
-  hostNodes: string[],
+  hostNodes?: string[],
 ): Promise<{ cid: string; ipfsGatewayUrl: string }> {
-  log.info("Downloading ciphertext from local Helia for gateway verification…");
+  log.info("Downloading ciphertext from local Helia for Pinata public pin…");
   const ciphertext = await storageProvider.download(cid);
 
-  log.info("Pinning exact vault CID on Pinata (pin-by-CID from local Helia)…");
-  const { gatewayBase } = await pinVaultCidOnPinata({
-    cid,
-    skillName,
-    hostNodes,
-  });
+  const gatewayBase = resolvePublicIpfsGateway();
 
-  await assertCidReachableOnGateway({
-    cid,
-    ciphertext,
-    gatewayBase,
-  });
+  try {
+    await assertCidReachableOnGateway({ cid, ciphertext, gatewayBase });
+    log.ok("Vault CID already on public gateway (Pinata-backed upload)");
+  } catch {
+    if (process.env.PINATA_USE_PIN_BY_CID === "1" && hostNodes?.length) {
+      log.info("Pinning vault CID on Pinata (pin-by-CID, paid plan)…");
+      await pinVaultCidOnPinata({ cid, skillName, hostNodes });
+    } else {
+      log.info("Uploading to Pinata (pinFileToIPFS, free tier)…");
+      const pin = await uploadCiphertextToPinata(ciphertext, skillName);
+      if (pin.cid !== cid) {
+        throw new Error(
+          `Pinata CID ${pin.cid} != vault CID ${cid}. Use createPinataBackedStorage during encrypt.`,
+        );
+      }
+    }
+    await assertCidReachableOnGateway({ cid, ciphertext, gatewayBase });
+  }
 
   return { cid, ipfsGatewayUrl: gatewayBase };
 }

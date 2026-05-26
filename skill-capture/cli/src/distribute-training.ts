@@ -22,6 +22,7 @@ import {
 } from "../../cdr/src/constants.js";
 import { API_URL, RPC_URL } from "../../cdr/src/client.js";
 import { getHeliaStorage } from "../../cdr/src/helia-storage.js";
+import { createPinataBackedStorage } from "../../cdr/src/storage/pinata-aligned-storage.js";
 import { loadDeviceAccount } from "../../arkiv/src/lib/device-wallet.js";
 import { buildOpsFromManifest } from "../../arkiv/src/lib/listing-ops.js";
 import { publishTrainingCatalogToArkiv } from "../../arkiv/src/services/publish-training-catalog.js";
@@ -54,10 +55,11 @@ export async function distributeTraining(opts: { skillName: string; bundleDir: s
   console.log(`  [cli] Bundle zip: ${zipBytes.length} bytes`);
 
   console.log("\n  [cli] Booting local Helia (first run may take ~30–90s)…");
-  const { storage } = await getHeliaStorage();
+  const { helia } = await getHeliaStorage();
+  const storage = createPinataBackedStorage(helia, skillName);
   const peerHints = await getServerPeerHints();
 
-  console.log("\n  [cli] CDR encrypt (local WASM) → local Helia…");
+  console.log("\n  [cli] CDR encrypt (local WASM) → Pinata-backed public CID…");
   const { vaultUuid, cid } = await encryptBundleToVault({
     zipBytes,
     ipId: story.ipId,
@@ -67,12 +69,7 @@ export async function distributeTraining(opts: { skillName: string; bundleDir: s
   });
 
   console.log("\n  [cli] Pinning ciphertext on public IPFS (Pinata)…");
-  const { ipfsGatewayUrl } = await pinCiphertextToPublicIpfs(
-    cid,
-    storage,
-    skillName,
-    peerHints.helia_multiaddrs,
-  );
+  const { ipfsGatewayUrl } = await pinCiphertextToPublicIpfs(cid, storage, skillName);
 
   printCdrEncrypt({
     vaultUuid,

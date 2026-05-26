@@ -11,9 +11,10 @@ import { ArkivError } from "../arkiv/lib/errors.js";
 import {
   gatewayUrlForCid,
   pinataConfigured,
-  pinVaultCidOnPinata,
+  resolvePublicIpfsGateway,
 } from "./pinata-ipfs.js";
-import { ensureCidBytesInHelia, getHeliaPeerHints, getHeliaStorage } from "./helia-storage.js";
+import { getHeliaStorage } from "./helia-storage.js";
+import { createPinataBackedStorage } from "./storage/pinata-aligned-storage.js";
 import { downloadViaGatewayForBackfill } from "./backfill-download.js";
 import { tryDownloadFromLocalHeliaStores } from "./backfill-helia-local.js";
 import { tryDownloadFromLocalHeliaProviders } from "./backfill-helia-provider.js";
@@ -113,16 +114,15 @@ export async function repinSkillToPublicIpfs(opts: {
     );
   }
 
-  await ensureCidBytesInHelia(cid, bytes);
   const { helia } = await getHeliaStorage();
-  const peerHints = getHeliaPeerHints(helia);
-  const { gatewayBase } = await pinVaultCidOnPinata({
-    cid,
-    skillName,
-    hostNodes: peerHints.helia_multiaddrs,
-  });
-
-  const ipfsGatewayUrl = gatewayBase;
+  const storage = createPinataBackedStorage(helia, skillName);
+  const repinCid = await storage.upload(bytes);
+  if (repinCid !== cid) {
+    throw new Error(
+      `Repin produced ${repinCid}, expected vault ${cid}. Legacy raw-CID listing — re-publish.`,
+    );
+  }
+  const ipfsGatewayUrl = resolvePublicIpfsGateway();
   log.info(`Verify: ${gatewayUrlForCid(ipfsGatewayUrl, cid)}`);
 
   const upsertBundle = findBundleDir(skillName, kind, bundleDir);
