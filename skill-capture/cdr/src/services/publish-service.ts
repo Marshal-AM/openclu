@@ -25,10 +25,13 @@ import {
   uploadJsonToIpfs,
 } from "../helia-storage.js";
 import {
+  fetchPublicGateway,
+  gatewayUrlForCid,
   pinVaultCidOnPinata,
   resolvePublicIpfsGateway,
   uploadCiphertextToPinata,
 } from "../pinata-ipfs.js";
+import { isPinataBackedCidCached } from "../storage/pinata-aligned-storage.js";
 import { zipBundleDir, zipSkillBundle } from "../zip-bundle.js";
 
 export interface PublishStartResult {
@@ -226,90 +229,53 @@ export async function pinCiphertextToPublicIpfs(
   skillName: string,
   hostNodes?: string[],
 ): Promise<{ cid: string; ipfsGatewayUrl: string }> {
-  log.info("Downloading ciphertext from local Helia for Pinata public pin…");
-  const ciphertext = await storageProvider.download(cid);
-
   const gatewayBase = resolvePublicIpfsGateway();
 
-  try {
-    await assertCidReachableOnGateway({ cid, ciphertext, gatewayBase });
-    log.ok("Vault CID already on public gateway (Pinata-backed upload)");
-  } catch {
-    if (process.env.PINATA_USE_PIN_BY_CID === "1" && hostNodes?.length) {
-      log.info("Pinning vault CID on Pinata (pin-by-CID, paid plan)…");
-      await pinVaultCidOnPinata({ cid, skillName, hostNodes });
-    } else {
-      log.info("Uploading to Pinata (pinFileToIPFS, free tier)…");
-      const pin = await uploadCiphertextToPinata(ciphertext, skillName);
-      if (pin.cid !== cid) {
-        throw new Error(
-          `Pinata CID ${pin.cid} != vault CID ${cid}. Use createPinataBackedStorage during encrypt.`,
-        );
-      }
-    }
-    await assertCidReachableOnGateway({ cid, ciphertext, gatewayBase });
+  if (isPinataBackedCidCached(cid)) {
+    log.ok(
+      `Pinata pin confirmed for ${cid} — ${gatewayUrlForCid(gatewayBase, cid)}`,
+    );
+    return { cid, ipfsGatewayUrl: gatewayBase };
   }
+
+  log.info("Downloading ciphertext for public Pinata pin…");
+  const ciphertext = await storageProvider.download(cid);
+
+  if (process.env.PINATA_USE_PIN_BY_CID === "1" && hostNodes?.length) {
+    log.info("Pinning vault CID on Pinata (pin-by-CID, paid plan)…");
+    await pinVaultCidOnPinata({ cid, skillName, hostNodes });
+  } else {
+    log.info("Uploading to Pinata (pinFileToIPFS)…");
+    const pin = await uploadCiphertextToPinata(ciphertext, skillName);
+    if (pin.cid !== cid) {
+      throw new Error(
+        `Pinata CID ${pin.cid} != vault CID ${cid}. Use createPinataBackedStorage during encrypt.`,
+      );
+    }
+  }
+
+  await assertCidReachableOnGateway({ cid, gatewayBase });
 
   return { cid, ipfsGatewayUrl: gatewayBase };
 }
 
-const PUBLIC_GATEWAY_VERIFY_TIMEOUT_MS = Number(
-  process.env.PUBLIC_GATEWAY_VERIFY_TIMEOUT_MS ?? "45000",
-);
-const PUBLIC_GATEWAY_VERIFY_RETRIES = Math.max(
-  1,
-  Number(process.env.PUBLIC_GATEWAY_VERIFY_RETRIES ?? "8"),
-);
-const PUBLIC_GATEWAY_VERIFY_RETRY_DELAY_MS = Number(
-  process.env.PUBLIC_GATEWAY_VERIFY_RETRY_DELAY_MS ?? "4000",
-);
-
 async function assertCidReachableOnGateway(opts: {
   cid: string;
-  ciphertext: Uint8Array;
   gatewayBase: string;
 }): Promise<void> {
-  const gatewayUrl = `${opts.gatewayBase.replace(/\/$/, "")}/${opts.cid}`;
-  let lastErr: Error | null = null;
-
-  for (let i = 1; i <= PUBLIC_GATEWAY_VERIFY_RETRIES; i++) {
-    try {
-      log.info(
-        `Verifying public CID availability (${i}/${PUBLIC_GATEWAY_VERIFY_RETRIES}): ${gatewayUrl}`,
-      );
-      const res = await fetch(gatewayUrl, {
-        signal: AbortSignal.timeout(PUBLIC_GATEWAY_VERIFY_TIMEOUT_MS),
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const bytes = new Uint8Array(await res.arrayBuffer());
-      if (!bytes.length) {
-        throw new Error("empty response body");
-      }
-      if (bytes.length !== opts.ciphertext.length) {
-        throw new Error(
-          `byte length mismatch (got ${bytes.length}, expected ${opts.ciphertext.length})`,
-        );
-      }
-      for (let j = 0; j < bytes.length; j++) {
-        if (bytes[j] !== opts.ciphertext[j]) {
-          throw new Error("content mismatch for verified CID");
-        }
-      }
-      log.ok(`Public gateway verification passed for ${opts.cid}`);
-      return;
-    } catch (e) {
-      lastErr = e instanceof Error ? e : new Error(String(e));
-      if (i < PUBLIC_GATEWAY_VERIFY_RETRIES) {
-        await sleep(PUBLIC_GATEWAY_VERIFY_RETRY_DELAY_MS);
-      }
-    }
+  const gatewayUrl = gatewayUrlForCid(opts.gatewayBase, opts.cid);
+  log.info(`Gateway check: ${gatewayUrl}`);
+  const res = await fetchPublicGateway(gatewayUrl);
+  if (!res.ok) {
+    throw new Error(
+      `Public gateway HTTP ${res.status} for ${opts.cid}. Open ${gatewayUrl} in a browser to confirm.`,
+    );
   }
-
-  throw new Error(
-    `Public gateway could not serve CID ${opts.cid}. Aborting publish. Last error: ${lastErr?.message ?? "unknown"}`,
-  );
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (!bytes.length) {
+    throw new Error(`Public gateway returned empty body for ${opts.cid}`);
+  }
+  log.ok(`Public gateway serves ${opts.cid} (${bytes.length} bytes)`);
 }
 
 export async function pinBytesToHelia(data: Uint8Array): Promise<{ cid: string }> {

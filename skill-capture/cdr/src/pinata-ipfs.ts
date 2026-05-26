@@ -36,6 +36,28 @@ export function gatewayUrlForCid(gatewayBase: string, cid: string): string {
   return `${gatewayBase.replace(/\/$/, "")}/${cid}`;
 }
 
+/** Pinata gateway often returns 403 to bare Node fetch; browsers send a normal User-Agent. */
+export function publicGatewayFetchInit(): RequestInit {
+  return {
+    headers: {
+      Accept: "*/*",
+      "User-Agent":
+        process.env.IPFS_GATEWAY_USER_AGENT?.trim() ||
+        "Mozilla/5.0 (compatible; skill-capture/1.0)",
+    },
+  };
+}
+
+export async function fetchPublicGateway(
+  url: string,
+  timeoutMs = Number(process.env.PUBLIC_GATEWAY_VERIFY_TIMEOUT_MS ?? "60000"),
+): Promise<Response> {
+  return fetch(url, {
+    ...publicGatewayFetchInit(),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+}
+
 function pinataCredentialError(): string {
   return (
     "Pinata credentials missing. Set PINATA_API_KEY + PINATA_SECRET_KEY in skill-capture/.env " +

@@ -6,6 +6,7 @@ import { unixfs } from "@helia/unixfs";
 import type { Helia } from "helia";
 import { CID } from "multiformats/cid";
 import {
+  fetchPublicGateway,
   gatewayUrlForCid,
   resolvePublicIpfsGateway,
   uploadCiphertextToPinata,
@@ -14,6 +15,10 @@ import { log } from "../logger.js";
 
 const PINATA_UNIXFS_OPTS = { cidVersion: 1 as const, rawLeaves: true };
 const uploadCache = new Map<string, Uint8Array>();
+
+export function isPinataBackedCidCached(cid: string): boolean {
+  return uploadCache.has(cid);
+}
 
 function concatChunks(chunks: Uint8Array[]): Uint8Array {
   const total = chunks.reduce((n, c) => n + c.length, 0);
@@ -63,9 +68,10 @@ export function createPinataBackedStorage(helia: Helia, skillName: string): Stor
       }
 
       const url = gatewayUrlForCid(resolvePublicIpfsGateway(), cidStr);
-      const res = await fetch(url, {
-        signal: AbortSignal.timeout(Number(process.env.PINATA_UPLOAD_TIMEOUT_MS ?? "120000")),
-      });
+      const res = await fetchPublicGateway(
+        url,
+        Number(process.env.PINATA_UPLOAD_TIMEOUT_MS ?? "120000"),
+      );
       if (!res.ok) throw new Error(`Gateway fetch failed (${res.status}) for ${cidStr}`);
       const bytes = new Uint8Array(await res.arrayBuffer());
       uploadCache.set(cidStr, bytes);
