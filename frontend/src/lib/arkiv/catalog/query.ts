@@ -17,7 +17,6 @@ import {
   type PurchaseInfo,
   type QueryMatch,
   type SkillListingPayload,
-  type TrainingDataListingPayload,
 } from "./types";
 
 export type ListingQueryScope = "marketplace" | "mine";

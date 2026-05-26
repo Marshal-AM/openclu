@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE, SESSION_COOKIE_OPTS } from "@/lib/session";
+import { SESSION_COOKIE, SESSION_COOKIE_OPTS } from "@/lib/orchestrator-cookies";
 
 function normalizedAddress(value: unknown): string | null {
   if (typeof value !== "string") return null;

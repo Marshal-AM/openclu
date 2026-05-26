@@ -1,5 +1,6 @@
 import {
   getPortalDevice,
+  getPortalDeviceOrchestratorUrl,
   listPortalDevices,
   type PortalDeviceRow,
 } from "@/lib/portal-db";
@@ -18,4 +19,11 @@ export async function fetchOwnedDeviceById(
 ): Promise<OwnedDevice | null> {
   const { device } = await getPortalDevice(ownerWallet, deviceId);
   return device;
+}
+
+export async function fetchOwnedDeviceOrchestratorUrl(
+  ownerWallet: string,
+  deviceId: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string; status: number }> {
+  return getPortalDeviceOrchestratorUrl(ownerWallet, deviceId);
 }

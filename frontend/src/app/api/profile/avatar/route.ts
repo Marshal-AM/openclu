@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionWalletFromRequest } from "@/lib/auth-session";
-import { getPortalUserAvatar, upsertPortalUserAvatar } from "@/lib/portal-db";
+import { upsertPortalUserAvatar } from "@/lib/portal-db";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);

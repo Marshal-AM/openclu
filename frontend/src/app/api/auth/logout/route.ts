@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/session";
+import { SESSION_COOKIE } from "@/lib/orchestrator-cookies";
 
 export async function POST() {
   const res = NextResponse.json({ ok: true });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionWalletFromRequest } from "@/lib/auth-session";
-import { fetchOwnedDeviceOrchestratorUrl } from "@/lib/session";
+import { fetchOwnedDeviceOrchestratorUrl } from "@/lib/orchestrator-db";
 
 async function proxy(req: Request, pathSegs: string[]) {
   const ownerWallet = getSessionWalletFromRequest(req);

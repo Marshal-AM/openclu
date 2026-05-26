@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3Icon, ChevronDownIcon, LogOutIcon, MonitorIcon, MoonIcon, PenToolIcon, SunIcon, UserIcon, WrenchIcon } from "lucide-react";
+import { BarChart3Icon, ChevronDownIcon, LogOutIcon, MonitorIcon, MoonIcon, PenToolIcon, SunIcon, UserIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useCurrentWallet } from "@/components/auth/current-wallet";
 import { OpenCluLogo } from "@/components/OpenCluLogo";
