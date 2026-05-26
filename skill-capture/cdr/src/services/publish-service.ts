@@ -228,12 +228,77 @@ export async function pinCiphertextToPublicIpfs(
   const pin = await uploadCiphertextToPinata(ciphertext, skillName);
 
   if (pin.cid !== cid) {
-    log.warn(
-      `Pinata CID ${pin.cid} differs from CDR vault CID ${cid} — Arkiv should use vault CID ${cid}`,
+    throw new Error(
+      `Pinata returned CID ${pin.cid}, but CDR vault CID is ${cid}. Aborting publish to avoid unreachable listing.`,
     );
   }
 
+  await assertCidReachableOnGateway({
+    cid,
+    ciphertext,
+    gatewayBase: pin.gatewayBase,
+  });
+
   return { cid, ipfsGatewayUrl: pin.gatewayBase };
+}
+
+const PUBLIC_GATEWAY_VERIFY_TIMEOUT_MS = Number(
+  process.env.PUBLIC_GATEWAY_VERIFY_TIMEOUT_MS ?? "45000",
+);
+const PUBLIC_GATEWAY_VERIFY_RETRIES = Math.max(
+  1,
+  Number(process.env.PUBLIC_GATEWAY_VERIFY_RETRIES ?? "3"),
+);
+const PUBLIC_GATEWAY_VERIFY_RETRY_DELAY_MS = Number(
+  process.env.PUBLIC_GATEWAY_VERIFY_RETRY_DELAY_MS ?? "2000",
+);
+
+async function assertCidReachableOnGateway(opts: {
+  cid: string;
+  ciphertext: Uint8Array;
+  gatewayBase: string;
+}): Promise<void> {
+  const gatewayUrl = `${opts.gatewayBase.replace(/\/$/, "")}/${opts.cid}`;
+  let lastErr: Error | null = null;
+
+  for (let i = 1; i <= PUBLIC_GATEWAY_VERIFY_RETRIES; i++) {
+    try {
+      log.info(
+        `Verifying public CID availability (${i}/${PUBLIC_GATEWAY_VERIFY_RETRIES}): ${gatewayUrl}`,
+      );
+      const res = await fetch(gatewayUrl, {
+        signal: AbortSignal.timeout(PUBLIC_GATEWAY_VERIFY_TIMEOUT_MS),
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (!bytes.length) {
+        throw new Error("empty response body");
+      }
+      if (bytes.length !== opts.ciphertext.length) {
+        throw new Error(
+          `byte length mismatch (got ${bytes.length}, expected ${opts.ciphertext.length})`,
+        );
+      }
+      for (let j = 0; j < bytes.length; j++) {
+        if (bytes[j] !== opts.ciphertext[j]) {
+          throw new Error("content mismatch for verified CID");
+        }
+      }
+      log.ok(`Public gateway verification passed for ${opts.cid}`);
+      return;
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+      if (i < PUBLIC_GATEWAY_VERIFY_RETRIES) {
+        await sleep(PUBLIC_GATEWAY_VERIFY_RETRY_DELAY_MS);
+      }
+    }
+  }
+
+  throw new Error(
+    `Public gateway could not serve CID ${opts.cid}. Aborting publish. Last error: ${lastErr?.message ?? "unknown"}`,
+  );
 }
 
 export async function pinBytesToHelia(data: Uint8Array): Promise<{ cid: string }> {

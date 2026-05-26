@@ -3,6 +3,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import type { Hex } from "viem";
 import { API_URL, RPC_URL } from "./client.js";
 import {
@@ -38,6 +39,58 @@ export interface CdrManifestFile {
   arkivStatus?: string;
   arkivVersion?: number;
   ipfsGatewayUrl?: string;
+}
+
+type RequiredCdrManifest = CdrManifestFile & {
+  skillName: string;
+  publishedAt: string;
+};
+
+function requireManifestFields(manifest: CdrManifestFile, skillName: string): RequiredCdrManifest {
+  if (!manifest.publishedAt?.trim()) {
+    throw new Error(
+      `cdr-manifest.json missing publishedAt for "${skillName}". Re-run publish/distribute to regenerate manifest.`,
+    );
+  }
+  return {
+    ...manifest,
+    skillName,
+    publishedAt: manifest.publishedAt,
+  };
+}
+
+async function loadPublishCatalogToArkiv() {
+  const modulePath = resolve(
+    process.cwd(),
+    "..",
+    "..",
+    "skill-capture",
+    "arkiv",
+    "src",
+    "services",
+    "publish-catalog.js",
+  );
+  const mod = (await import(pathToFileURL(modulePath).href)) as {
+    publishCatalogToArkiv: (input: unknown) => Promise<{ listingKey: string }>;
+  };
+  return mod.publishCatalogToArkiv;
+}
+
+async function loadPublishTrainingCatalogToArkiv() {
+  const modulePath = resolve(
+    process.cwd(),
+    "..",
+    "..",
+    "skill-capture",
+    "arkiv",
+    "src",
+    "services",
+    "publish-training-catalog.js",
+  );
+  const mod = (await import(pathToFileURL(modulePath).href)) as {
+    publishTrainingCatalogToArkiv: (input: unknown) => Promise<{ listingKey: string }>;
+  };
+  return mod.publishTrainingCatalogToArkiv;
 }
 
 export function loadSkillManifest(skillName: string, bundleDir?: string): {
@@ -158,14 +211,13 @@ export async function upsertArkivCatalogListing(input: UpsertArkivInput) {
   const encryptedSizeBytes =
     input.encryptedSizeBytes ?? manifest.encryptedSizeBytes ?? 0;
 
-  const { publishCatalogToArkiv } = await import(
-    "../../../../skill-capture/arkiv/src/services/publish-catalog.js"
-  );
+  const publishCatalogToArkiv = await loadPublishCatalogToArkiv();
+  const publishManifest = requireManifestFields(manifest, input.skillName);
 
   log.info("Upserting full Arkiv listing (purchase + ops)…");
   const result = await publishCatalogToArkiv({
     skillName: input.skillName,
-    manifest,
+    manifest: publishManifest,
     bundleDir,
     publisherAddress: input.publisherAddress,
     ops: buildFullListingOps(
@@ -176,5 +228,64 @@ export async function upsertArkivCatalogListing(input: UpsertArkivInput) {
   });
 
   log.ok(`Arkiv listing key: ${result.listingKey}`);
+  return { result, manifest, manifestPath, peerHints };
+}
+
+/** Write full Arkiv trainingDataListing (purchase + ops). */
+export async function upsertArkivTrainingCatalogListing(input: UpsertArkivInput) {
+  const { manifest, bundleDir, manifestPath } = loadSkillManifest(
+    input.skillName,
+    input.bundleDir,
+  );
+
+  const gatewayUrl = input.ipfsGatewayUrl ?? manifest.ipfsGatewayUrl;
+  let peerHints = peerHintsFromManifest(manifest);
+  const needHelia =
+    !hasPublicIpfsDelivery({ ipfsGatewayUrl: gatewayUrl }) &&
+    (input.refreshPeerHints || !peerHints);
+
+  if (needHelia) {
+    log.info("Starting Helia to capture peer hints (first run or --refresh-peers)…");
+    log.info("(Windows: often 30–90s — wait for 'Helia ready')");
+    const { helia } = await getHeliaStorage();
+    peerHints = getHeliaPeerHints(helia);
+    saveManifestPeerHints(
+      manifestPath,
+      manifest,
+      peerHints,
+      input.encryptedSizeBytes ?? manifest.encryptedSizeBytes,
+    );
+    log.ok("Manifest updated with heliaPeerId + heliaMultiaddrs");
+  } else {
+    log.info("Using peer hints from manifest (fast Arkiv upsert, no Helia start)");
+  }
+
+  if (!peerHints) {
+    if (gatewayUrl) {
+      peerHints = EMPTY_PEER_HINTS;
+      log.info("Public IPFS gateway set — skipping Helia peer hints");
+    } else {
+      throw new Error(
+        `No peer hints for "${input.skillName}". Publish with Pinata API keys or re-run distribute-training with Pinata configured.`,
+      );
+    }
+  }
+
+  const encryptedSizeBytes =
+    input.encryptedSizeBytes ?? manifest.encryptedSizeBytes ?? 0;
+
+  const publishTrainingCatalogToArkiv = await loadPublishTrainingCatalogToArkiv();
+  const publishManifest = requireManifestFields(manifest, input.skillName);
+
+  log.info("Upserting full Arkiv training listing (purchase + ops)…");
+  const result = await publishTrainingCatalogToArkiv({
+    skillName: input.skillName,
+    manifest: publishManifest,
+    bundleDir,
+    publisherAddress: input.publisherAddress,
+    ops: buildFullListingOps(peerHints, encryptedSizeBytes, gatewayUrl),
+  });
+
+  log.ok(`Arkiv training listing key: ${result.listingKey}`);
   return { result, manifest, manifestPath, peerHints };
 }

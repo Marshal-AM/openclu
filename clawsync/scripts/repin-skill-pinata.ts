@@ -1,9 +1,10 @@
 /**
  * Pin ciphertext to public IPFS (Pinata) and set Arkiv ops.ipfsGatewayUrl.
+ * Resolves skillListing first, then trainingDataListing.
  *
  * Usage (from clawsync):
  *   npm run repin-pinata -- cursor-usage
- *   npm run repin-pinata -- abc
+ *   npm run repin-pinata -- sitting-standing-example-jtxri
  *
  * Requires PINATA_API_KEY + PINATA_SECRET_KEY in clawsync/.env.
  */
@@ -23,6 +24,7 @@ repinSkillToPublicIpfs({ skillName })
     console.log(`\nDone: ${skillName}`);
     console.log(`  CID: ${r.cid}`);
     console.log(`  Gateway: ${r.ipfsGatewayUrl}`);
+    console.log(`  Listing: ${r.listingKind}`);
     console.log(`  Bytes pinned: ${r.bytes}`);
   })
   .catch((e) => {

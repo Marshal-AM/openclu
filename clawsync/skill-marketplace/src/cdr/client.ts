@@ -11,8 +11,9 @@ export function getApiUrl(): string {
   return process.env.API_URL ?? "http://172.192.41.96:1317";
 }
 
-/** @deprecated use getRpcUrl() */
+/** @deprecated use getRpcUrl() / getApiUrl() */
 export const RPC_URL = getRpcUrl();
+export const API_URL = getApiUrl();
 
 let wasmReady = false;
 

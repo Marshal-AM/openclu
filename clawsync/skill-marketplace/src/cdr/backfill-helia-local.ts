@@ -13,6 +13,8 @@ export async function tryDownloadFromLocalHeliaStores(cid: string): Promise<Uint
     resolve(process.cwd(), 'data', '.helia-data', 'blocks'),
     resolve(process.cwd(), '..', 'skill-capture', 'cdr', '.helia-data', 'blocks'),
     resolve(process.cwd(), '..', '..', 'skill-capture', 'cdr', '.helia-data', 'blocks'),
+    resolve(process.cwd(), '..', 'skill-capture', 'cli', '.helia-data', 'blocks'),
+    resolve(process.cwd(), '..', '..', 'skill-capture', 'cli', '.helia-data', 'blocks'),
   );
 
   let parsed: CID;

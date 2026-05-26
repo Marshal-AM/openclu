@@ -103,6 +103,7 @@ try {
   node $QrScript $RegisterUrl
   if ($LASTEXITCODE -ne 0) { throw "QR script failed" }
 } catch {
-  Write-Host "(QR unavailable — run 'npm install' in skill-capture, then re-run register.ps1)"
-  Write-Host "Open the Register URL above in your browser."
+  Write-Host "(QR unavailable - run npm install in skill-capture, then re-run register.ps1)"
+  Write-Host "Register URL:"
+  Write-Host $RegisterUrl
 }
