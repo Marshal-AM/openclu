@@ -174,9 +174,7 @@ export function startVideoCaptureJob(skillSlug: string): Job {
     jobKind: "training",
     status: "capturing",
     logs: [
-      fixedMedia
-        ? `Dev mode: transcoding ${fixedMedia} for "${skillSlug}" (wait until finished before distribute).`
-        : `Starting video recording (camera + microphone) for "${skillSlug}" - type q and press Enter in this terminal to stop.`,
+      `Starting video recording (camera + microphone) for "${skillSlug}" - type q and press Enter in this terminal to stop.`,
       `Python: ${resolveVenvPython()}`,
     ],
     exitCode: null,
@@ -224,13 +222,7 @@ export function startVideoCaptureJob(skillSlug: string): Job {
       [skillSlug, "--no-distribute"],
       { env, stdio: ["pipe", "pipe", "pipe"] },
     );
-    if (!fixedMedia) {
-      startCaptureQuitListener(child);
-    } else {
-      console.log(
-        "\nDev transcode running — wait for \"Transcode complete\" in logs before distributing.\n",
-      );
-    }
+    startCaptureQuitListener(child);
     attachChildHandlers(
       job,
       child,

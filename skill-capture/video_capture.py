@@ -288,13 +288,22 @@ def _capture_from_media_input(
     run_dir: Path,
     ffmpeg: str,
 ) -> None:
-    print(f"\n=== Training data video (media file): {slug} ===")
+    """Dev / fixed file: same UX as camera (q to stop), then transcode the bundled file."""
+    device = _camera_device_index()
+    print(f"\n=== Training data video: {slug} ===")
     print(f"Output dir: {run_dir}")
-    print(f"Source:   {media_path}")
+    print(f"Camera device index: {device} (override with TRAINING_CAMERA_INDEX)")
+    print("\nStarting in 3 seconds...")
+    time.sleep(3)
+    print(
+        "\nVideo recording started (camera + microphone). "
+        "Type q and press Enter in the orchestrator terminal to stop.\n",
+        flush=True,
+    )
+    wait_for_terminal_quit()
+
     source_duration = _probe_duration_cv2(media_path)
-    if source_duration:
-        print(f"  [video] source duration: {source_duration:.2f}s")
-    print("\nTranscoding to webm", flush=True)
+    print("  [video] encoding bundled recording…", flush=True)
 
     webm_path = run_dir / "recording.webm"
     _transcode_input_to_webm(ffmpeg, media_path, webm_path)
@@ -315,14 +324,14 @@ def _capture_from_media_input(
         sys.exit(1)
 
     frame_count = max(1, int(duration / FRAME_INTERVAL))
-    print(f"\nTranscode complete: {duration:.1f}s webm ({webm_path.stat().st_size} bytes).")
+    print(f"\nStopped video recording after {duration:.1f}s wall time.")
     save_bundle(
         slug,
         webm_path,
         duration,
         frame_count,
         ffmpeg,
-        capture_source="media",
+        capture_source="dev_media",
         source_media=str(media_path),
         source_duration_sec=source_duration,
     )
@@ -428,7 +437,7 @@ def save_bundle(
             f"(expected roughly >{frame_count * MIN_BYTES_PER_FRAME} bytes).",
         )
 
-    if capture_source == "media" and source_duration_sec and webm_duration:
+    if capture_source in ("media", "dev_media") and source_duration_sec and webm_duration:
         if webm_duration < source_duration_sec * 0.9:
             raise RuntimeError(
                 f"Output webm ({webm_duration:.1f}s) is much shorter than source "

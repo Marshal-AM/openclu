@@ -51,7 +51,10 @@ function assertTrainingVideoBundle(bundleDir: string): void {
   if (wall <= 5 || dur <= 0) return;
   const ratio = dur / wall;
   const minDur = Number(process.env.TRAINING_MIN_PUBLISH_DURATION_SEC ?? "50");
-  if (meta.captureSource === "media" && dur < minDur) {
+  if (
+    (meta.captureSource === "media" || meta.captureSource === "dev_media") &&
+    dur < minDur
+  ) {
     throw new Error(
       `Training video is only ${dur}s (need >= ${minDur}s). ` +
         "Wait for dev transcode to finish or re-run capture before distribute.",
