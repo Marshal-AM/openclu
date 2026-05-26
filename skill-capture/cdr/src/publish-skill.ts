@@ -44,7 +44,7 @@ import {
 
 } from "./constants.js";
 
-import { getHeliaStorage, uploadJsonToIpfs } from "./helia-storage.js";
+import { getHeliaPeerHints, getHeliaStorage, uploadJsonToIpfs } from "./helia-storage.js";
 import { upsertArkivCatalogListing } from "./arkiv-listing.js";
 import { pinCiphertextToPublicIpfs } from "./services/publish-service.js";
 import { zipSkillBundle } from "./zip-bundle.js";
@@ -262,6 +262,7 @@ async function main() {
 
 
   const { helia, storage } = await getHeliaStorage();
+  const peerHints = getHeliaPeerHints(helia);
 
   const globalPubKey = await client.observer.getGlobalPubKey();
 
@@ -304,7 +305,12 @@ async function main() {
   });
 
   console.log("  [cdr] Pinning ciphertext on public IPFS (Pinata)…");
-  const { ipfsGatewayUrl } = await pinCiphertextToPublicIpfs(cid, storage, skillName);
+  const { ipfsGatewayUrl } = await pinCiphertextToPublicIpfs(
+    cid,
+    storage,
+    skillName,
+    peerHints.helia_multiaddrs,
+  );
 
   const manifest = {
 

@@ -67,7 +67,12 @@ export async function distributeTraining(opts: { skillName: string; bundleDir: s
   });
 
   console.log("\n  [cli] Pinning ciphertext on public IPFS (Pinata)…");
-  const { ipfsGatewayUrl } = await pinCiphertextToPublicIpfs(cid, storage, skillName);
+  const { ipfsGatewayUrl } = await pinCiphertextToPublicIpfs(
+    cid,
+    storage,
+    skillName,
+    peerHints.helia_multiaddrs,
+  );
 
   printCdrEncrypt({
     vaultUuid,

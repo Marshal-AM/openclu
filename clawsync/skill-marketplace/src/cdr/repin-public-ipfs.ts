@@ -11,8 +11,9 @@ import { ArkivError } from "../arkiv/lib/errors.js";
 import {
   gatewayUrlForCid,
   pinataConfigured,
-  uploadCiphertextToPinata,
+  pinVaultCidOnPinata,
 } from "./pinata-ipfs.js";
+import { ensureCidBytesInHelia, getHeliaPeerHints, getHeliaStorage } from "./helia-storage.js";
 import { downloadViaGatewayForBackfill } from "./backfill-download.js";
 import { tryDownloadFromLocalHeliaStores } from "./backfill-helia-local.js";
 import { tryDownloadFromLocalHeliaProviders } from "./backfill-helia-provider.js";
@@ -112,14 +113,16 @@ export async function repinSkillToPublicIpfs(opts: {
     );
   }
 
-  const pin = await uploadCiphertextToPinata(bytes, skillName);
-  if (pin.cid !== cid) {
-    throw new Error(
-      `Pinata returned CID ${pin.cid}, but Arkiv vault CID is ${cid}. Refusing repin to avoid broken listing.`,
-    );
-  }
+  await ensureCidBytesInHelia(cid, bytes);
+  const { helia } = await getHeliaStorage();
+  const peerHints = getHeliaPeerHints(helia);
+  const { gatewayBase } = await pinVaultCidOnPinata({
+    cid,
+    skillName,
+    hostNodes: peerHints.helia_multiaddrs,
+  });
 
-  const ipfsGatewayUrl = pin.gatewayBase;
+  const ipfsGatewayUrl = gatewayBase;
   log.info(`Verify: ${gatewayUrlForCid(ipfsGatewayUrl, cid)}`);
 
   const upsertBundle = findBundleDir(skillName, kind, bundleDir);

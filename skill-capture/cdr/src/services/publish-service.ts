@@ -24,7 +24,7 @@ import {
   hasLocalPin,
   uploadJsonToIpfs,
 } from "../helia-storage.js";
-import { uploadCiphertextToPinata } from "../pinata-ipfs.js";
+import { pinVaultCidOnPinata } from "../pinata-ipfs.js";
 import { zipBundleDir, zipSkillBundle } from "../zip-bundle.js";
 
 export interface PublishStartResult {
@@ -220,26 +220,25 @@ export async function pinCiphertextToPublicIpfs(
   cid: string,
   storageProvider: import("@piplabs/cdr-sdk").StorageProvider,
   skillName: string,
+  hostNodes: string[],
 ): Promise<{ cid: string; ipfsGatewayUrl: string }> {
-  log.info("Downloading ciphertext from local Helia for Pinata public pin…");
+  log.info("Downloading ciphertext from local Helia for gateway verification…");
   const ciphertext = await storageProvider.download(cid);
 
-  log.info("Uploading to Pinata (public IPFS)…");
-  const pin = await uploadCiphertextToPinata(ciphertext, skillName);
-
-  if (pin.cid !== cid) {
-    throw new Error(
-      `Pinata returned CID ${pin.cid}, but CDR vault CID is ${cid}. Aborting publish to avoid unreachable listing.`,
-    );
-  }
+  log.info("Pinning exact vault CID on Pinata (pin-by-CID from local Helia)…");
+  const { gatewayBase } = await pinVaultCidOnPinata({
+    cid,
+    skillName,
+    hostNodes,
+  });
 
   await assertCidReachableOnGateway({
     cid,
     ciphertext,
-    gatewayBase: pin.gatewayBase,
+    gatewayBase,
   });
 
-  return { cid, ipfsGatewayUrl: pin.gatewayBase };
+  return { cid, ipfsGatewayUrl: gatewayBase };
 }
 
 const PUBLIC_GATEWAY_VERIFY_TIMEOUT_MS = Number(
@@ -247,10 +246,10 @@ const PUBLIC_GATEWAY_VERIFY_TIMEOUT_MS = Number(
 );
 const PUBLIC_GATEWAY_VERIFY_RETRIES = Math.max(
   1,
-  Number(process.env.PUBLIC_GATEWAY_VERIFY_RETRIES ?? "3"),
+  Number(process.env.PUBLIC_GATEWAY_VERIFY_RETRIES ?? "8"),
 );
 const PUBLIC_GATEWAY_VERIFY_RETRY_DELAY_MS = Number(
-  process.env.PUBLIC_GATEWAY_VERIFY_RETRY_DELAY_MS ?? "2000",
+  process.env.PUBLIC_GATEWAY_VERIFY_RETRY_DELAY_MS ?? "4000",
 );
 
 async function assertCidReachableOnGateway(opts: {

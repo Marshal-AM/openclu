@@ -33,6 +33,20 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/** Ensure raw vault bytes exist in the local blockstore (for pin-by-CID republish). */
+export async function ensureCidBytesInHelia(cid: string, bytes: Uint8Array): Promise<void> {
+  const { helia } = await getHeliaStorage();
+  const parsed = CID.parse(cid);
+  if (await helia.blockstore.has(parsed)) return;
+  await helia.blockstore.put(parsed, bytes);
+  try {
+    await helia.pins.add(parsed);
+  } catch {
+    /* already pinned */
+  }
+  log.ok(`Imported ${bytes.length} bytes into local Helia for ${cid}`);
+}
+
 export async function hasLocalPin(helia: Helia, cidStr: string): Promise<boolean> {
   try {
     const cid = CID.parse(cidStr);
