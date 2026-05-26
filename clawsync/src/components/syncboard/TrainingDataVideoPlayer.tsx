@@ -41,12 +41,6 @@ export function TrainingDataVideoPlayer({ purchasedId, skillName, videoMime = 'v
     return <p className="purchase-hint">Loading video for {skillName}…</p>;
   }
   return (
-    <video
-      className="training-data-video-player"
-      controls
-      playsInline
-      src={src}
-      style={{ width: '100%', maxHeight: '480px', borderRadius: '8px' }}
-    />
+    <video className="training-data-video-player" controls playsInline src={src} />
   );
 }

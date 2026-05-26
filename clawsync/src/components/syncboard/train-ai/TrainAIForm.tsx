@@ -1,12 +1,22 @@
-import { useCallback, useRef, useState, type InputHTMLAttributes } from 'react';
+import { useRef, useState, type InputHTMLAttributes } from 'react';
+import { useAction } from 'convex/react';
+import { api } from '../../../../convex/_generated/api';
 import {
   PRESET_MODELS,
   startTraining,
   subscribeTrainProgress,
   type TrainProgressEvent,
 } from '../../../lib/localTrainerApi';
+import { base64ToVideoFile, videoFilenameForSkill } from '../../../lib/purchasedTrainingVideoFile';
 import { TrainAIProgress } from './TrainAIProgress';
+import {
+  TrainingDataPickerDialog,
+  type TrainingDataPickerItem,
+} from './TrainingDataPickerDialog';
 import './TrainAI.css';
+import './TrainingDataPickerDialog.css';
+
+type SelectedTrainingData = TrainingDataPickerItem;
 
 type Props = {
   disabled: boolean;
@@ -14,10 +24,15 @@ type Props = {
 };
 
 export function TrainAIForm({ disabled, onComplete }: Props) {
+  const getPurchasedVideo = useAction(api.trainingDataPurchaseActions.getPurchasedVideo);
+
   const [modelId, setModelId] = useState(PRESET_MODELS[0].id);
   const [customModelId, setCustomModelId] = useState('');
   const [useLocalModel, setUseLocalModel] = useState(false);
   const [video, setVideo] = useState<File | null>(null);
+  const [selectedTrainingData, setSelectedTrainingData] = useState<SelectedTrainingData | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [loadingTrainingVideo, setLoadingTrainingVideo] = useState(false);
   const [modelFiles, setModelFiles] = useState<File[]>([]);
   const [epochs, setEpochs] = useState(3);
   const [learningRate, setLearningRate] = useState(5e-5);
@@ -31,15 +46,40 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
 
   const resolvedModelId = customModelId.trim() || modelId;
 
-  const onDropVideo = useCallback((file: File | null) => {
-    if (file) {
+  async function handleAddTrainingData(item: TrainingDataPickerItem) {
+    setError(null);
+    setLoadingTrainingVideo(true);
+    try {
+      const res = await getPurchasedVideo({ id: item.id });
+      if (!res.found || !res.base64) {
+        setError('Video file not found in purchased bundle.');
+        return;
+      }
+      const mime = res.videoMime ?? item.videoMime;
+      const file = base64ToVideoFile(
+        res.base64,
+        mime,
+        videoFilenameForSkill(item.skillName, mime),
+      );
       setVideo(file);
+      setSelectedTrainingData(item);
+      setPickerOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoadingTrainingVideo(false);
     }
-  }, []);
+  }
+
+  function clearTrainingData() {
+    setVideo(null);
+    setSelectedTrainingData(null);
+    setError(null);
+  }
 
   const handleTrain = async () => {
     if (!video) {
-      setError('Upload a training video first.');
+      setError('Add training data before training.');
       return;
     }
     setError(null);
@@ -83,6 +123,8 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
     }
   };
 
+  const formLocked = disabled || busy || loadingTrainingVideo;
+
   return (
     <div className="train-ai-grid">
       <section className="train-ai-section">
@@ -93,7 +135,7 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
             id="preset-model"
             className="input"
             value={modelId}
-            disabled={disabled || busy || useLocalModel}
+            disabled={formLocked || useLocalModel}
             onChange={(e) => setModelId(e.target.value)}
           >
             {PRESET_MODELS.map((m) => (
@@ -111,7 +153,7 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
             className="input"
             placeholder="e.g. openai/clip-vit-base-patch32"
             value={customModelId}
-            disabled={disabled || busy || useLocalModel}
+            disabled={formLocked || useLocalModel}
             onChange={(e) => setCustomModelId(e.target.value)}
           />
         </div>
@@ -119,7 +161,7 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
           <input
             type="checkbox"
             checked={useLocalModel}
-            disabled={disabled || busy}
+            disabled={formLocked}
             onChange={(e) => setUseLocalModel(e.target.checked)}
           />
           Upload local model folder (config.json + weights)
@@ -133,7 +175,7 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
               className="input"
               {...({ webkitdirectory: '', directory: '' } as InputHTMLAttributes<HTMLInputElement>)}
               multiple
-              disabled={disabled || busy}
+              disabled={formLocked}
               onChange={(e) => setModelFiles(Array.from(e.target.files ?? []))}
             />
           </div>
@@ -141,37 +183,52 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
       </section>
 
       <section className="train-ai-section">
-        <h3>Training video</h3>
-        <div
-          className="train-ai-dropzone"
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.currentTarget.classList.add('train-ai-dropzone--active');
-          }}
-          onDragLeave={(e) => {
-            e.currentTarget.classList.remove('train-ai-dropzone--active');
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.currentTarget.classList.remove('train-ai-dropzone--active');
-            const file = e.dataTransfer.files[0];
-            if (file) {
-              onDropVideo(file);
-            }
-          }}
-        >
-          <div className="form-group">
-            <label htmlFor="train-video">Video file</label>
-            <input
-              type="file"
-              className="input"
-              accept="video/mp4,video/webm,video/quicktime,.mp4,.mov,.webm"
-              id="train-video"
-              disabled={disabled || busy}
-              onChange={(e) => onDropVideo(e.target.files?.[0] ?? null)}
-            />
+        <h3>Training data</h3>
+
+        {selectedTrainingData ? (
+          <div className="train-ai-selected-data">
+            <div className="train-ai-selected-data-main">
+              <p className="train-ai-selected-data-title">{selectedTrainingData.title}</p>
+              <span className="training-data-card-badge">{selectedTrainingData.skillName}</span>
+              <p className="purchase-hint">
+                Video ready for training
+                {video ? ` (${video.name})` : ''}
+              </p>
+            </div>
+            <div className="train-ai-selected-data-actions">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={formLocked}
+                onClick={() => setPickerOpen(true)}
+              >
+                Change
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                disabled={formLocked}
+                onClick={clearTrainingData}
+              >
+                Remove
+              </button>
+            </div>
           </div>
-          <p>{video ? `Selected: ${video.name}` : 'Drop a file on this area or use the picker above'}</p>
+        ) : (
+          <p className="purchase-hint train-ai-training-data-hint">
+            Select purchased training data from your library. Its video will be used for fine-tuning.
+          </p>
+        )}
+
+        <div className="train-ai-form-actions train-ai-add-data-action">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={formLocked}
+            onClick={() => setPickerOpen(true)}
+          >
+            {loadingTrainingVideo ? 'Loading video…' : 'Add training data'}
+          </button>
         </div>
 
         <div className="train-ai-form-stack">
@@ -184,7 +241,7 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
               min={0.1}
               step={0.1}
               value={sampleRateSec}
-              disabled={disabled || busy}
+              disabled={formLocked}
               onChange={(e) => setSampleRateSec(Number(e.target.value))}
             />
           </div>
@@ -197,7 +254,7 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
               min={1}
               max={50}
               value={epochs}
-              disabled={disabled || busy}
+              disabled={formLocked}
               onChange={(e) => setEpochs(Number(e.target.value))}
             />
           </div>
@@ -209,7 +266,7 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
               className="input"
               step="any"
               value={learningRate}
-              disabled={disabled || busy}
+              disabled={formLocked}
               onChange={(e) => setLearningRate(Number(e.target.value))}
             />
           </div>
@@ -220,7 +277,7 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
               type="text"
               className="input"
               value={labels}
-              disabled={disabled || busy}
+              disabled={formLocked}
               onChange={(e) => setLabels(e.target.value)}
             />
           </div>
@@ -230,7 +287,7 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={disabled || busy || !video}
+            disabled={formLocked || !video}
             onClick={() => void handleTrain()}
           >
             {busy ? 'Training…' : 'Train'}
@@ -239,6 +296,13 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
 
         {error ? <p className="purchase-error">{error}</p> : null}
       </section>
+
+      <TrainingDataPickerDialog
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onAdd={(item) => void handleAddTrainingData(item)}
+        adding={loadingTrainingVideo}
+      />
 
       {(busy || progress) && jobId ? (
         <div style={{ gridColumn: '1 / -1' }}>
@@ -261,6 +325,48 @@ export function TrainAIForm({ disabled, onComplete }: Props) {
 
         .train-ai-form-stack {
           margin-top: var(--space-4);
+        }
+
+        .train-ai-training-data-hint {
+          margin: 0 0 var(--space-3);
+        }
+
+        .train-ai-selected-data {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: var(--space-3);
+          margin-bottom: var(--space-3);
+          padding: var(--space-3);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          background: var(--bg-primary);
+        }
+
+        .train-ai-selected-data-main {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: var(--space-2);
+          min-width: 0;
+        }
+
+        .train-ai-selected-data-title {
+          margin: 0;
+          font-size: var(--text-base);
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .train-ai-selected-data-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--space-2);
+        }
+
+        .train-ai-add-data-action {
+          margin-bottom: var(--space-2);
         }
 
         .train-ai-section .purchase-error {

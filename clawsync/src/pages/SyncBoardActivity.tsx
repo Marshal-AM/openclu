@@ -165,7 +165,7 @@ export function SyncBoardActivity() {
 
         .activity-table th {
           font-weight: 500;
-          color: var(--text-secondary);
+          color: var(--surface-highlight-foreground);
           font-size: var(--text-sm);
           background-color: var(--bg-hover);
         }

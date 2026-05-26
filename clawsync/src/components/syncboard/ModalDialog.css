@@ -80,7 +80,7 @@
 
 .modal-dialog-close:hover {
   background: var(--bg-hover);
-  color: var(--text-primary);
+  color: var(--surface-highlight-foreground);
 }
 
 .modal-dialog-body {

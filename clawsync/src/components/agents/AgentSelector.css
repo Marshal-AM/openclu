@@ -76,6 +76,7 @@
 .agent-selector-option:hover,
 .agent-selector-option.is-selected {
   background: var(--bg-hover);
+  color: var(--surface-highlight-foreground);
 }
 
 .agent-selector-option-name {
