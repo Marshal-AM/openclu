@@ -294,7 +294,7 @@ def _capture_from_media_input(
     source_duration = _probe_duration_cv2(media_path)
     if source_duration:
         print(f"  [video] source duration: {source_duration:.2f}s")
-    print("\nTranscoding to webm (do not press q — this is not live camera capture)…", flush=True)
+    print("\nTranscoding to webm", flush=True)
 
     webm_path = run_dir / "recording.webm"
     _transcode_input_to_webm(ffmpeg, media_path, webm_path)
