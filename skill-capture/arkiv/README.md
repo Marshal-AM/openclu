@@ -35,6 +35,18 @@ Fund the wallet with test GLM: [Braga faucet](https://braga.hoodi.arkiv.network/
 
 **`$owner`:** device wallet from `DEVICE_WALLET_PRIVATE_KEY` — required for all writes. **`$creator`:** immutable; use `.createdBy(address)` on queries for trusted publisher reads. Marketplace queries default to `status: published`.
 
+## Portal entities (OpenClu dashboard)
+
+User profiles, registered devices, and pending device registrations are stored on Arkiv under project `openclu-portal-v1` (override with `ARKIV_PORTAL_PROJECT_VALUE`).
+
+| Entity type | Purpose |
+|-------------|---------|
+| `portalUser` | Owner wallet profile (display name, email, bio, avatar bytes) |
+| `portalDevice` | Registered capture device + orchestrator ngrok URL |
+| `deviceRegistrationPending` | Short-lived row from `register.sh` before browser confirm |
+
+Writes use `PORTAL_WALLET_PRIVATE_KEY` (set in `frontend/.env.local` on Vercel/local). Reads use the public client via `portal-db-cli.ts`, same subprocess pattern as `catalog-query-cli.ts`.
+
 ## Listing payload (`ops`)
 
 Each `skillListing` includes an `ops` block written at publish time:

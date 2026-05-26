@@ -204,7 +204,7 @@ export default function ProfilePage() {
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Profile details</CardTitle>
-          <CardDescription>These details are stored in Supabase.</CardDescription>
+          <CardDescription>These details are stored in Arkiv.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
           {loading ? (

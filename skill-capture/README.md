@@ -20,8 +20,7 @@ Raw audio and frames stay local. Ciphertext is pinned on local Helia. **No CDR o
 - Node.js 22+
 - `GROQ_API_KEY` in `skill-capture/.env`
 - Device wallet from `register.sh` (fund on Story Aeneid + Braga GLM)
-- Supabase project + `supabase/schema.sql` applied
-- `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` in **`frontend/.env.local` only** (all DB access)
+- `PORTAL_WALLET_PRIVATE_KEY` in **`frontend/.env.local`** (Arkiv portal reads/writes for users + devices)
 
 ## Multi-user + deployed frontend (ngrok)
 
@@ -29,12 +28,12 @@ Each contributor runs **orchestrator on their PC** and tunnels it with **ngrok**
 
 1. Terminal A: `cd orchestrator && npm run start` — prints **ngrok public URL** automatically (`NGROK_AUTHTOKEN` in `skill-capture/.env`, `pyngrok` in venv)
 2. Add `NGROK_AUTHTOKEN` to `skill-capture/.env` ([ngrok dashboard](https://dashboard.ngrok.com/get-started/your-authtoken))
-3. Run `.\register.ps1` — reads `publicUrl` from orchestrator `/health`, puts it in the QR link, saves to Supabase on confirm
+3. Run `.\register.ps1` — reads `publicUrl` from orchestrator `/health`, puts it in the QR link, saves to Arkiv on confirm
 4. Set `FRONTEND_URL` in `skill-capture/.env` to your **Vercel** (or local) app URL before `register.ps1`
 5. `register.ps1` POSTs pending registration to **`FRONTEND_URL/api/devices/pending`** (not the orchestrator)
 6. In Contribute, choose a registered device; the UI proxies jobs to that device ngrok URL (`devices.orchestrator_url`)
 
-Keep orchestrator + ngrok running while contributing. Supabase credentials live **only on the frontend** (local or Vercel).
+Keep orchestrator + ngrok running while contributing. Portal wallet credentials live **only on the frontend** (local or Vercel) for Arkiv user/device storage.
 
 ## First-time device setup
 

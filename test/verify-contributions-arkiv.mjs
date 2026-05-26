@@ -1,5 +1,5 @@
 /**
- * Smoke test: Supabase devices → Arkiv skill + training queries → contribution mapping.
+ * Smoke test: Arkiv portal devices → Arkiv skill + training queries → contribution mapping.
  * Run from repo root: node test/verify-contributions-arkiv.mjs [ownerWallet]
  */
 import { readFileSync, existsSync } from "node:fs";
@@ -13,7 +13,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 const FRONTEND_ENV = resolve(ROOT, "frontend", ".env");
 const ARKIV_DIR = resolve(ROOT, "skill-capture", "arkiv");
-const CLI = resolve(ARKIV_DIR, "src", "cli", "catalog-query-cli.ts");
+const CATALOG_CLI = resolve(ARKIV_DIR, "src", "cli", "catalog-query-cli.ts");
+const PORTAL_CLI = resolve(ARKIV_DIR, "src", "cli", "portal-db-cli.ts");
 const DEVICE_WALLET = "0x2514844F312c02Ae3C9d4fEb40db4eC8830b6844";
 
 function loadEnvFile(path) {
@@ -29,11 +30,15 @@ function loadEnvFile(path) {
   return out;
 }
 
-async function runCatalog(cmd, body) {
+function mergedEnv() {
+  return { ...process.env, ...loadEnvFile(FRONTEND_ENV) };
+}
+
+async function runCli(cliPath, cmd, body, envKey) {
   const tsx = resolve(ARKIV_DIR, "node_modules", "tsx", "dist", "cli.mjs");
   if (!existsSync(tsx)) throw new Error("Missing skill-capture/arkiv node_modules — run npm install there");
-  const env = { ...process.env, SKILL_CAPTURE_CATALOG_JSON: JSON.stringify(body) };
-  const { stdout } = await exec(process.execPath, [tsx, CLI, cmd], {
+  const env = { ...mergedEnv(), [envKey]: JSON.stringify(body) };
+  const { stdout } = await exec(process.execPath, [tsx, cliPath, cmd], {
     cwd: ARKIV_DIR,
     env,
     maxBuffer: 10 * 1024 * 1024,
@@ -41,23 +46,17 @@ async function runCatalog(cmd, body) {
   return JSON.parse(stdout.trim());
 }
 
-async function listDevices(ownerWallet) {
-  const env = loadEnvFile(FRONTEND_ENV);
-  const url = env.SUPABASE_URL;
-  const key = env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing in frontend/.env");
+async function runCatalog(cmd, body) {
+  return runCli(CATALOG_CLI, cmd, body, "SKILL_CAPTURE_CATALOG_JSON");
+}
 
-  const res = await fetch(
-    `${url}/rest/v1/devices?select=id,device_name,wallet_address,owner_wallet_address&owner_wallet_address=eq.${ownerWallet.toLowerCase()}`,
-    {
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-      },
-    },
-  );
-  if (!res.ok) throw new Error(`Supabase devices: ${res.status} ${await res.text()}`);
-  return res.json();
+async function runPortal(cmd, body) {
+  return runCli(PORTAL_CLI, cmd, body, "SKILL_CAPTURE_PORTAL_JSON");
+}
+
+async function listDevices(ownerWallet) {
+  const res = await runPortal("list-devices", { ownerWallet: ownerWallet.toLowerCase() });
+  return res.devices ?? [];
 }
 
 async function aggregateForOwner(ownerWallet) {
@@ -117,17 +116,8 @@ async function main() {
   });
   console.log(`Skills: ${skills.matchCount}, Training: ${training.matchCount}`);
 
-  console.log("\n--- Supabase devices ---");
-  const allDevices = await fetch(
-    `${loadEnvFile(FRONTEND_ENV).SUPABASE_URL}/rest/v1/devices?select=owner_wallet_address,wallet_address,device_name&limit=5`,
-    {
-      headers: {
-        apikey: loadEnvFile(FRONTEND_ENV).SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${loadEnvFile(FRONTEND_ENV).SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-    },
-  ).then((r) => r.json());
-
+  console.log("\n--- Arkiv portal devices ---");
+  const allDevices = await listDevices(ownerArg ?? "");
   const owner =
     ownerArg ??
     allDevices[0]?.owner_wallet_address ??
@@ -135,7 +125,7 @@ async function main() {
       throw new Error("Pass owner wallet as argv[2] or register a device first");
     })();
   console.log(`Owner wallet: ${owner}`);
-  console.log(`Sample devices in DB: ${allDevices.length}`);
+  console.log(`Devices for owner: ${allDevices.length}`);
 
   console.log("\n--- Full aggregation (same as GET /api/contributions) ---");
   const agg = await aggregateForOwner(owner);

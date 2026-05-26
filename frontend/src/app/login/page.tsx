@@ -28,10 +28,14 @@ export default function LoginPage() {
     void (async () => {
       try {
         await syncWalletSession(walletAddress);
-      } finally {
         if (mounted) {
           setSyncing(false);
           router.replace(HOME_PATH);
+        }
+      } catch {
+        if (mounted) {
+          setSyncing(false);
+          redirectStarted.current = false;
         }
       }
     })();

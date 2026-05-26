@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSessionWallet } from "@/lib/session";
+import {
+  deletePendingRegistration,
+  getPendingRegistration,
+  upsertPortalDevice,
+} from "@/lib/portal-db";
 
 export async function POST(req: Request) {
   try {
@@ -32,23 +36,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const sb = getSupabaseAdmin();
-    const { error: userErr } = await sb.from("users").upsert(
-      {
-        wallet_address: ownerWallet,
-        last_login_at: new Date().toISOString(),
-      },
-      { onConflict: "wallet_address" },
-    );
-    if (userErr) return NextResponse.json({ error: userErr.message }, { status: 500 });
-
-    const { data: pending, error: pErr } = await sb
-      .from("device_registration_pending")
-      .select("*")
-      .eq("registration_token", token)
-      .maybeSingle();
-
-    if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 });
+    const { pending } = await getPendingRegistration(token);
 
     let resolvedDeviceId = deviceId?.trim();
     let resolvedDeviceName = deviceName?.trim();
@@ -76,19 +64,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const { error: insErr } = await sb.from("devices").upsert({
-      device_id: resolvedDeviceId!,
-      device_name: resolvedDeviceName!,
-      wallet_address: wallet,
-      registration_token: token,
-      registered_at: new Date().toISOString(),
-      owner_wallet_address: ownerWallet,
-      orchestrator_url,
+    await upsertPortalDevice({
+      deviceId: resolvedDeviceId!,
+      deviceName: resolvedDeviceName!,
+      deviceWallet: wallet,
+      ownerWallet,
+      registrationToken: token,
+      registeredAt: new Date().toISOString(),
+      orchestratorUrl: orchestrator_url,
     });
-    if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
 
     if (pending) {
-      await sb.from("device_registration_pending").delete().eq("registration_token", token);
+      await deletePendingRegistration(token);
     }
 
     return NextResponse.json({

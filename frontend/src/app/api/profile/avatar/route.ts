@@ -1,17 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSessionWalletFromRequest } from "@/lib/auth-session";
-import { getSupabaseAdmin } from "@/lib/supabase";
+import { getPortalUserAvatar, upsertPortalUserAvatar } from "@/lib/portal-db";
 
-const BUCKET = "profile-avatars";
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-
-function extensionForMimeType(mimeType: string): string {
-  if (mimeType === "image/png") return "png";
-  if (mimeType === "image/webp") return "webp";
-  if (mimeType === "image/gif") return "gif";
-  return "jpg";
-}
 
 export async function POST(req: Request) {
   try {
@@ -33,39 +25,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Avatar must be between 1 byte and 5 MB" }, { status: 400 });
     }
 
-    const extension = extensionForMimeType(file.type);
-    const path = `${wallet}/${Date.now()}.${extension}`;
-
-    const sb = getSupabaseAdmin();
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const { error: uploadError } = await sb.storage.from(BUCKET).upload(path, bytes, {
-      contentType: file.type,
-      upsert: true,
+    const dataBase64 = Buffer.from(bytes).toString("base64");
+
+    const { avatarUrl } = await upsertPortalUserAvatar(wallet, {
+      mimeType: file.type,
+      dataBase64,
     });
 
-    if (uploadError) {
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
-    }
-
-    const {
-      data: { publicUrl },
-    } = sb.storage.from(BUCKET).getPublicUrl(path);
-
-    const { error: updateError } = await sb
-      .from("users")
-      .upsert(
-        {
-          wallet_address: wallet,
-          avatar_url: publicUrl,
-        },
-        { onConflict: "wallet_address" },
-      );
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ avatarUrl: publicUrl });
+    return NextResponse.json({ avatarUrl });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : String(e) },

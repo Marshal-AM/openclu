@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase";
+import { upsertPendingRegistration } from "@/lib/portal-db";
 
 /** Called by register.sh on the device — stores pending row before user opens /register. */
 export async function POST(req: Request) {
@@ -19,15 +19,13 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    const sb = getSupabaseAdmin();
-    const { error } = await sb.from("device_registration_pending").upsert({
-      registration_token,
-      device_id,
-      device_name,
-      orchestrator_url: orchestrator_url?.replace(/\/$/, "") ?? null,
-      wallet_address: wallet_address.toLowerCase(),
+    await upsertPendingRegistration({
+      registrationToken: registration_token,
+      deviceId: device_id,
+      deviceName: device_name,
+      deviceWallet: wallet_address.toLowerCase(),
+      orchestratorUrl: orchestrator_url?.replace(/\/$/, "") ?? null,
     });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json(
