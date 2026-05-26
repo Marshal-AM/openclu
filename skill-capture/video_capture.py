@@ -35,10 +35,6 @@ stop_flag = threading.Event()
 frames_audio: list[bytes] = []
 video_frames: list = []
 
-_latest_frame_lock = threading.Lock()
-_latest_frame = None
-
-
 def _camera_device_index() -> int:
     raw = os.environ.get("TRAINING_CAMERA_INDEX", "0").strip()
     try:
@@ -75,17 +71,9 @@ def _warmup_camera(cap: cv2.VideoCapture) -> None:
     cap.retrieve()
 
 
-def _camera_grab_loop(cap: cv2.VideoCapture) -> None:
-    """Continuously grab frames so blocking read() does not limit sample rate."""
-    global _latest_frame
-    while not stop_flag.is_set():
-        if not cap.grab():
-            time.sleep(0.001)
-            continue
-        ok, frame = cap.retrieve()
-        if ok and frame is not None:
-            with _latest_frame_lock:
-                _latest_frame = frame.copy()
+def _wav_duration_sec(wav_path: Path) -> float:
+    with wave.open(str(wav_path), "rb") as wf:
+        return wf.getnframes() / float(wf.getframerate())
 
 
 def record_audio():
@@ -108,7 +96,6 @@ def record_audio():
 
 
 def record_camera_frames(wall_clock_start: float):
-    global _latest_frame
     device = _camera_device_index()
     cap = _open_camera(device)
     if not cap.isOpened():
@@ -124,9 +111,8 @@ def record_camera_frames(wall_clock_start: float):
     _warmup_camera(cap)
 
     print(f"  [video] camera recording (device {device})...")
-    grab_thread = threading.Thread(target=_camera_grab_loop, args=(cap,), daemon=True)
-    grab_thread.start()
-
+    # Sample with grab()+retrieve on an interval (more reliable on Windows than a
+    # background grab thread + "latest frame" — empty latest_frame drops samples).
     target_fps = 1.0 / FRAME_INTERVAL
     last_sample = 0.0
     failed_reads = 0
@@ -134,16 +120,17 @@ def record_camera_frames(wall_clock_start: float):
         while not stop_flag.is_set():
             now = time.time()
             if now - last_sample >= FRAME_INTERVAL:
-                with _latest_frame_lock:
-                    frame = None if _latest_frame is None else _latest_frame.copy()
-                if frame is not None:
-                    video_frames.append(frame)
-                    last_sample = now
+                if cap.grab():
+                    ok, frame = cap.retrieve()
+                    if ok and frame is not None:
+                        video_frames.append(frame)
+                        last_sample = now
+                    else:
+                        failed_reads += 1
                 else:
                     failed_reads += 1
-            time.sleep(0.005)
+            time.sleep(0.002)
     finally:
-        grab_thread.join(timeout=2)
         cap.release()
 
     elapsed = time.time() - wall_clock_start
@@ -157,10 +144,16 @@ def record_camera_frames(wall_clock_start: float):
     if failed_reads:
         print(f"  [video] warning: {failed_reads} sample ticks had no frame yet.")
     if ratio < 0.5:
-        print(
-            "  [video] warning: frame count is far below wall-clock duration — "
-            "check TRAINING_CAMERA_INDEX and camera permissions.",
+        msg = (
+            f"  [video] error: only {captured} frames for {elapsed:.1f}s wall time "
+            f"(expected ~{expected} at {target_fps:.0f} fps, ratio {ratio:.0%}). "
+            "The encoded video will be much shorter than your recording session "
+            "(ffmpeg -shortest). Try TRAINING_CAMERA_INDEX=1, close other apps "
+            "using the camera, or set TRAINING_ALLOW_LOW_FRAMES=1 to override."
         )
+        print(msg)
+        if os.environ.get("TRAINING_ALLOW_LOW_FRAMES", "").strip() != "1":
+            raise RuntimeError(msg.strip())
 
     if video_frames:
         luma = _mean_luma(video_frames[0])
@@ -225,6 +218,28 @@ def _find_ffprobe(ffmpeg: str | None) -> str | None:
     return None
 
 
+def _probe_duration_cv2(video_path: Path) -> float | None:
+    try:
+        cap = cv2.VideoCapture(str(video_path))
+        fps = cap.get(cv2.CAP_PROP_FPS) or 0
+        n = cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0
+        cap.release()
+        if fps > 0 and n > 0:
+            return float(n) / float(fps)
+    except Exception:
+        pass
+    return None
+
+
+def _probe_video_duration(video_path: Path, ffmpeg: str | None) -> float | None:
+    ffprobe = _find_ffprobe(ffmpeg) if ffmpeg else _find_ffprobe(_find_ffmpeg())
+    if ffprobe:
+        d = _probe_webm_duration(ffprobe, video_path)
+        if d is not None:
+            return d
+    return _probe_duration_cv2(video_path)
+
+
 def _probe_webm_duration(ffprobe: str, webm_path: Path) -> float | None:
     cmd = [
         ffprobe,
@@ -273,31 +288,44 @@ def _capture_from_media_input(
     run_dir: Path,
     ffmpeg: str,
 ) -> None:
-    device = _camera_device_index()
-    print(f"\n=== Training data video: {slug} ===")
+    print(f"\n=== Training data video (media file): {slug} ===")
     print(f"Output dir: {run_dir}")
-    print(f"Camera device index: {device} (override with TRAINING_CAMERA_INDEX)")
-    print("\nStarting in 3 seconds...")
-    time.sleep(3)
-    print(
-        "\nVideo recording started (camera + microphone). "
-        "Type q and press Enter in the orchestrator terminal to stop.\n",
-        flush=True,
-    )
-    start_time = time.time()
+    print(f"Source:   {media_path}")
+    source_duration = _probe_duration_cv2(media_path)
+    if source_duration:
+        print(f"  [video] source duration: {source_duration:.2f}s")
+    print("\nTranscoding to webm (do not press q — this is not live camera capture)…", flush=True)
+
     webm_path = run_dir / "recording.webm"
     _transcode_input_to_webm(ffmpeg, media_path, webm_path)
     if not webm_path.is_file():
         print(f"Error: recording file missing at {webm_path}")
         sys.exit(1)
 
-    ffprobe = _find_ffprobe(ffmpeg)
-    duration = _probe_webm_duration(ffprobe, webm_path) if ffprobe else None
+    duration = _probe_video_duration(webm_path, ffmpeg)
     if duration is None:
-        duration = max(0.1, time.time() - start_time)
+        print("Error: could not measure output webm duration (install ffmpeg or opencv).")
+        sys.exit(1)
+
+    if source_duration and duration < source_duration * 0.9:
+        print(
+            f"  [video] error: output webm is {duration:.1f}s but source is "
+            f"{source_duration:.1f}s — transcode looks truncated.",
+        )
+        sys.exit(1)
+
     frame_count = max(1, int(duration / FRAME_INTERVAL))
-    print(f"\nStopped video recording after {duration:.1f}s wall time.")
-    save_bundle(slug, webm_path, duration, frame_count, ffmpeg)
+    print(f"\nTranscode complete: {duration:.1f}s webm ({webm_path.stat().st_size} bytes).")
+    save_bundle(
+        slug,
+        webm_path,
+        duration,
+        frame_count,
+        ffmpeg,
+        capture_source="media",
+        source_media=str(media_path),
+        source_duration_sec=source_duration,
+    )
 
     if not skip_distribute:
         from cdr_publish import publish_training_to_cdr
@@ -316,6 +344,16 @@ def _mux_to_webm(ffmpeg: str, run_dir: Path, wav_path: Path) -> Path:
 
     out_path = run_dir / "recording.webm"
     fps = max(1, min(30, int(1.0 / FRAME_INTERVAL)))
+    n_frames = len(video_frames)
+    video_sec = n_frames / fps if n_frames else 0.0
+    audio_sec = _wav_duration_sec(wav_path)
+    if audio_sec > video_sec + 0.5:
+        print(
+            f"  [video] warning: audio is {audio_sec:.1f}s but only {n_frames} video frames "
+            f"(~{video_sec:.1f}s at {fps} fps) — output will be truncated to video length "
+            "unless you capture more frames.",
+        )
+
     cmd = [
         ffmpeg,
         "-y",
@@ -338,7 +376,10 @@ def _mux_to_webm(ffmpeg: str, run_dir: Path, wav_path: Path) -> Path:
         "-shortest",
         str(out_path),
     ]
-    print(f"  [video] encoding with ffmpeg ({len(video_frames)} frames @ {fps} fps)...")
+    print(
+        f"  [video] encoding with ffmpeg ({n_frames} frames @ {fps} fps, "
+        f"~{video_sec:.1f}s video / {audio_sec:.1f}s audio)...",
+    )
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(f"ffmpeg failed: {result.stderr[-2000:]}")
@@ -351,6 +392,10 @@ def save_bundle(
     wall_clock_sec: float,
     frame_count: int,
     ffmpeg: str,
+    *,
+    capture_source: str = "camera",
+    source_media: str | None = None,
+    source_duration_sec: float | None = None,
 ):
     bundle_dir = OUTPUT_BUNDLE / slug
     bundle_dir.mkdir(parents=True, exist_ok=True)
@@ -362,26 +407,45 @@ def save_bundle(
             f"(recommended max {MAX_VIDEO_BYTES // (1024*1024)} MB)",
         )
 
-    ffprobe = _find_ffprobe(ffmpeg)
-    webm_duration = _probe_webm_duration(ffprobe, webm_path) if ffprobe else None
+    webm_duration = _probe_video_duration(webm_path, ffmpeg)
     if webm_duration is None:
         webm_duration = frame_count / max(1, int(1.0 / FRAME_INTERVAL))
         print(
-            f"  [video] warning: ffprobe unavailable; durationSec estimated as {webm_duration:.2f}",
+            f"  [video] warning: could not probe webm; durationSec estimated as {webm_duration:.2f}",
         )
 
-    target_fps = 1.0 / FRAME_INTERVAL
-    expected_frames = max(1, int(wall_clock_sec * target_fps))
-    if frame_count < expected_frames * 0.5:
-        print(
-            f"  [video] warning: only {frame_count} frames for {wall_clock_sec:.1f}s wall time "
-            f"(expected ~{expected_frames}).",
-        )
+    if capture_source == "camera":
+        target_fps = 1.0 / FRAME_INTERVAL
+        expected_frames = max(1, int(wall_clock_sec * target_fps))
+        if frame_count < expected_frames * 0.5:
+            print(
+                f"  [video] warning: only {frame_count} frames for {wall_clock_sec:.1f}s wall time "
+                f"(expected ~{expected_frames}).",
+            )
     if frame_count > 0 and len(raw_bytes) < frame_count * MIN_BYTES_PER_FRAME:
         print(
             f"  [video] warning: byteLength {len(raw_bytes)} is low for {frame_count} frames "
             f"(expected roughly >{frame_count * MIN_BYTES_PER_FRAME} bytes).",
         )
+
+    if capture_source == "media" and source_duration_sec and webm_duration:
+        if webm_duration < source_duration_sec * 0.9:
+            raise RuntimeError(
+                f"Output webm ({webm_duration:.1f}s) is much shorter than source "
+                f"({source_duration_sec:.1f}s).",
+            )
+    elif capture_source == "camera" and webm_duration is not None and wall_clock_sec > 5:
+        playable_ratio = webm_duration / wall_clock_sec
+        if playable_ratio < 0.5:
+            msg = (
+                f"  [video] error: encoded video is {webm_duration:.1f}s but you recorded "
+                f"{wall_clock_sec:.1f}s wall time ({playable_ratio:.0%}). "
+                "Buyers would only get a short clip. Re-record with a working camera or set "
+                "TRAINING_ALLOW_SHORT_VIDEO=1 to override."
+            )
+            print(msg)
+            if os.environ.get("TRAINING_ALLOW_SHORT_VIDEO", "").strip() != "1":
+                raise RuntimeError(msg.strip())
 
     b64 = base64.b64encode(raw_bytes).decode("ascii")
     (bundle_dir / "video.b64").write_text(b64, encoding="utf-8")
@@ -394,8 +458,12 @@ def save_bundle(
         "byteLength": len(raw_bytes),
         "recordedAt": datetime.utcnow().isoformat() + "Z",
         "contentKind": "trainingData",
-        "captureSource": "camera",
+        "captureSource": capture_source,
     }
+    if source_media:
+        meta["sourceMedia"] = source_media
+    if source_duration_sec is not None:
+        meta["sourceDurationSec"] = round(source_duration_sec, 2)
     (bundle_dir / "video.meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     print(
         f"  [video] bundle -> {bundle_dir}/video.b64 "
@@ -485,7 +553,7 @@ def main():
         sys.exit(1)
 
     print(f"\nStopped video recording after {wall_clock_sec:.1f}s wall time.")
-    save_bundle(slug, webm_path, wall_clock_sec, frame_count, ffmpeg)
+    save_bundle(slug, webm_path, wall_clock_sec, frame_count, ffmpeg, capture_source="camera")
 
     if not skip_distribute:
         from cdr_publish import publish_training_to_cdr

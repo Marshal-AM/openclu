@@ -1,5 +1,9 @@
 import type { SkillCdrListing } from "../arkiv/lib/cdr-listing.js";
-import { gatewayUrlForCid, resolvePublicIpfsGateway } from "./pinata-ipfs.js";
+import {
+  fetchPublicGateway,
+  gatewayUrlForCid,
+  resolvePublicIpfsGateway,
+} from "./pinata-ipfs.js";
 import { log, timed } from "./logger.js";
 
 const GATEWAY_TIMEOUT_MS = Number(process.env.IPFS_GATEWAY_TIMEOUT_MS ?? "60000");
@@ -19,13 +23,26 @@ function gatewaysForListing(listing: SkillCdrListing): string[] {
   return [...new Set(bases.map((b) => b.replace(/\/$/, "")))];
 }
 
-async function fetchFromGateway(gatewayBase: string, cid: string): Promise<Uint8Array> {
+async function fetchFromGateway(
+  gatewayBase: string,
+  cid: string,
+  expectedBytes?: number,
+): Promise<Uint8Array> {
   const url = gatewayUrlForCid(gatewayBase, cid);
-  const res = await fetch(url, { signal: AbortSignal.timeout(GATEWAY_TIMEOUT_MS) });
+  const res = await fetchPublicGateway(url, GATEWAY_TIMEOUT_MS);
   if (!res.ok) {
     throw new Error(`${url}: HTTP ${res.status}`);
   }
-  return new Uint8Array(await res.arrayBuffer());
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (expectedBytes && expectedBytes > 0) {
+    const minBytes = Math.floor(expectedBytes * 0.95);
+    if (bytes.length < minBytes) {
+      throw new Error(
+        `${url}: got ${bytes.length} bytes, expected at least ${minBytes} (catalog ${expectedBytes})`,
+      );
+    }
+  }
+  return bytes;
 }
 
 /**
@@ -39,10 +56,14 @@ export async function downloadCiphertext(
     throw new Error(`Vault CID ${cid} != catalog CID ${listing.cid}`);
   }
 
+  const expectedBytes = listing.encrypted_size_bytes;
+
   let lastErr = "no gateway";
   for (const base of gatewaysForListing(listing)) {
     try {
-      const bytes = await timed(`IPFS gateway (${base})`, () => fetchFromGateway(base, cid));
+      const bytes = await timed(`IPFS gateway (${base})`, () =>
+        fetchFromGateway(base, cid, expectedBytes),
+      );
       log.ok(`Downloaded ${bytes.length} bytes from ${base}`);
       return bytes;
     } catch (e) {

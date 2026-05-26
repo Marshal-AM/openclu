@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:e2e-training": "node cli/node_modules/tsx/dist/cli.mjs scripts/e2e-training-publish-purchase.ts",
     "orchestrator": "npm run start --prefix orchestrator",
     "setup": "npm run setup:node && npm run setup:python",
     "setup:python": "python scripts/install-python-deps.py",

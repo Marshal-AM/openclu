@@ -2,7 +2,7 @@
  * Local distribute for training data bundles — Story + Helia + Arkiv (trainingDataListing).
  */
 import "../../cdr/src/polyfill.js";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { config } from "dotenv";
 import { SKILL_CAPTURE_ROOT } from "../../arkiv/src/lib/device-wallet.js";
@@ -37,11 +37,40 @@ import {
 config({ path: resolve(SKILL_CAPTURE_ROOT, ".env") });
 config({ path: resolve(SKILL_CAPTURE_ROOT, "cdr/.env"), override: false });
 
+function assertTrainingVideoBundle(bundleDir: string): void {
+  const metaPath = resolve(bundleDir, "video.meta.json");
+  if (!existsSync(metaPath)) return;
+  const meta = JSON.parse(readFileSync(metaPath, "utf-8")) as {
+    durationSec?: number;
+    wallClockSec?: number;
+    frameCount?: number;
+    captureSource?: string;
+  };
+  const wall = meta.wallClockSec ?? 0;
+  const dur = meta.durationSec ?? 0;
+  if (wall <= 5 || dur <= 0) return;
+  const ratio = dur / wall;
+  const minDur = Number(process.env.TRAINING_MIN_PUBLISH_DURATION_SEC ?? "50");
+  if (meta.captureSource === "media" && dur < minDur) {
+    throw new Error(
+      `Training video is only ${dur}s (need >= ${minDur}s). ` +
+        "Wait for dev transcode to finish or re-run capture before distribute.",
+    );
+  }
+  if (ratio >= 0.5) return;
+  throw new Error(
+    `Training video in ${bundleDir} is only ${dur}s for ${wall}s recorded (${(ratio * 100).toFixed(0)}%). ` +
+      "Re-run capture with a working camera (see TRAINING_CAMERA_INDEX). " +
+      "Set TRAINING_ALLOW_SHORT_VIDEO=1 only to force-publish a short clip.",
+  );
+}
+
 export async function distributeTraining(opts: { skillName: string; bundleDir: string }) {
   const { skillName, bundleDir } = opts;
   const account = loadDeviceAccount();
   const deviceKey = process.env.DEVICE_WALLET_PRIVATE_KEY!.trim();
   readFileSync(resolve(bundleDir, "TRAINING.md"), "utf-8");
+  assertTrainingVideoBundle(bundleDir);
 
   console.log(`\n=== CLI: training data publish (${skillName}) ===`);
   console.log(`  [cli] Device wallet: ${account.address}\n`);

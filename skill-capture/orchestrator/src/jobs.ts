@@ -1,6 +1,6 @@
 import { type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   SKILL_CAPTURE_ROOT,
@@ -166,6 +166,7 @@ export function startCaptureJob(skillSlug: string): Job {
 }
 
 export function startVideoCaptureJob(skillSlug: string): Job {
+  const fixedMedia = resolveFixedMediaInput();
   const id = randomUUID();
   const job: Job = {
     id,
@@ -173,7 +174,9 @@ export function startVideoCaptureJob(skillSlug: string): Job {
     jobKind: "training",
     status: "capturing",
     logs: [
-      `Starting video recording (camera + microphone) for "${skillSlug}" - type q and press Enter in this terminal to stop.`,
+      fixedMedia
+        ? `Dev mode: transcoding ${fixedMedia} for "${skillSlug}" (wait until finished before distribute).`
+        : `Starting video recording (camera + microphone) for "${skillSlug}" - type q and press Enter in this terminal to stop.`,
       `Python: ${resolveVenvPython()}`,
     ],
     exitCode: null,
@@ -189,12 +192,19 @@ export function startVideoCaptureJob(skillSlug: string): Job {
     return job;
   }
 
-  const videoB64 = resolve(SKILL_CAPTURE_ROOT, "training-data", skillSlug, "video.b64");
-  if (existsSync(videoB64)) {
-    appendLog(job, "Note: existing video.b64 will be replaced when recording completes.");
+  const bundleDir = resolve(SKILL_CAPTURE_ROOT, "training-data", skillSlug);
+  for (const name of ["video.b64", "video.meta.json"]) {
+    const p = resolve(bundleDir, name);
+    if (existsSync(p)) {
+      try {
+        unlinkSync(p);
+        appendLog(job, `Removed stale ${name} before new capture.`);
+      } catch {
+        appendLog(job, `Warning: could not remove old ${name}`);
+      }
+    }
   }
 
-  const fixedMedia = resolveFixedMediaInput();
   if (captureDevMode && !fixedMedia) {
     job.status = "failed";
     job.exitCode = 1;
@@ -214,7 +224,13 @@ export function startVideoCaptureJob(skillSlug: string): Job {
       [skillSlug, "--no-distribute"],
       { env, stdio: ["pipe", "pipe", "pipe"] },
     );
-    startCaptureQuitListener(child);
+    if (!fixedMedia) {
+      startCaptureQuitListener(child);
+    } else {
+      console.log(
+        "\nDev transcode running — wait for \"Transcode complete\" in logs before distributing.\n",
+      );
+    }
     attachChildHandlers(
       job,
       child,
@@ -311,6 +327,33 @@ export function startDistributeTrainingJob(skillSlug: string): Job {
     job.error = `video.b64 missing at training-data/${skillSlug}/ - complete video recording first`;
     appendLog(job, job.error);
     return job;
+  }
+
+  const metaPath = resolve(bundleDir, "video.meta.json");
+  if (existsSync(metaPath)) {
+    try {
+      const meta = JSON.parse(readFileSync(metaPath, "utf-8")) as {
+        durationSec?: number;
+        byteLength?: number;
+        captureSource?: string;
+      };
+      const minDur = Number(process.env.TRAINING_MIN_PUBLISH_DURATION_SEC ?? "50");
+      if ((meta.durationSec ?? 0) < minDur) {
+        job.status = "failed";
+        job.exitCode = 1;
+        job.error =
+          `video.meta.json durationSec=${meta.durationSec} is below ${minDur}s — ` +
+          "re-run capture and wait for transcode/recording to finish before distribute.";
+        appendLog(job, job.error);
+        return job;
+      }
+      appendLog(
+        job,
+        `Bundle video: ${meta.durationSec}s, ${meta.byteLength ?? "?"} bytes (${meta.captureSource ?? "unknown"}).`,
+      );
+    } catch {
+      appendLog(job, "Warning: could not parse video.meta.json");
+    }
   }
 
   try {
