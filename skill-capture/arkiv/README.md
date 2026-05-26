@@ -45,7 +45,9 @@ User profiles, registered devices, and pending device registrations are stored o
 | `portalDevice` | Registered capture device + orchestrator ngrok URL |
 | `deviceRegistrationPending` | Short-lived row from `register.sh` before browser confirm |
 
-Writes use `PORTAL_WALLET_PRIVATE_KEY` (set in `frontend/.env.local` on Vercel/local). Reads use the public client via `portal-db-cli.ts`, same subprocess pattern as `catalog-query-cli.ts`.
+Writes use `PORTAL_WALLET_PRIVATE_KEY` (set in `frontend/.env.local` on Vercel/local). The OpenClu **frontend** reads/writes portal entities directly via `@arkiv-network/sdk` — no subprocess to this package.
+
+**Legacy CLI:** `portal-db-cli.ts` in this repo mirrors the same schema for local debugging; production dashboard does not call it.
 
 ## Listing payload (`ops`)
 

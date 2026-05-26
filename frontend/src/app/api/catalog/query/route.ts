@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ...result,
       arkivTrace: createArkivTrace("query", "POST /api/catalog/query", body, result, {
-        transport: "skill-capture/arkiv catalog-query-cli",
+        transport: "@arkiv-network/sdk",
         network: "braga-hoodi",
         resolvedFilters: (result as { filters?: unknown }).filters,
       }),

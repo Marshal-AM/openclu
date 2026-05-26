@@ -34,13 +34,12 @@ export async function GET(
         `GET /api/catalog/${skillName}${qs}`,
         request,
         listing,
-        { transport: "skill-capture/arkiv catalog-query-cli", network: "braga-hoodi" },
+        { transport: "@arkiv-network/sdk", network: "braga-hoodi" },
       ),
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    const status =
-      message.includes("tsx missing") || message.includes("npm install") ? 503 : 404;
+    const status = message.includes("NOT_FOUND") || message.includes("No Arkiv") ? 404 : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

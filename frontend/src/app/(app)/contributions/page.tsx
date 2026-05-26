@@ -493,11 +493,6 @@ export default function ContributionsPage() {
       }
       const message = payload.error ?? "Could not load catalog entry";
       setCatalogError(message);
-      if (message.includes("tsx missing") || message.includes("npm install")) {
-        toast.error("Catalog CLI not installed", {
-          description: "Run: cd skill-capture/arkiv && npm install",
-        });
-      }
     } finally {
       setCatalogLoading(false);
     }
@@ -711,11 +706,7 @@ export default function ContributionsPage() {
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
                     <p className="font-medium">Catalog entry unavailable</p>
                     <p className="mt-1 text-xs opacity-90">{catalogError}</p>
-                    {catalogError.includes("tsx missing") || catalogError.includes("npm install") ? (
-                      <p className="mt-2 font-mono text-xs">
-                        cd skill-capture/arkiv && npm install
-                      </p>
-                    ) : catalogError.includes("No Arkiv catalog listing") ? (
+                    {catalogError.includes("No Arkiv catalog listing") ? (
                       <p className="mt-2 text-xs">
                         The skill is marked published locally but is not on Arkiv yet. Re-publish from
                         the device or run index-arkiv.

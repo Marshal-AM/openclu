@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       ...stats,
       arkivTrace: createArkivTrace("stats", "GET /api/catalog/stats", request, stats, {
-        transport: "skill-capture/arkiv catalog-query-cli",
+        transport: "@arkiv-network/sdk",
         network: "braga-hoodi",
       }),
     });

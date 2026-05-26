@@ -1,20 +1,17 @@
 /**
- * Smoke test: Arkiv portal devices → Arkiv skill + training queries → contribution mapping.
+ * Smoke test: Arkiv portal devices + catalog SDK queries → contribution mapping.
  * Run from repo root: node test/verify-contributions-arkiv.mjs [ownerWallet]
+ *
+ * Requires frontend/.env with PORTAL_WALLET_PRIVATE_KEY for device list writes are not needed —
+ * device list is a public Arkiv read.
  */
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
-const exec = promisify(execFile);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 const FRONTEND_ENV = resolve(ROOT, "frontend", ".env");
-const ARKIV_DIR = resolve(ROOT, "skill-capture", "arkiv");
-const CATALOG_CLI = resolve(ARKIV_DIR, "src", "cli", "catalog-query-cli.ts");
-const PORTAL_CLI = resolve(ARKIV_DIR, "src", "cli", "portal-db-cli.ts");
 const DEVICE_WALLET = "0x2514844F312c02Ae3C9d4fEb40db4eC8830b6844";
 
 function loadEnvFile(path) {
@@ -30,36 +27,36 @@ function loadEnvFile(path) {
   return out;
 }
 
-function mergedEnv() {
-  return { ...process.env, ...loadEnvFile(FRONTEND_ENV) };
+function applyEnv() {
+  for (const [k, v] of Object.entries(loadEnvFile(FRONTEND_ENV))) {
+    if (!process.env[k]) process.env[k] = v;
+  }
 }
 
-async function runCli(cliPath, cmd, body, envKey) {
-  const tsx = resolve(ARKIV_DIR, "node_modules", "tsx", "dist", "cli.mjs");
-  if (!existsSync(tsx)) throw new Error("Missing skill-capture/arkiv node_modules — run npm install there");
-  const env = { ...mergedEnv(), [envKey]: JSON.stringify(body) };
-  const { stdout } = await exec(process.execPath, [tsx, cliPath, cmd], {
-    cwd: ARKIV_DIR,
-    env,
-    maxBuffer: 10 * 1024 * 1024,
-  });
-  return JSON.parse(stdout.trim());
+async function loadCatalog() {
+  applyEnv();
+  const mod = await import(
+    pathToFileURL(resolve(ROOT, "frontend/src/lib/arkiv/catalog/index.ts")).href
+  );
+  return mod;
 }
 
-async function runCatalog(cmd, body) {
-  return runCli(CATALOG_CLI, cmd, body, "SKILL_CAPTURE_CATALOG_JSON");
-}
-
-async function runPortal(cmd, body) {
-  return runCli(PORTAL_CLI, cmd, body, "SKILL_CAPTURE_PORTAL_JSON");
+async function loadPortal() {
+  applyEnv();
+  const mod = await import(
+    pathToFileURL(resolve(ROOT, "frontend/src/lib/arkiv/portal/index.ts")).href
+  );
+  return mod;
 }
 
 async function listDevices(ownerWallet) {
-  const res = await runPortal("list-devices", { ownerWallet: ownerWallet.toLowerCase() });
-  return res.devices ?? [];
+  const { listPortalDevices } = await loadPortal();
+  const { devices } = await listPortalDevices(ownerWallet.toLowerCase());
+  return devices;
 }
 
 async function aggregateForOwner(ownerWallet) {
+  const { queryCatalog, queryCatalogTraining } = await loadCatalog();
   const devices = await listDevices(ownerWallet);
   const contributions = [];
   const warnings = [];
@@ -67,12 +64,8 @@ async function aggregateForOwner(ownerWallet) {
   for (const device of devices) {
     try {
       const [skills, training] = await Promise.all([
-        runCatalog("query", { scope: "mine", ownerAddress: device.wallet_address, full: true }),
-        runCatalog("query-training", {
-          scope: "mine",
-          ownerAddress: device.wallet_address,
-          full: true,
-        }),
+        queryCatalog({ scope: "mine", ownerAddress: device.wallet_address, full: true }),
+        queryCatalogTraining({ scope: "mine", ownerAddress: device.wallet_address, full: true }),
       ]);
       for (const m of skills.matches ?? []) {
         contributions.push({
@@ -102,14 +95,15 @@ async function aggregateForOwner(ownerWallet) {
 
 async function main() {
   const ownerArg = process.argv[2];
+  const { queryCatalog, queryCatalogTraining } = await loadCatalog();
 
-  console.log("--- Direct Arkiv (device wallet) ---");
-  const skills = await runCatalog("query", {
+  console.log("--- Direct Arkiv SDK (device wallet) ---");
+  const skills = await queryCatalog({
     scope: "mine",
     ownerAddress: DEVICE_WALLET,
     full: true,
   });
-  const training = await runCatalog("query-training", {
+  const training = await queryCatalogTraining({
     scope: "mine",
     ownerAddress: DEVICE_WALLET,
     full: true,
@@ -117,7 +111,7 @@ async function main() {
   console.log(`Skills: ${skills.matchCount}, Training: ${training.matchCount}`);
 
   console.log("\n--- Arkiv portal devices ---");
-  const allDevices = await listDevices(ownerArg ?? "");
+  const allDevices = ownerArg ? await listDevices(ownerArg) : [];
   const owner =
     ownerArg ??
     allDevices[0]?.owner_wallet_address ??
@@ -125,7 +119,7 @@ async function main() {
       throw new Error("Pass owner wallet as argv[2] or register a device first");
     })();
   console.log(`Owner wallet: ${owner}`);
-  console.log(`Devices for owner: ${allDevices.length}`);
+  console.log(`Devices for owner: ${allDevices.length || "(pass owner to list)"}`);
 
   console.log("\n--- Full aggregation (same as GET /api/contributions) ---");
   const agg = await aggregateForOwner(owner);
