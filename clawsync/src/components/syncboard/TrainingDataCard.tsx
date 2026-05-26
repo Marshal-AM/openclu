@@ -1,26 +1,17 @@
+import { Link } from 'react-router-dom';
+import type { Id } from '../../../convex/_generated/dataModel';
 import './TrainingDataCard.css';
 
 type TrainingDataCardProps = {
+  id: Id<'purchasedTrainingData'>;
   title: string;
   skillName: string;
   purchasedAt: number;
-  selected?: boolean;
-  onSelect: () => void;
 };
 
-export function TrainingDataCard({
-  title,
-  skillName,
-  purchasedAt,
-  selected = false,
-  onSelect,
-}: TrainingDataCardProps) {
+export function TrainingDataCard({ id, title, skillName, purchasedAt }: TrainingDataCardProps) {
   return (
-    <button
-      type="button"
-      className={`training-data-card${selected ? ' is-selected' : ''}`}
-      onClick={onSelect}
-    >
+    <Link to={`/syncboard/training-data/${id}`} className="training-data-card">
       <header className="training-data-card-header">
         <h3 className="training-data-card-title">{title}</h3>
         <span className="training-data-card-badge">{skillName}</span>
@@ -30,6 +21,6 @@ export function TrainingDataCard({
           Acquired {new Date(purchasedAt).toLocaleDateString()}
         </time>
       </footer>
-    </button>
+    </Link>
   );
 }

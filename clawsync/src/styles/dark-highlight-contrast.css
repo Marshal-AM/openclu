@@ -1,0 +1,54 @@
+/**
+ * Dark mode: --secondary and --bg-hover are light surfaces.
+ * Muted/grey text (--text-secondary) must not be used on them; use --surface-highlight-foreground.
+ */
+
+.dark .badge:not(.badge-success):not(.badge-warning):not(.badge-error) {
+  background-color: var(--surface-highlight);
+  color: var(--surface-highlight-foreground);
+}
+
+.dark .training-data-card-badge {
+  background: var(--surface-highlight);
+  color: var(--surface-highlight-foreground);
+}
+
+.dark .nav-item:hover:not(.active) {
+  color: var(--surface-highlight-foreground);
+}
+
+.dark .btn-secondary:hover:not(:disabled),
+.dark .btn-ghost:hover:not(:disabled) {
+  color: var(--surface-highlight-foreground);
+}
+
+.dark .syncboard-breadcrumb-back:hover {
+  color: var(--surface-highlight-foreground);
+}
+
+.dark .activity-item:hover,
+.dark .activity-item:hover .activity-summary,
+.dark .activity-item:hover .activity-time {
+  color: var(--surface-highlight-foreground);
+}
+
+.dark .agent-selector-option:hover,
+.dark .agent-selector-option.is-selected {
+  color: var(--surface-highlight-foreground);
+}
+
+.dark .catalog-search-filters-btn.is-active {
+  color: var(--surface-highlight-foreground);
+}
+
+.dark .modal-dialog-close:hover {
+  color: var(--surface-highlight-foreground);
+}
+
+.dark .theme-toggle-btn:hover {
+  color: var(--surface-highlight-foreground);
+}
+
+.dark .activity-table th {
+  color: var(--surface-highlight-foreground);
+}

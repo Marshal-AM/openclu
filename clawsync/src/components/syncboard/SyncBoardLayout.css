@@ -86,9 +86,9 @@
   transition: background-color var(--transition-fast);
 }
 
-.nav-item:hover {
+.nav-item:hover:not(.active) {
   background-color: var(--bg-hover);
-  color: var(--text-primary);
+  color: var(--surface-highlight-foreground);
 }
 
 .nav-item.active {
@@ -158,7 +158,7 @@
 
 .syncboard-breadcrumb-back:hover {
   background-color: var(--bg-hover);
-  color: var(--text-primary);
+  color: var(--surface-highlight-foreground);
 }
 
 .syncboard-breadcrumb {

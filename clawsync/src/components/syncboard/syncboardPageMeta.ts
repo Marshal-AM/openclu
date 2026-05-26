@@ -134,6 +134,17 @@ export function resolveSyncBoardPageMeta(
     };
   }
 
+  if (
+    pathname.startsWith('/syncboard/training-data/') &&
+    pathname !== '/syncboard/training-data/purchase' &&
+    dynamicLabel
+  ) {
+    return {
+      title: dynamicLabel,
+      subtitle: 'Purchased training video, metadata, and playback.',
+    };
+  }
+
   return {
     title: dynamicLabel ?? 'SyncBoard',
     subtitle: 'Manage agents, skills, and integrations.',

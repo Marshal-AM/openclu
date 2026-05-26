@@ -122,6 +122,10 @@
 
   /* Meta theme color (for mobile browser chrome) */
   --meta-theme: var(--background);
+
+  /* Light chips/hover surfaces (light mode: secondary is a soft grey) */
+  --surface-highlight: var(--secondary);
+  --surface-highlight-foreground: var(--secondary-foreground);
 }
 
 .dark {
@@ -149,4 +153,8 @@
   --sidebar-primary: oklch(0.3250 0 0);
   --sidebar-accent: oklch(0.1680 0.0020 106.6177);
   --sidebar-accent-foreground: oklch(0.8074 0.0142 93.0137);
+
+  /* Light elevated surfaces (chips, hovers) — pair with surface-highlight-foreground for text */
+  --surface-highlight: var(--secondary);
+  --surface-highlight-foreground: var(--secondary-foreground);
 }

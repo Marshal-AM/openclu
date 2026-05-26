@@ -90,6 +90,20 @@ const routes: RouteMatch[] = [
     }),
   },
   {
+    test: (p) => {
+      const match = p.match(/^\/syncboard\/training-data\/([^/]+)$/);
+      if (!match || match[1] === 'purchase') return null;
+      return match;
+    },
+    resolve: (_m, dynamicLabel) => ({
+      items: [
+        { label: 'Training Data', href: '/syncboard/training-data' },
+        { label: dynamicLabel ?? 'Training data' },
+      ],
+      parentHref: '/syncboard/training-data',
+    }),
+  },
+  {
     test: (p) => p.match(/^\/syncboard\/train-ai$/),
     resolve: () => ({
       items: [{ label: 'Train your AI' }],

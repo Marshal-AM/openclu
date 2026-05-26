@@ -17,7 +17,7 @@
 }
 
 .theme-toggle-btn:hover {
-  color: var(--text-primary);
+  color: var(--surface-highlight-foreground);
   border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
-  background: var(--bg-secondary);
+  background: var(--bg-hover);
 }

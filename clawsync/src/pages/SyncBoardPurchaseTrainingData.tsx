@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -274,7 +275,15 @@ export function SyncBoardPurchaseTrainingData() {
 
         {purchasedId ? (
           <section className="training-data-purchase-preview">
-            <h2>Your video</h2>
+            <div className="training-data-purchase-preview-header">
+              <h2>Your video</h2>
+              <Link
+                to={`/syncboard/training-data/${purchasedId}`}
+                className="btn btn-secondary btn-sm"
+              >
+                View full details
+              </Link>
+            </div>
             <TrainingDataVideoPlayer
               purchasedId={purchasedId as import('../../convex/_generated/dataModel').Id<'purchasedTrainingData'>}
               skillName={selectedSkillName ?? ''}

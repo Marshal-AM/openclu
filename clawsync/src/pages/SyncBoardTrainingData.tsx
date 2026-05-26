@@ -1,21 +1,14 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import type { Id } from '../../convex/_generated/dataModel';
 import { SyncBoardLayout } from '../components/syncboard/SyncBoardLayout';
 import { TrainingDataCard } from '../components/syncboard/TrainingDataCard';
-import { TrainingDataVideoPlayer } from '../components/syncboard/TrainingDataVideoPlayer';
 import { SkillCardGridSkeleton } from '../components/ui/skeletons';
 import '../components/syncboard/PremiumSkillCard.css';
 import '../components/syncboard/TrainingDataCard.css';
-import './SyncBoardPurchaseSkills.css';
 
 export function SyncBoardTrainingData() {
   const rows = useQuery(api.trainingDataPurchases.listPurchased);
-  const [selectedId, setSelectedId] = useState<Id<'purchasedTrainingData'> | null>(null);
-
-  const selected = rows?.find((r) => r._id === selectedId);
 
   return (
     <SyncBoardLayout
@@ -42,26 +35,13 @@ export function SyncBoardTrainingData() {
             {rows.map((row) => (
               <TrainingDataCard
                 key={row._id}
+                id={row._id}
                 title={row.title}
                 skillName={row.skillName}
                 purchasedAt={row.purchasedAt}
-                selected={selectedId === row._id}
-                onSelect={() => setSelectedId(row._id)}
               />
             ))}
           </div>
-        ) : null}
-
-        {selected ? (
-          <section className="training-data-detail">
-            <h2>{selected.title}</h2>
-            <p>{selected.description}</p>
-            <TrainingDataVideoPlayer
-              purchasedId={selected._id}
-              skillName={selected.skillName}
-              videoMime={selected.videoMime}
-            />
-          </section>
         ) : null}
       </div>
 

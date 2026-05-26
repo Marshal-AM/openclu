@@ -1,4 +1,5 @@
 @import './tokens.css';
+@import './dark-highlight-contrast.css';
 
 /* Reset */
 *,
@@ -168,6 +169,7 @@ button {
 
 .btn-secondary:hover:not(:disabled) {
   background-color: var(--bg-hover);
+  color: var(--surface-highlight-foreground);
 }
 
 .btn-ghost {
@@ -177,6 +179,7 @@ button {
 
 .btn-ghost:hover:not(:disabled) {
   background-color: var(--bg-hover);
+  color: var(--surface-highlight-foreground);
 }
 
 .btn-sm {
@@ -220,8 +223,8 @@ button {
   font-size: var(--text-xs);
   font-weight: 500;
   border-radius: var(--radius-full);
-  background-color: var(--bg-secondary);
-  color: var(--text-secondary);
+  background-color: var(--surface-highlight);
+  color: var(--surface-highlight-foreground);
 }
 
 .badge-success {
