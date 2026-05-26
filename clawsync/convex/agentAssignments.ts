@@ -1,6 +1,7 @@
 import { query, mutation, internalQuery } from './_generated/server';
 import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
+import { knowledgeFromSkillConfig } from './lib/buildAgentSkillsContext';
 
 /**
  * Per-Agent Skill and MCP Server Assignments
@@ -99,6 +100,49 @@ export const toggleSkill = mutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.assignmentId, { enabled: args.enabled });
     return null;
+  },
+});
+
+// Internal: attached skills with optional SKILL.md body (knowledge-lookup template)
+export const getAgentSkillsContext = internalQuery({
+  args: { agentId: v.id('agents') },
+  returns: v.array(
+    v.object({
+      name: v.string(),
+      description: v.string(),
+      enabled: v.boolean(),
+      skillRegistryId: v.id('skillRegistry'),
+      knowledge: v.union(v.string(), v.null()),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const assignments = await ctx.db
+      .query('agentSkillAssignments')
+      .withIndex('by_agentId', (q) => q.eq('agentId', args.agentId))
+      .collect();
+    const out: Array<{
+      name: string;
+      description: string;
+      enabled: boolean;
+      skillRegistryId: Id<'skillRegistry'>;
+      knowledge: string | null;
+    }> = [];
+    for (const a of assignments) {
+      const skill = await ctx.db.get(a.skillId);
+      if (!skill || skill.status !== 'active' || !skill.approved) continue;
+      out.push({
+        name: skill.name,
+        description: skill.description,
+        enabled: a.enabled,
+        skillRegistryId: skill._id,
+        knowledge: knowledgeFromSkillConfig(
+          skill.skillType,
+          skill.templateId,
+          skill.config,
+        ),
+      });
+    }
+    return out;
   },
 });
 

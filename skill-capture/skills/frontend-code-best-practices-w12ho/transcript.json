@@ -1,0 +1,71 @@
+{
+  "full_text": " So, currently we are now in GitHub and we are going to now review one of PR submitted by one of our engineers. So the skill which we are going to now contribute is the Frontend Best Practices skill. I am going to now leave a few comments on the code changes made. The first comment is about the missing lang attribute on HTML tag. The second one is for not using the table for layout. Tables are only for table or data and CSS grid or flexbox has to be used. And there should be a header with nav tag not nested div. And one of the tips which we left was that semantic elements improve accessibility, SEO and maintainability. And this is the review which we are now going to post. So let's just hit that. Yep now our review is posted.",
+  "segments": [
+    {
+      "t_start": 0,
+      "t_end": 8.72,
+      "text": "So, currently we are now in GitHub and we are going to now review one of PR submitted"
+    },
+    {
+      "t_start": 8.72,
+      "t_end": 10.46,
+      "text": "by one of our engineers."
+    },
+    {
+      "t_start": 10.46,
+      "t_end": 14.92,
+      "text": "So the skill which we are going to now contribute is the Frontend Best Practices skill."
+    },
+    {
+      "t_start": 14.92,
+      "t_end": 25.24,
+      "text": "I am going to now leave a few comments on the code changes made."
+    },
+    {
+      "t_start": 25.24,
+      "t_end": 31.6,
+      "text": "The first comment is about the missing lang attribute on HTML tag."
+    },
+    {
+      "t_start": 31.6,
+      "t_end": 35.94,
+      "text": "The second one is for not using the table for layout."
+    },
+    {
+      "t_start": 35.94,
+      "t_end": 41.4,
+      "text": "Tables are only for table or data and CSS grid or flexbox has to be used."
+    },
+    {
+      "t_start": 41.4,
+      "t_end": 47.2,
+      "text": "And there should be a header with nav tag not nested div."
+    },
+    {
+      "t_start": 47.2,
+      "t_end": 52.6,
+      "text": "And one of the tips which we left was that semantic elements improve accessibility, SEO"
+    },
+    {
+      "t_start": 52.6,
+      "t_end": 54.16,
+      "text": "and maintainability."
+    },
+    {
+      "t_start": 54.16,
+      "t_end": 58.2,
+      "text": "And this is the review which we are now going to post."
+    },
+    {
+      "t_start": 58.2,
+      "t_end": 61.7,
+      "text": "So let's just hit that."
+    },
+    {
+      "t_start": 61.7,
+      "t_end": 63.4,
+      "text": "Yep now our review is posted."
+    }
+  ],
+  "language": "English"
+}

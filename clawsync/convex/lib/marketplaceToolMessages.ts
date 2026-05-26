@@ -124,8 +124,30 @@ export function synthesizeReplyFromToolSteps(
       } else if (name === 'attach_existing_skill' || name === 'detach_attached_skill') {
         const line = summarizeAttachDetachToolResult(raw);
         if (line) parts.push(line);
+      } else if (
+        name &&
+        name !== 'search_arkiv_skills' &&
+        name !== 'purchase_and_attach_skill' &&
+        name !== 'list_attached_skills' &&
+        name !== 'attach_existing_skill' &&
+        name !== 'detach_attached_skill' &&
+        raw.trim().length > 80 &&
+        !raw.trimStart().startsWith('{')
+      ) {
+        // Marketplace skill tool (knowledge-lookup) — model left text empty
+        const excerpt = raw.trim().slice(0, 4000);
+        parts.push(
+          `Using the attached skill reference:\n\n${excerpt}${raw.length > 4000 ? '\n…' : ''}`,
+        );
+      } else if (name && raw.trim().startsWith('{') && raw.includes('"error"')) {
+        try {
+          const p = JSON.parse(raw) as { error?: string };
+          if (p.error) parts.push(String(p.error));
+        } catch {
+          /* ignore */
+        }
       }
     }
   }
-  return parts.length ? parts.join(' ') : undefined;
+  return parts.length ? parts.join('\n\n') : undefined;
 }

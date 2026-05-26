@@ -1,0 +1,107 @@
+[
+  {
+    "frame": 0,
+    "app": "C:\\Windows\\system32\\cmd.exe",
+    "action": "Running npm start command",
+    "details": "skill-capture-orchestrator@0.1.0 start tsk skill-capture/src/server.tsx",
+    "timestamp": 1779790399.9817328
+  },
+  {
+    "frame": 1,
+    "app": "GitHub",
+    "action": "Viewing pull request",
+    "details": "SamFelix03/openclu-pr-demo/pull/1/changes",
+    "timestamp": 1779790405.067206
+  },
+  {
+    "frame": 2,
+    "app": "GitHub",
+    "action": "Viewing pull request (no change)",
+    "details": "SamFelix03/openclu-pr-demo/pull/1/changes",
+    "timestamp": 1779790410.1383934
+  },
+  {
+    "frame": 3,
+    "app": "GitHub",
+    "action": "Viewing pull request (no change)",
+    "details": "SamFelix03/openclu-pr-demo/pull/1/changes",
+    "timestamp": 1779790415.1999435
+  },
+  {
+    "frame": 4,
+    "app": "GitHub",
+    "action": "Viewing code changes in pull request",
+    "details": "Showing changes to index.html",
+    "timestamp": 1779790420.2640018
+  },
+  {
+    "frame": 5,
+    "app": "GitHub",
+    "action": "reviewing code changes",
+    "details": "The user is reviewing a pull request on GitHub, specifically looking at changes to the index.html file. The pull request is titled 'Add promo banner, testimonials table, and footer social links #1'. The reviewer is leaving comments on the file, including suggestions to add a lang attribute to the html tag, not use tables for layout, and use semantic elements like header and nav.",
+    "timestamp": 1779790425.3351543
+  },
+  {
+    "frame": 6,
+    "app": "GitHub",
+    "action": "reviewing code changes",
+    "details": "The user continues reviewing the pull request, focusing on the index.html file changes. The comments box is still open with suggestions for improvements.",
+    "timestamp": 1779790430.4063494
+  },
+  {
+    "frame": 7,
+    "app": "GitHub",
+    "action": "navigating to code section",
+    "details": "The user navigates to the code section of the pull request, looking at the changes made to the index.html file.",
+    "timestamp": 1779790435.4678693
+  },
+  {
+    "frame": 8,
+    "app": "GitHub",
+    "action": "reviewing code changes",
+    "details": "The user is still reviewing the pull request, focusing on the index.html file changes and leaving comments for the author.",
+    "timestamp": 1779790440.5361276
+  },
+  {
+    "frame": 9,
+    "app": "GitHub",
+    "action": "leaving comments on code",
+    "details": "The user leaves comments on the code changes, suggesting improvements for accessibility, SEO, and maintainability.",
+    "timestamp": 1779790445.5943315
+  },
+  {
+    "frame": 10,
+    "app": "GitHub",
+    "action": "reviewing code changes",
+    "details": "User reviewing a pull request on GitHub, adding comments to a file.",
+    "timestamp": 1779790450.6482592
+  },
+  {
+    "frame": 11,
+    "app": "GitHub",
+    "action": "reviewing code changes",
+    "details": "User typing a comment on a GitHub pull request.",
+    "timestamp": 1779790455.7183383
+  },
+  {
+    "frame": 12,
+    "app": "GitHub",
+    "action": "reviewing code changes",
+    "details": "User typing a comment on a GitHub pull request.",
+    "timestamp": 1779790460.7839987
+  },
+  {
+    "frame": 13,
+    "app": "GitHub",
+    "action": "reviewing code changes",
+    "details": "User has posted a comment on a GitHub pull request.",
+    "timestamp": 1779790465.8529046
+  },
+  {
+    "frame": 14,
+    "app": "Command Prompt",
+    "action": "running a command",
+    "details": "Command Prompt window with a command output.",
+    "timestamp": 1779790470.9123125
+  }
+]

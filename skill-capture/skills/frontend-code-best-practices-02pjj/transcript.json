@@ -1,0 +1,56 @@
+{
+  "full_text": " so we are now going to review a PR submitted by one of our engineers and this PR will be related to making an Asian skill which is for following the best front-end practices I'll just expand the file we have a few changes made now let's leave a comment so the comments which we are going to add is missing lang attribute and that table should not be used for layout because tables are for tabler data only and that the developer should use only CSS grid or flexbox and the third comment is there should be a header with a nav not nested so along with that semantic elements improve accessibility is your main durability is one of the tips which we have added now let us just give the review to our dev so we have now left the review",
+  "segments": [
+    {
+      "t_start": 0,
+      "t_end": 10.68,
+      "text": "so we are now going to review a PR submitted by one of our engineers and this PR will be related"
+    },
+    {
+      "t_start": 10.68,
+      "t_end": 18.6,
+      "text": "to making an Asian skill which is for following the best front-end practices I'll just expand"
+    },
+    {
+      "t_start": 18.6,
+      "t_end": 25.98,
+      "text": "the file we have a few changes made now let's leave a comment so the comments which we are"
+    },
+    {
+      "t_start": 25.98,
+      "t_end": 33.84,
+      "text": "going to add is missing lang attribute and that table should not be used for"
+    },
+    {
+      "t_start": 33.84,
+      "t_end": 40.62,
+      "text": "layout because tables are for tabler data only and that the developer should"
+    },
+    {
+      "t_start": 40.62,
+      "t_end": 47.6,
+      "text": "use only CSS grid or flexbox and the third comment is there should be a"
+    },
+    {
+      "t_start": 47.6,
+      "t_end": 53.04,
+      "text": "header with a nav not nested so along with that semantic elements improve"
+    },
+    {
+      "t_start": 53.04,
+      "t_end": 57.06,
+      "text": "accessibility is your main durability is one of the tips which we have added now"
+    },
+    {
+      "t_start": 57.06,
+      "t_end": 62.28,
+      "text": "let us just give the review to our dev"
+    },
+    {
+      "t_start": 64.66,
+      "t_end": 68.32,
+      "text": "so we have now left the review"
+    }
+  ],
+  "language": "English"
+}

@@ -56,7 +56,7 @@ export async function distributeSkill(opts: { skillName: string; bundleDir: stri
 
   console.log("\n  [cli] Booting local Helia (first run may take ~30–90s)…");
   const { helia } = await getHeliaStorage();
-  const storage = createPinataAlignedStorage(helia);
+  const storage = createPinataBackedStorage(helia, skillName);
   const peerHints = await getServerPeerHints();
 
   console.log("\n  [cli] CDR encrypt (local WASM) → Pinata-backed public CID…");

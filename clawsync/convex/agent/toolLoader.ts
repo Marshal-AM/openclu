@@ -249,8 +249,14 @@ function createToolFromSkill(
  * Create a tool from a template skill
  */
 function createTemplateSkillTool(ctx: ActionCtx, skill: Doc<'skillRegistry'>) {
+  const isKnowledge =
+    skill.templateId === 'knowledge-lookup' ||
+    (skill.config && skill.config.includes('"knowledge"'));
+  const description = isKnowledge
+    ? `${skill.description} Returns the full bundled SKILL.md reference. Prefer answering from the **Skill** section in your system instructions; call this only if you need to re-fetch the text.`
+    : skill.description;
   return createTool({
-    description: skill.description,
+    description,
     args: inputSchema,
     handler: async (_toolCtx, { input }: { input: string }) => {
       const startTime = Date.now();

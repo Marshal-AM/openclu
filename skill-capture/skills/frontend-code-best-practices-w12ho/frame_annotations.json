@@ -1,0 +1,100 @@
+[
+  {
+    "frame": 0,
+    "app": "cmd.exe",
+    "action": "Running npm start command",
+    "details": "skill-capture-orchestrator@0.1.0 start tsk src/server.ts",
+    "timestamp": 1779790892.8558397
+  },
+  {
+    "frame": 1,
+    "app": "GitHub",
+    "action": "Viewing pull request",
+    "details": "openclu-pr-demo repository, pull request #1",
+    "timestamp": 1779790897.9512777
+  },
+  {
+    "frame": 2,
+    "app": "GitHub",
+    "action": "Viewing pull request (no changes)",
+    "details": "openclu-pr-demo repository, pull request #1",
+    "timestamp": 1779790903.020764
+  },
+  {
+    "frame": 3,
+    "app": "GitHub",
+    "action": "Viewing code changes in pull request",
+    "details": "openclu-pr-demo repository, pull request #1, index.html changes",
+    "timestamp": 1779790908.1098077
+  },
+  {
+    "frame": 4,
+    "app": "GitHub",
+    "action": "Viewing copy link to pull request",
+    "details": "openclu-pr-demo repository, pull request #1",
+    "timestamp": 1779790913.1926398
+  },
+  {
+    "frame": 5,
+    "app": "GitHub",
+    "action": "User is adding a comment on a file in a pull request",
+    "details": "The user is on a GitHub pull request page, adding a comment on the file 'index.html'. The comment mentions three issues: missing lang attribute on <html>, using <table> for layout, and using nested <div>s instead of semantic elements.",
+    "timestamp": 1779790918.2579203
+  },
+  {
+    "frame": 6,
+    "app": "GitHub",
+    "action": "User is typing a comment on a file in a pull request",
+    "details": "The user continues typing a comment on the file 'index.html' in a pull request on GitHub. The comment mentions three issues: missing lang attribute on <html>, using <table> for layout, and using nested <div>s instead of semantic elements.",
+    "timestamp": 1779790923.3364165
+  },
+  {
+    "frame": 7,
+    "app": "GitHub",
+    "action": "User is typing a comment on a file in a pull request",
+    "details": "The user continues typing a comment on the file 'index.html' in a pull request on GitHub. The comment mentions three issues: missing lang attribute on <html>, using <table> for layout, and using nested <div>s instead of semantic elements.",
+    "timestamp": 1779790928.4006479
+  },
+  {
+    "frame": 8,
+    "app": "GitHub",
+    "action": "User is typing a comment on a file in a pull request",
+    "details": "The user continues typing a comment on the file 'index.html' in a pull request on GitHub. The comment mentions three issues: missing lang attribute on <html>, using <table> for layout, and using nested <div>s instead of semantic elements.",
+    "timestamp": 1779790933.4795392
+  },
+  {
+    "frame": 9,
+    "app": "GitHub",
+    "action": "User is typing a comment on a file in a pull request",
+    "details": "The user continues typing a comment on the file 'index.html' in a pull request on GitHub. The comment mentions three issues: missing lang attribute on <html>, using <table> for layout, and using nested <div>s instead of semantic elements.",
+    "timestamp": 1779790938.5480046
+  },
+  {
+    "frame": 10,
+    "app": "GitHub",
+    "action": "viewing pull request",
+    "details": "github.com/SamFelix03/openclu-pr-demo/pull/1/changes#r3303025716, reviewing changes to index.html",
+    "timestamp": 1779790943.605084
+  },
+  {
+    "frame": 11,
+    "app": "GitHub",
+    "action": "viewing pull request",
+    "details": "github.com/SamFelix03/openclu-pr-demo/pull/1/changes#r3303025716, reviewing changes to index.html",
+    "timestamp": 1779790948.6770616
+  },
+  {
+    "frame": 12,
+    "app": "GitHub",
+    "action": "commenting on pull request",
+    "details": "github.com/SamFelix03/openclu-pr-demo/pull/1/changes#r3303025716, Marshal-AM commenting on file",
+    "timestamp": 1779790953.7355433
+  },
+  {
+    "frame": 13,
+    "app": "Command Prompt",
+    "action": "running skill-capture-orchestrator",
+    "details": "C:\\Users\\MSI\\Desktop\\openclu\\skill-capture\\orchestrator>npm run start",
+    "timestamp": 1779790958.8259082
+  }
+]

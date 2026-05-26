@@ -155,36 +155,33 @@ export const send = action({
       }
 
       if (effectiveAgentId) {
-        const skillsSummary: Array<{
+        const {
+          buildSkillsKnowledgeBlock,
+          buildSkillsSummaryList,
+        } = await import('./lib/buildAgentSkillsContext.js');
+        const skillsContext: Array<{
           name: string;
           description: string;
           enabled: boolean;
-        }> = await ctx.runQuery(internal.agentAssignments.getAgentSkillsSummary, {
+          knowledge: string | null;
+        }> = await ctx.runQuery(internal.agentAssignments.getAgentSkillsContext, {
           agentId: effectiveAgentId,
         });
-        const skillsBlock =
-          skillsSummary.length > 0
-            ? skillsSummary
-                .map(
-                  (s) =>
-                    `- ${s.name} (${s.enabled ? 'enabled' : 'disabled'}): ${s.description.slice(0, 120)}`,
-                )
-                .join('\n')
-            : '(none — you have no marketplace skills attached yet)';
-        const marketplaceGuide = `## Skills attached to you (snapshot — may be stale)
+        const skillsBlock = buildSkillsSummaryList(skillsContext);
+        const knowledgeBlock = buildSkillsKnowledgeBlock(skillsContext);
+        const marketplaceGuide = `## Skills attached to you (snapshot)
 ${skillsBlock}
 
-## Marketplace tools (you MUST use these — do not guess)
-- list_attached_skills — when the user asks what skills you have, what you can do, or your capabilities.
-- search_arkiv_skills — find a skill on Arkiv (use skillSlug for named skills, e.g. "rocking" not "rocking skill").
-- purchase_and_attach_skill — buy from Arkiv and attach (pass skillName, listingKey, searchId from search).
-- attach_existing_skill — attach a skill already in the local registry (imported earlier); no purchase.
-- detach_attached_skill — remove a skill from this agent (registry entry remains).
+${knowledgeBlock ? `${knowledgeBlock}\n\n` : ''}## Marketplace tools (buy / attach / detach only — not for Q&A on attached skills)
+- list_attached_skills — when the user asks what skills you have or your capabilities.
+- search_arkiv_skills — find a skill on Arkiv (use skillSlug for named skills).
+- purchase_and_attach_skill — buy from Arkiv and attach.
+- attach_existing_skill — attach a skill already in the local registry.
+- detach_attached_skill — remove a skill from this agent.
 
-Workflow for "get/buy skill X from marketplace": (1) search_arkiv_skills (2) purchase_and_attach_skill.
-Workflow for "add/use skill X I already have": attach_existing_skill. Workflow for "remove skill X": detach_attached_skill.
-Always write a short plain-language reply after tools finish — never send an empty message.
-Use assistantMessage from tool JSON if helpful. Never ask the user to pick from a list.`;
+For questions about an attached skill's topic, answer from the **Skill** section above. Use marketplace tools only to acquire or remove skills.
+Always write a complete plain-language reply — never send an empty message or only tool calls without an answer.
+Use assistantMessage from tool JSON when a purchase or attach finishes.`;
         system = system ? `${system}\n\n${marketplaceGuide}` : marketplaceGuide;
       }
 
@@ -380,8 +377,14 @@ Use assistantMessage from tool JSON if helpful. Never ask the user to pick from 
         responseText = synthesizeReplyFromToolSteps(steps) ?? '';
       }
       if (!responseText && toolCalls.length > 0) {
-        responseText =
-          'Marketplace action completed — see the skill card below if a purchase is in progress.';
+        const onlyMarketplaceOps = toolCalls.every((tc) =>
+          /^(search_arkiv_skills|purchase_and_attach_skill|list_attached_skills|attach_existing_skill|detach_attached_skill)$/.test(
+            tc.name,
+          ),
+        );
+        responseText = onlyMarketplaceOps
+          ? 'Marketplace action completed — see the skill card below if a purchase is in progress.'
+          : 'I used your attached skill reference but could not finish the reply — please ask again or switch to a tool-capable model (e.g. Llama 4 Scout on Groq).';
       }
 
       return {
