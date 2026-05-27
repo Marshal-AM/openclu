@@ -18,9 +18,8 @@ The system spans three integration layers:
 |-------|-----------------|
 | **[Arkiv Network](https://arkiv.network)** | Decentralized catalog and registry. Stores searchable `skillListing` and `trainingDataListing` entities, device registration (`portalDevice`), and user profiles. Provides `$owner` / `$creator` attribution on Braga testnet. |
 | **Story CDR** | Confidential Data Rails — encrypts training bundles and skill bundles on-device before publication. Decryption requires a valid Story license token; raw audio and video are never stored in plaintext on Arkiv or IPFS. |
-| **Story Protocol** | Registers each listing as on-chain IP on Aeneid testnet. License mints gate CDR vault access and route royalty payments to the contributor's device wallet. |
 
-OpenClu is built as a **hybrid of the Arkiv builder themes** ([see `docs/themes.md`](docs/themes.md)): **DePIN** (device-origin capture with wallet-attributed telemetry), **Privacy** (CDR-encrypted payloads with license-gated access), and **AI** (structured skills and training datasets consumable by agents and models). Arkiv serves as the shared index that connects device capture, encrypted storage, and agent discovery without a centralized database.
+OpenClu is built as a deliberate hybrid of two Arkiv builder themes. DePIN grounds every contribution in physical, wallet-attributed hardware — data originates from a real device, signed by a key that never leaves it. Privacy ensures that raw audio and video are encrypted on-device before publication, with access gated entirely by Story license tokens — no centralized party can read or redistribute content. Arkiv is the connective tissue — a decentralized index that links device identity, encrypted content pointers, and marketplace discovery without a centralized database sitting in the middle.
 
 ---
 
@@ -141,21 +140,9 @@ After the same Story license + CDR decrypt flow, Alex's buyer extracts `SKILL.md
 
 ---
 
-## OpenClu = AI + Privacy + DePIN
+## OpenClu = Privacy + DePIN
 
-OpenClu is a deliberate **hybrid of all three [Arkiv ETHNS Builder Challenge themes](./themes.md)**. We go deep on each — not a tag slapped on a CRUD app.
-
-### AI — agents whose memory you actually own
-
-| Requirement (themes.md) | How OpenClu delivers |
-|-------------------------|----------------------|
-| Memory on Arkiv, wallet-owned | Training data and skills are `trainingDataListing` / `skillListing` entities; `$owner` = contributor device wallet; `$creator` immutable |
-| Portable across tools | Any client that reads Arkiv + Story + CDR can consume listings (frontend, ClawSync, MCP-style CLI) |
-| Entity types | **Catalog:** `skillListing`, `trainingDataListing`, `skillTag`, `listingVersion`. **Portal:** `portalUser`, `portalDevice`, `deviceRegistrationPending` |
-| Retrieval by tag / time | [skill-capture/arkiv/src/services/query-catalog.ts](skill-capture/arkiv/src/services/query-catalog.ts): `eq`, `and`, `gte`, `lte`, `desc` on typed attributes; NL search via `searchNaturalLanguage()` |
-| Differentiated expiration | `listingExpiresIn()`, [skill-capture/arkiv/src/lib/portal-expiration.ts](skill-capture/arkiv/src/lib/portal-expiration.ts) — portal pending 24h TTL; listings extendable via `extendSkillListing()` |
-
-**Components:** Groq extraction → structured `SKILL.md` / knowledge graph (roadmap); Arkiv payload stores triggers, tags, transcript refs; **local-trainer** fine-tunes vision models on purchased training video; ClawSync agents attach purchased skills as runtime memory.
+OpenClu is a deliberate **hybrid of two [Arkiv ETHNS Builder Challenge themes](./themes.md)**. We go deep on each — not a tag slapped on a CRUD app.
 
 ### Privacy — confidential data on a public layer
 
@@ -188,7 +175,7 @@ Most "AI marketplaces" centralize data in a vendor DB. Most "privacy" projects n
 OpenClu connects all three in one loop:
 
 ```
-Device (DePIN) → encrypt (Privacy) → catalog (Arkiv) → model training / agent skill (AI) → royalty (Story)
+Device (DePIN) → encrypt (Privacy) → catalog (Arkiv) → model training / agent skill (AI) → royalty 
 ```
 
 The same Arkiv entity carries **public discovery metadata** and **private content pointers**; the same device wallet signs **capture attribution** and **IP ownership**; the same license token gates **decryption** and **pays the contributor**.
