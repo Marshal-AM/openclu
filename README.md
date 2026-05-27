@@ -4,6 +4,8 @@
 
 **Applied Track - DePIN + Privacy (Hybrid)**
 
+[View Arkiv Integrations](#how-arkiv-powers-openclu-feature-matrix) · [View Track Integrations](#openclu--privacy--depin)
+
 <p align="center">
 <img width="200" height="200" alt="ChatGPT_Image_May_23__2026__02_30_41_PM-removebg-preview" src="https://github.com/user-attachments/assets/bf504203-4223-4d3a-8f63-cac887497751" />
 </p>
@@ -47,7 +49,7 @@ Arkiv is the connective tissue that holds both themes together — a decentraliz
 
 1. [Introduction](#introduction)
 2. [Example: sitting and standing training data end-to-end](#example-sitting-and-standing-training-data-end-to-end)
-3. [OpenClu = AI + Privacy + DePIN](#openclu--ai--privacy--depin)
+3. [OpenClu = Privacy + DePIN](#openclu--privacy--depin)
 4. [How it works](#how-it-works)
    - [Phase 1 — Device registration](#phase-1--device-registration)
    - [Phase 2 — Contribution](#phase-2--contribution)
