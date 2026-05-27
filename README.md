@@ -2,6 +2,8 @@
 
 **Record your expertise and monetize instantly as training data or agent skills — powered by [Arkiv](https://arkiv.network).**
 
+**Applied Track - DePIN + Privacy (Hybrid)**
+
 <p align="center">
 <img width="200" height="200" alt="ChatGPT_Image_May_23__2026__02_30_41_PM-removebg-preview" src="https://github.com/user-attachments/assets/bf504203-4223-4d3a-8f63-cac887497751" />
 </p>
