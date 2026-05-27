@@ -29,7 +29,7 @@ OpenClu is built as a **hybrid of the Arkiv builder themes** ([see `docs/themes.
 | Resource | URL |
 |----------|-----|
 | **Local setup (install + full flow)** | [SETUP.md](SETUP.md) |
-| **Demo video** | Coming soon |
+| **Demo video** | [View Here](https://www.youtube.com/watch?v=WoEApEqow6I) |
 | **Pitch deck** | [View Here](https://canva.link/4fjs5vqdg96xl1n) |
 | **Live app (dashboard)** | [https://openclu-dashboard.vercel.app/login](https://openclu-dashboard.vercel.app/login) |
 | **Live app (Landing page)** | [https://openclu.vercel.app](https://openclu.vercel.app) |
