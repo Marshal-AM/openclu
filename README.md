@@ -21,7 +21,13 @@ The system spans three integration layers:
 | **[Arkiv Network](https://arkiv.network)** | Decentralized catalog and registry. Stores searchable `skillListing` and `trainingDataListing` entities, device registration (`portalDevice`), and user profiles. Provides `$owner` / `$creator` attribution on Braga testnet. |
 | **Story CDR** | Confidential Data Rails — encrypts training bundles and skill bundles on-device before publication. Decryption requires a valid Story license token; raw audio and video are never stored in plaintext on Arkiv or IPFS. |
 
-OpenClu is built as a deliberate hybrid of two Arkiv builder themes. DePIN grounds every contribution in physical, wallet-attributed hardware — data originates from a real device, signed by a key that never leaves it. Privacy ensures that raw audio and video are encrypted on-device before publication, with access gated entirely by Story license tokens — no centralized party can read or redistribute content. Arkiv is the connective tissue — a decentralized index that links device identity, encrypted content pointers, and marketplace discovery without a centralized database sitting in the middle.
+OpenClu is built as a deliberate hybrid of two Arkiv builder themes.
+
+**DePIN** — every contribution is grounded in physical, wallet-attributed hardware. Data originates from a real Clu device, signed by a device wallet key derived locally from the machine that never leaves it. Contributions cannot be injected or spoofed without the device key; the hardware *is* the provenance. Device wallets own the on-chain IP, appear as `$creator` and `$owner` on every Arkiv entity, and receive royalty payments directly — no platform intermediary in the money path.
+
+**Privacy** — raw audio and video are encrypted on-device before a single byte leaves the machine. Story CDR encrypts the bundle using WASM crypto with threshold key splitting, so no single party holds the decryption key. The ciphertext is pinned to IPFS publicly, but is gibberish without a valid license token. Access is gated, auditable, and revocable entirely on-chain — OpenClu, Arkiv, and Pinata never see plaintext content.
+
+Arkiv is the connective tissue that holds both themes together — a decentralized index linking device identity, encrypted content pointers, and marketplace discovery without a centralized database sitting in the middle.
 
 ---
 
