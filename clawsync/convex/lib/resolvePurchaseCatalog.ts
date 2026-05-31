@@ -77,7 +77,7 @@ export async function resolvePurchaseCatalogSnapshot(
         source: 'inline_fallback',
         getDetailError: err,
         ...summarize(inline),
-        warning: 'inline payload missing ops — CLI may re-fetch Arkiv',
+        warning: 'inline payload missing ops — CLI may re-fetch catalog',
       });
       return { snapshot: inline, source: 'inline_fallback' };
     }

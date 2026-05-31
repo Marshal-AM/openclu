@@ -25,7 +25,7 @@ export function detectMarketplaceIntent(message: string): MarketplaceIntent | nu
   if (
     /\b(add|attach|enable|use)\b/.test(q) &&
     (/\bskill\b/.test(q) || extractSkillSlugFromQuery(message)) &&
-    !/\b(buy|purchase|arkiv|marketplace)\b/.test(q)
+    !/\b(buy|purchase|catalog|marketplace)\b/.test(q)
   ) {
     return 'attach';
   }
@@ -39,7 +39,7 @@ export function detectMarketplaceIntent(message: string): MarketplaceIntent | nu
 
   if (
     /\b(get|install)\b/.test(q) &&
-    /\b(from\s+)?(arkiv|marketplace)\b/.test(q) &&
+    /\b(from\s+)?(catalog|marketplace)\b/.test(q) &&
     (/\bskill\b/.test(q) || extractSkillSlugFromQuery(message))
   ) {
     return 'purchase';
@@ -47,7 +47,7 @@ export function detectMarketplaceIntent(message: string): MarketplaceIntent | nu
 
   if (
     /\b(search|serach|find|look for)\b/.test(q) &&
-    /\b(skill|arkiv|marketplace)\b/.test(q)
+    /\b(skill|catalog|marketplace)\b/.test(q)
   ) {
     return 'search';
   }

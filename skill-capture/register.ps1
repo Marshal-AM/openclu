@@ -92,7 +92,7 @@ try {
   if ($OrchestratorPublic) { $body.orchestrator_url = $OrchestratorPublic }
   Invoke-RestMethod -Uri "$FrontendUrl/api/devices/pending" -Method Post -Body ($body | ConvertTo-Json) -ContentType "application/json" | Out-Null
 } catch {
-  Write-Host "(Could not POST pending - start frontend with SUPABASE_* in .env.local)"
+  Write-Host "(Could not POST pending - start frontend with PORTAL_WALLET_PRIVATE_KEY in .env.local)"
 }
 
 Write-Host ""

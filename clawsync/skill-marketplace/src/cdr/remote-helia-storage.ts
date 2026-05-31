@@ -1,5 +1,5 @@
 import type { StorageProvider, UploadOptions } from "@piplabs/cdr-sdk";
-import type { SkillCdrListing } from "../arkiv/lib/cdr-listing.js";
+import type { SkillCdrListing } from "../../../../skill-capture/db/src/catalog/cdr-listing.js";
 
 /** HTTP client for a running `npm run cdr-storage` Helia node (no libp2p boot in purchase). */
 export class RemoteHeliaStorage implements StorageProvider {

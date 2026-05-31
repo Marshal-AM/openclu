@@ -127,7 +127,7 @@ export default function DebugPage() {
       const updated = (data as { device: OwnedDevice }).device;
       setDevices((current) => current.map((d) => (d.id === updated.id ? updated : d)));
       setForm(deviceToForm(updated));
-      toast.success("Device updated on Arkiv", {
+      toast.success("Device updated on catalog", {
         description: updated.device_name,
       });
     } catch (e) {
@@ -146,7 +146,7 @@ export default function DebugPage() {
           <div className="flex items-center gap-2">
             <WrenchIcon className="size-5 text-muted-foreground" aria-hidden />
             <h1 className="text-2xl font-semibold tracking-tight">Device debug</h1>
-            <Badge variant="secondary">Arkiv portal</Badge>
+            <Badge variant="secondary">Catalog portal</Badge>
           </div>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Pick a registered device and edit its portal record directly — useful when ngrok
@@ -203,7 +203,7 @@ export default function DebugPage() {
           <CardHeader>
             <CardTitle>Edit device</CardTitle>
             <CardDescription>
-              Changes write to Arkiv via the portal wallet. Requires{" "}
+              Changes write to Catalog via the portal wallet. Requires{" "}
               <code className="text-foreground">PORTAL_WALLET_PRIVATE_KEY</code>.
             </CardDescription>
           </CardHeader>

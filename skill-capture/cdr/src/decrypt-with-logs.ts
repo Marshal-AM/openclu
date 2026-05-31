@@ -10,7 +10,7 @@ import { fromHex, toHex } from "viem";
 import type { PublicClient } from "viem";
 import { API_URL } from "./client.js";
 import { log, timed } from "./logger.js";
-import type { SkillCdrListing } from "../../arkiv/src/lib/cdr-listing.js";
+import type { SkillCdrListing } from "../../db/src/lib/cdr-listing.js";
 import type { Helia } from "helia";
 import type { HeliaProvider } from "@piplabs/cdr-sdk";
 
@@ -149,7 +149,7 @@ export async function downloadFileWithLogs(opts: {
   const payloadStr = new TextDecoder().decode(payloadBytes);
   const { cid, key: keyHex } = JSON.parse(payloadStr) as { cid: string; key: string };
   log.info(`Vault payload CID: ${cid}`);
-  log.info(`Arkiv catalog CID: ${opts.listing.cid}`);
+  log.info(`Catalog CID: ${opts.listing.cid}`);
   log.info(`AES key (hex prefix): ${keyHex.slice(0, 16)}...`);
 
   log.section("IPFS — fetch ciphertext (content registry, then gateways, then P2P)");

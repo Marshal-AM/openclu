@@ -24,7 +24,7 @@ export function resolveTsxCli(...searchDirs: string[]): string {
       ? searchDirs
       : [
           resolve(SKILL_CAPTURE_ROOT, "cli"),
-          resolve(SKILL_CAPTURE_ROOT, "arkiv"),
+          resolve(SKILL_CAPTURE_ROOT, "db"),
           resolve(SKILL_CAPTURE_ROOT, "orchestrator"),
         ];
   for (const dir of dirs) {
@@ -32,7 +32,7 @@ export function resolveTsxCli(...searchDirs: string[]): string {
     if (existsSync(p)) return p;
   }
   throw new Error(
-    "tsx not found — run npm install in skill-capture/cli and skill-capture/arkiv",
+    "tsx not found — run npm install in skill-capture/cli and skill-capture/db",
   );
 }
 
@@ -65,7 +65,7 @@ export function spawnNodeTsx(
   opts: { cwd: string; env?: NodeJS.ProcessEnv; tsxDirs?: string[] },
 ): ChildProcess {
   const tsxCli = resolveTsxCli(
-    ...(opts.tsxDirs ?? [opts.cwd, resolve(SKILL_CAPTURE_ROOT, "cli"), resolve(SKILL_CAPTURE_ROOT, "arkiv")]),
+    ...(opts.tsxDirs ?? [opts.cwd, resolve(SKILL_CAPTURE_ROOT, "cli"), resolve(SKILL_CAPTURE_ROOT, "db")]),
   );
   return spawn(process.execPath, [tsxCli, entryAbs, ...args], {
     cwd: opts.cwd,
@@ -99,7 +99,7 @@ export function getSpawnPreflight(): {
     resolveTsxCli();
     hasTsx = true;
   } catch {
-    issues.push("tsx missing — run: cd skill-capture/cli && npm install && cd ../arkiv && npm install");
+    issues.push("tsx missing — run: cd skill-capture/cli && npm install && cd ../db && npm install");
   }
   const hasGroqKey = Boolean(process.env.GROQ_API_KEY?.trim());
   if (!hasGroqKey) issues.push("GROQ_API_KEY missing in skill-capture/.env");

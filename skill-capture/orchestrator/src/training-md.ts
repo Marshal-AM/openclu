@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { SKILL_CAPTURE_ROOT } from "../../arkiv/src/lib/device-wallet.js";
-import { parseSkillFrontmatter } from "../../arkiv/src/lib/skill-md.js";
+import { SKILL_CAPTURE_ROOT } from "../../db/src/lib/device-wallet.js";
+import { parseSkillFrontmatter } from "../../db/src/lib/skill-md.js";
 import { readTrainingPublishResult } from "./training-manifest.js";
 
 export interface TrainingMetadataInput {
@@ -46,9 +46,9 @@ export function readDraftTraining(slug: string): {
   triggers: string[];
   expertiseSource?: string;
   recordedAt?: string;
-  arkivListingKey?: string;
-  arkivVersion?: number;
-  arkivStatus?: string;
+  catalogListingId?: string;
+  catalogVersion?: number;
+  catalogStatus?: string;
 } | null {
   const trainingMdPath = resolve(SKILL_CAPTURE_ROOT, "training-data", slug, "TRAINING.md");
   if (!existsSync(trainingMdPath)) return null;
@@ -66,8 +66,8 @@ export function readDraftTraining(slug: string): {
     triggers: fm.triggers.length ? fm.triggers : ["general"],
     expertiseSource: fm.expertiseSource,
     recordedAt: fm.recordedAt,
-    arkivListingKey: manifest?.arkivListingKey,
-    arkivVersion: manifest?.arkivVersion,
-    arkivStatus: manifest?.arkivStatus,
+    catalogListingId: manifest?.catalogListingId,
+    catalogVersion: manifest?.catalogVersion,
+    catalogStatus: manifest?.catalogStatus,
   };
 }

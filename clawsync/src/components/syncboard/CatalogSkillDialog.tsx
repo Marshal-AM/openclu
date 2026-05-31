@@ -1,13 +1,13 @@
 import { CatalogDetailPanel } from './CatalogDetailPanel';
 import { ModalDialog } from './ModalDialog';
 import { CatalogDetailSkeleton } from '../ui/skeletons';
-import type { ArkivQueryTrace } from '../../lib/arkivTrace';
+import type { CatalogQueryTrace } from '../../lib/catalogTrace';
 
 type CatalogSkillDialogProps = {
   open: boolean;
   onClose: () => void;
   detail: Record<string, unknown> | null;
-  arkivTrace?: ArkivQueryTrace | null;
+  catalogTrace?: CatalogQueryTrace | null;
   loading?: boolean;
   purchaseFee?: string;
   walletConfigured?: boolean;
@@ -22,7 +22,7 @@ export function CatalogSkillDialog({
   open,
   onClose,
   detail,
-  arkivTrace,
+  catalogTrace,
   loading = false,
   purchaseFee,
   walletConfigured,
@@ -49,7 +49,7 @@ export function CatalogSkillDialog({
       ) : detail ? (
         <CatalogDetailPanel
           detail={detail}
-          arkivTrace={arkivTrace}
+          catalogTrace={catalogTrace}
           purchaseFee={purchaseFee}
           walletConfigured={walletConfigured}
           onPurchase={onPurchase}

@@ -18,7 +18,7 @@ export function summarizeMarketplaceToolCall(
     if (typeof p.summary === 'string' && toolName === 'list_attached_skills') {
       return p.summary.trim();
     }
-    if (toolName === 'search_arkiv_skills') {
+    if (toolName === 'search_catalog_skills') {
       return summarizeSearchJson(p);
     }
     if (toolName === 'purchase_and_attach_skill') {
@@ -38,19 +38,19 @@ function summarizeSearchJson(p: Record<string, unknown>): string | undefined {
   const matchCount = p.matchCount as number | undefined;
   const matches = p.matches as Array<{ skillName: string; title?: string }> | undefined;
   const resolvedSlug = p.resolvedSlug as string | null | undefined;
-  if (p.slugNotOnArkiv && resolvedSlug) {
+  if (p.slugNotInCatalog && resolvedSlug) {
     if (typeof p.hint === 'string' && p.hint.trim()) return p.hint.trim();
     const names = matches
       ?.slice(0, 5)
       .map((m) => m.skillName)
       .join(', ');
     return names
-      ? `There is no Arkiv listing named "${resolvedSlug}". Similar names: ${names}.`
-      : `There is no Arkiv listing named "${resolvedSlug}" on the marketplace.`;
+      ? `There is no Catalog listing named "${resolvedSlug}". Similar names: ${names}.`
+      : `There is no Catalog listing named "${resolvedSlug}" on the marketplace.`;
   }
   if (matchCount === 0) {
     return resolvedSlug
-      ? `No Arkiv listing found for "${resolvedSlug}".`
+      ? `No Catalog listing found for "${resolvedSlug}".`
       : 'No marketplace skills matched that query.';
   }
   if (matches?.length) {

@@ -12,7 +12,7 @@ import "dotenv/config";
 
  * 3. Write vault metadata + local cdr-manifest.json for purchasers
 
- * 4. Index catalog on Arkiv (peer hints + ops — required for purchase)
+ * 4. Index catalog on Catalog (peer hints + ops — required for purchase)
 
  *
 
@@ -45,7 +45,7 @@ import {
 } from "./constants.js";
 
 import { getHeliaStorage, uploadJsonToIpfs } from "./helia-storage.js";
-import { upsertArkivCatalogListing } from "./arkiv-listing.js";
+import { upsertCatalogListing } from "./catalog-listing.js";
 import { resolvePublicIpfsGateway } from "./pinata-ipfs.js";
 import { pinCiphertextToPublicIpfs } from "../../../../skill-capture/cdr/src/services/publish-service.js";
 import { createPinataBackedStorage } from "./storage/pinata-aligned-storage.js";
@@ -353,8 +353,8 @@ async function main() {
     "utf-8",
   );
 
-  console.log("  [arkiv] Upserting full catalog listing on Braga (required)…");
-  const { result: arkivResult, peerHints } = await upsertArkivCatalogListing({
+  console.log("  [catalog] Upserting full catalog listing in Supabase (required)…");
+  const { result: catalogResult, peerHints } = await upsertCatalogListing({
     skillName,
     bundleDir,
     publisherAddress: owner,
@@ -365,8 +365,8 @@ async function main() {
 
   console.log(`  [cdr] Helia peer id: ${peerHints.helia_peer_id}`);
   console.log(`  [cdr] Helia multiaddrs: ${peerHints.helia_multiaddrs.length}`);
-  console.log(`  [arkiv] Listing key: ${arkivResult.listingKey}`);
-  console.log(`  [arkiv] Version: ${arkivResult.version} (${arkivResult.tagCount} tags)`);
+  console.log(`  [catalog] Listing key: ${catalogResult.listingKey}`);
+  console.log(`  [catalog] Version: ${catalogResult.version} (${catalogResult.tagCount} tags)`);
 
 
 
@@ -376,7 +376,7 @@ async function main() {
 
   console.log(`IPFS CID:   ${cid}`);
 
-  console.log(`Arkiv key:  ${arkivResult.listingKey}`);
+  console.log(`Catalog key:  ${catalogResult.listingKey}`);
 
   console.log(`Manifest:   ${manifestPath}`);
 

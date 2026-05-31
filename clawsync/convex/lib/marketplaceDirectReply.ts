@@ -6,7 +6,7 @@ import {
   executeAttachExistingSkill,
   executeDetachAttachedSkill,
   executeListAttachedSkills,
-  executeSearchArkivSkills,
+  executeSearchCatalogSkills,
   type MarketplaceExecutionContext,
 } from './marketplaceExecutions';
 import { summarizeSearchToolResult } from './marketplaceToolMessages';
@@ -28,7 +28,7 @@ export async function runMarketplaceDirectAction(
 ): Promise<{ response: string; toolCalls: MarketplaceDirectToolCall[] } | null> {
   const toolCalls: MarketplaceDirectToolCall[] = [];
 
-  if (intent === 'search' || parsedTool?.name === 'search_arkiv_skills') {
+  if (intent === 'search' || parsedTool?.name === 'search_catalog_skills') {
     const args = parsedTool?.args ?? {};
     const query =
       typeof args.query === 'string' && args.query.trim()
@@ -40,9 +40,9 @@ export async function runMarketplaceDirectAction(
         : extractSkillSlugFromQuery(userMessage);
     const limit = typeof args.limit === 'number' ? args.limit : undefined;
     const callArgs = { query, skillSlug, limit };
-    const result = await executeSearchArkivSkills(ctx, context, callArgs);
+    const result = await executeSearchCatalogSkills(ctx, context, callArgs);
     toolCalls.push({
-      name: 'search_arkiv_skills',
+      name: 'search_catalog_skills',
       args: JSON.stringify(callArgs, null, 2),
       result,
     });

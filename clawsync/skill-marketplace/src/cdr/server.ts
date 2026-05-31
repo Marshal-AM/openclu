@@ -12,7 +12,7 @@ import {
   tryDownloadBytesFromHeliaLocal,
 } from "./storage-service.js";
 import { isHeliaReady, whenHeliaReady } from "./helia-storage.js";
-import type { SkillCdrListing } from "../arkiv/lib/cdr-listing.js";
+import type { SkillCdrListing } from "../../../../skill-capture/db/src/catalog/cdr-listing.js";
 import { getHeliaStorage, downloadFromIpfs } from "./helia-storage.js";
 import type { HeliaProvider } from "@piplabs/cdr-sdk";
 
@@ -121,7 +121,7 @@ app.get(
   }),
 );
 
-/** P2P fetch using Arkiv catalog listing (ops.heliaMultiaddrs) — Helia runs in this process only. */
+/** P2P fetch using Catalog catalog listing (ops.heliaMultiaddrs) — Helia runs in this process only. */
 app.post(
   "/api/v1/storage/fetch",
   requireHelia(async (req, res) => {

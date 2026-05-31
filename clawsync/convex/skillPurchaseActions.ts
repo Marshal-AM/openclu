@@ -120,7 +120,7 @@ export const purchaseSkill = action({
       );
     } else {
       console.warn(
-        `[skill-purchase] no catalogSnapshot — CLI will load listing from Arkiv (slower, may differ from UI preview)`,
+        `[skill-purchase] no catalogSnapshot — CLI will load listing from Catalog (slower, may differ from UI preview)`,
       );
     }
 

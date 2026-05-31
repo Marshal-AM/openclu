@@ -9,7 +9,7 @@ import { CID } from "multiformats/cid";
 import { mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { log } from "./logger.js";
-import type { SkillCdrListing } from "../../arkiv/src/lib/cdr-listing.js";
+import type { SkillCdrListing } from "../../db/src/lib/cdr-listing.js";
 
 const HELIA_DATA_DIR = resolve(process.cwd(), ".helia-data");
 const IPFS_DOWNLOAD_TIMEOUT_MS = Number(process.env.IPFS_DOWNLOAD_TIMEOUT_MS ?? "120000");
@@ -138,7 +138,7 @@ export async function dialPublisherPeers(
 ): Promise<void> {
   const peerId = listing.helia_peer_id;
   if (!peerId) {
-    throw new Error(`Arkiv listing missing helia_peer_id for "${listing.skill_name}"`);
+    throw new Error(`Catalog listing missing helia_peer_id for "${listing.skill_name}"`);
   }
 
   const addrs = rankPublisherAddrs(
@@ -194,7 +194,7 @@ export async function downloadFromIpfs(
   cid: string,
 ): Promise<Uint8Array> {
   if (cid !== listing.cid) {
-    throw new Error(`Vault CID ${cid} != Arkiv catalog CID ${listing.cid}. Re-publish.`);
+    throw new Error(`Vault CID ${cid} != Catalog CID ${listing.cid}. Re-publish.`);
   }
 
   const t = Date.now();

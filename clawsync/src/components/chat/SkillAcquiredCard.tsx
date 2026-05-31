@@ -67,7 +67,7 @@ export function SkillAcquiredCard({ purchaseEventId }: SkillAcquiredCardProps) {
 
       {isActive && (
         <div className="skill-acquired-footer">
-          Acquiring from Arkiv marketplace… {elapsedSec}s (Story mint + CDR decrypt — not catalog lookup)
+          Acquiring from Catalog marketplace… {elapsedSec}s (Story mint + CDR decrypt — not catalog lookup)
         </div>
       )}
 

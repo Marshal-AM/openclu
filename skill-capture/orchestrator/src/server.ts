@@ -3,13 +3,13 @@ import cors from "cors";
 import express from "express";
 import { resolve } from "node:path";
 import { config } from "dotenv";
-import { SKILL_CAPTURE_ROOT } from "../../arkiv/src/lib/device-wallet.js";
+import { SKILL_CAPTURE_ROOT } from "../../db/src/lib/device-wallet.js";
 import { readDraftSkill, writeDraftSkillMd, type SkillMetadataInput } from "./skill-md.js";
 import { writeDraftTrainingMd, type TrainingMetadataInput } from "./training-md.js";
 import {
   getJob,
   getSpawnPreflight,
-  startArkivJob,
+  startCatalogJob,
   startCaptureJob,
   startDistributeJob,
   startDistributeTrainingJob,
@@ -185,7 +185,7 @@ app.post("/api/v1/jobs/archive", (req, res) => {
     res.status(400).json({ error: "skillSlug required" });
     return;
   }
-  const job = startArkivJob("archive-skill", skillSlug);
+  const job = startCatalogJob("archive-skill", skillSlug);
   res.json({ jobId: job.id });
 });
 
@@ -195,7 +195,7 @@ app.post("/api/v1/jobs/extend", (req, res) => {
     res.status(400).json({ error: "skillSlug required" });
     return;
   }
-  const job = startArkivJob("extend-skill", skillSlug);
+  const job = startCatalogJob("extend-skill", skillSlug);
   res.json({ jobId: job.id });
 });
 
@@ -205,7 +205,7 @@ app.post("/api/v1/jobs/republish", (req, res) => {
     res.status(400).json({ error: "skillSlug required" });
     return;
   }
-  const job = startArkivJob("republish-skill", skillSlug);
+  const job = startCatalogJob("republish-skill", skillSlug);
   res.json({ jobId: job.id });
 });
 
@@ -215,7 +215,7 @@ app.post("/api/v1/jobs/update-catalog", (req, res) => {
     res.status(400).json({ error: "skillSlug required" });
     return;
   }
-  const job = startArkivJob("update-catalog", skillSlug);
+  const job = startCatalogJob("update-catalog", skillSlug);
   res.json({ jobId: job.id, status: job.status });
 });
 

@@ -4,7 +4,7 @@ export {
   catalogGetSkillDetail,
   catalogStats,
   type CatalogQueryBody,
-} from "./arkiv/catalog-read-bridge.js";
+} from "../../../skill-capture/db/src/catalog-read-bridge.js";
 
 export { purchaseSkillFromListing, type PurchaseSkillResult } from "./cdr/purchase-from-listing.js";
 
@@ -12,4 +12,4 @@ export {
   getAgentBuyerAddress,
   normalizeAgentPrivateKey,
   requireAgentPrivateKey,
-} from "./arkiv/lib/agent-wallet.js";
+} from "./cdr/agent-wallet.js";

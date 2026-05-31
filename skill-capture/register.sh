@@ -6,11 +6,11 @@ ENV_FILE="$ROOT/.env"
 # shellcheck disable=SC1091
 [[ -f "$ENV_FILE" ]] && set -a && source "$ENV_FILE" && set +a
 
-FRONTEND_URL="${FRONTEND_URL:-http://localhost:3000}"
+FRONTEND_URL="${FRONTEND_URL:-https://openclu-dashboard.vercel.app}"
 ORCHESTRATOR_LOCAL="${ORCHESTRATOR_URL:-http://127.0.0.1:8790}"
 ORCHESTRATOR_PORT="${ORCHESTRATOR_PORT:-8790}"
 
-DEVICE_NAME="$(hostname 2>/dev/null || echo "unknown-device")"
+DEVICE_NAME="raspberry Raspbian GNU/Linux 13 (trixie)"
 DEVICE_ID="$(echo -n "$DEVICE_NAME" | sha256sum | awk '{print $1}')"
 
 if [[ -f "$ENV_FILE" ]] && grep -q '^DEVICE_SALT=' "$ENV_FILE"; then
@@ -46,7 +46,7 @@ grep -v '^DEVICE_\|^REGISTRATION_TOKEN\|^FRONTEND_URL\|^ORCHESTRATOR_PUBLIC_URL=
 mv "$ENV_FILE.tmp" "$ENV_FILE"
 cat >> "$ENV_FILE" <<EOF
 DEVICE_ID=$DEVICE_ID
-DEVICE_NAME=$DEVICE_NAME
+DEVICE_NAME="$DEVICE_NAME"
 DEVICE_SALT=$DEVICE_SALT
 DEVICE_WALLET_ADDRESS=$DEVICE_ADDRESS
 DEVICE_WALLET_PRIVATE_KEY=$DEVICE_PRIVATE_KEY
@@ -89,7 +89,7 @@ PENDING_JSON="${PENDING_JSON}}"
 curl -sf -X POST "${FRONTEND_URL}/api/devices/pending" \
   -H "Content-Type: application/json" \
   -d "$PENDING_JSON" \
-  2>/dev/null || echo "(Could not POST pending — ensure frontend is running and SUPABASE_* is set in frontend/.env.local)"
+  2>/dev/null || echo "(Could not POST pending — ensure frontend is running and PORTAL_WALLET_PRIVATE_KEY is set in frontend/.env.local)"
 
 echo "Scan this QR to register the device in your browser:"
 if node "$ROOT/scripts/print-registration-qr.mjs" "$REGISTER_URL" 2>/dev/null; then

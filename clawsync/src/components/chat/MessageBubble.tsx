@@ -1,7 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import { SkillAcquiredCard } from './SkillAcquiredCard';
-import { ArkivQueryDebugPanel } from '../syncboard/ArkivQueryDebugPanel';
-import { createArkivTrace } from '../../lib/arkivTrace';
+import { CatalogQueryDebugPanel } from '../syncboard/CatalogQueryDebugPanel';
+import { createCatalogTrace } from '../../lib/catalogTrace';
 import './MessageBubble.css';
 
 interface ToolCall {
@@ -11,7 +11,7 @@ interface ToolCall {
 }
 
 const HIDDEN_TOOL_NAMES = new Set([
-  'search_arkiv_skills',
+  'search_catalog_skills',
   'purchase_and_attach_skill',
   'list_attached_skills',
   'attach_existing_skill',
@@ -31,7 +31,7 @@ function parsePurchaseEventId(toolCalls?: ToolCall[]): string | undefined {
   for (const tc of toolCalls) {
     if (
       tc.name !== 'purchase_and_attach_skill' &&
-      tc.name !== 'search_arkiv_skills'
+      tc.name !== 'search_catalog_skills'
     ) {
       continue;
     }
@@ -60,8 +60,8 @@ export function MessageBubble({
   });
 
   const visibleToolCalls = toolCalls?.filter((tc) => !HIDDEN_TOOL_NAMES.has(tc.name));
-  const arkivSearchCalls =
-    toolCalls?.filter((tc) => tc.name === 'search_arkiv_skills' && tc.result?.trim()) ?? [];
+  const catalogSearchCalls =
+    toolCalls?.filter((tc) => tc.name === 'search_catalog_skills' && tc.result?.trim()) ?? [];
   const purchaseEventId =
     skillPurchase?.purchaseEventId ?? parsePurchaseEventId(toolCalls);
 
@@ -120,18 +120,18 @@ export function MessageBubble({
         <SkillAcquiredCard purchaseEventId={purchaseEventId} />
       )}
       {role === 'assistant'
-        ? arkivSearchCalls.map((tc, index) => {
+        ? catalogSearchCalls.map((tc, index) => {
             try {
               const request = JSON.parse(tc.args) as unknown;
               const response = JSON.parse(tc.result) as unknown;
-              const trace = createArkivTrace(
-                'search_arkiv_skills',
-                'convex:marketplaceTools.search_arkiv_skills',
+              const trace = createCatalogTrace(
+                'search_catalog_skills',
+                'convex:marketplaceTools.search_catalog_skills',
                 request,
                 response,
                 { transport: 'skill-marketplace catalog-query-cli', network: 'braga-hoodi' },
               );
-              return <ArkivQueryDebugPanel key={`arkiv-${index}`} trace={trace} />;
+              return <CatalogQueryDebugPanel key={`arkiv-${index}`} trace={trace} />;
             } catch {
               return null;
             }

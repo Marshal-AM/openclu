@@ -12,7 +12,7 @@ import "dotenv/config";
 
  * 3. Write vault metadata + local cdr-manifest.json for purchasers
 
- * 4. Index catalog on Arkiv (peer hints + ops — required for purchase)
+ * 4. Index catalog in catalog (peer hints + ops — required for purchase)
 
  *
 
@@ -46,7 +46,7 @@ import {
 
 import { getHeliaStorage, uploadJsonToIpfs } from "./helia-storage.js";
 import { createPinataBackedStorage } from "./storage/pinata-aligned-storage.js";
-import { upsertArkivCatalogListing } from "./arkiv-listing.js";
+import { upsertCatalogListing } from "./catalog-listing.js";
 import { pinCiphertextToPublicIpfs } from "./services/publish-service.js";
 import { zipSkillBundle } from "./zip-bundle.js";
 
@@ -353,7 +353,7 @@ async function main() {
   );
 
   console.log("  [arkiv] Upserting full catalog listing on Braga (required)…");
-  const { result: arkivResult, peerHints } = await upsertArkivCatalogListing({
+  const { result: arkivResult, peerHints } = await upsertCatalogListing({
     skillName,
     bundleDir,
     publisherAddress: owner,

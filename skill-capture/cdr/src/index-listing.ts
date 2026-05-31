@@ -2,12 +2,12 @@
  * Re-index Arkiv with full listing row (purchase + ops). Fast when manifest has peer hints.
  *
  * Usage:
- *   npm run index-arkiv -- <skill-name>
- *   npm run index-arkiv -- <skill-name> --refresh-peers
+ *   npm run index-catalog -- <skill-name>
+ *   npm run index-catalog -- <skill-name> --refresh-peers
  */
 import "dotenv/config";
 import { createClients } from "./client.js";
-import { upsertArkivCatalogListing } from "./arkiv-listing.js";
+import { upsertCatalogListing } from "./catalog-listing.js";
 import { log } from "./logger.js";
 
 async function main() {
@@ -16,14 +16,14 @@ async function main() {
   const refreshPeers = args.includes("--refresh-peers");
 
   if (!skillName) {
-    console.error("Usage: npm run index-arkiv -- <skill-name> [--refresh-peers]");
+    console.error("Usage: npm run index-catalog -- <skill-name> [--refresh-peers]");
     process.exit(1);
   }
 
   log.section(`Arkiv upsert (full listing): ${skillName}`);
   const { account } = createClients();
 
-  const { result, peerHints } = await upsertArkivCatalogListing({
+  const { result, peerHints } = await upsertCatalogListing({
     skillName,
     publisherAddress: account.address,
     refreshPeerHints: refreshPeers,

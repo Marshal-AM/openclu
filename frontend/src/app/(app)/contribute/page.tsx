@@ -42,9 +42,9 @@ type MetadataForm = {
 
 type DeviceSkill = {
   skillSlug: string;
-  arkivListingKey?: string;
-  arkivVersion?: number;
-  arkivStatus?: string;
+  catalogListingId?: string;
+  catalogVersion?: number;
+  catalogStatus?: string;
 };
 
 type PublishSuccess = {
@@ -440,7 +440,7 @@ export default function ContributePage() {
 
   useEffect(() => {
     if (!publishSuccess) return;
-    toast.success(publishSuccess.message ?? `Skill "${publishSuccess.slug}" is listed on Arkiv.`, {
+    toast.success(publishSuccess.message ?? `Skill "${publishSuccess.slug}" is listed on catalog.`, {
       description:
         publishSuccess.version != null
           ? `Version ${publishSuccess.version}`
@@ -499,8 +499,8 @@ export default function ContributePage() {
         const pr = job.publishResult as DeviceSkill | undefined;
         setPublishSuccess({
           slug,
-          listingKey: pr?.arkivListingKey,
-          version: pr?.arkivVersion,
+          listingKey: pr?.catalogListingId,
+          version: pr?.catalogVersion,
         });
         setCaptureJobId(null);
         setDistributeJobId(null);
@@ -568,9 +568,9 @@ export default function ContributePage() {
         const pr = job.publishResult as DeviceSkill | undefined;
         setPublishSuccess({
           slug,
-          listingKey: pr?.arkivListingKey,
-          version: pr?.arkivVersion,
-          message: `Training data "${slug}" is listed on Arkiv.`,
+          listingKey: pr?.catalogListingId,
+          version: pr?.catalogVersion,
+          message: `Training data "${slug}" is listed on catalog.`,
         });
         setVideoCaptureJobId(null);
         setVideoDistributeJobId(null);

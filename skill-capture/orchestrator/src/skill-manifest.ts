@@ -5,9 +5,9 @@ import { SKILL_CAPTURE_ROOT } from "../../lib/spawn-util.js";
 export type PublishResult = {
   skillSlug: string;
   skillName: string;
-  arkivListingKey?: string;
-  arkivVersion?: number;
-  arkivStatus?: string;
+  catalogListingId?: string;
+  catalogVersion?: number;
+  catalogStatus?: string;
   cid?: string;
   ipId?: string;
   vaultUuid?: number;
@@ -22,9 +22,9 @@ export function readPublishResult(skillSlug: string): PublishResult | null {
     return {
       skillSlug,
       skillName: (m.skillName as string) ?? skillSlug,
-      arkivListingKey: m.arkivListingKey as string | undefined,
-      arkivVersion: m.arkivVersion as number | undefined,
-      arkivStatus: m.arkivStatus as string | undefined,
+      catalogListingId: m.catalogListingId as string | undefined,
+      catalogVersion: m.catalogVersion as number | undefined,
+      catalogStatus: m.catalogStatus as string | undefined,
       cid: m.cid as string | undefined,
       ipId: m.ipId as string | undefined,
       vaultUuid: m.vaultUuid as number | undefined,

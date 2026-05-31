@@ -1,13 +1,13 @@
 /**
- * Pin existing skill or training-data ciphertext to public IPFS and refresh Arkiv ops.ipfsGatewayUrl.
+ * Pin existing skill or training-data ciphertext to public IPFS and refresh Catalog ops.ipfsGatewayUrl.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   fetchSkillPurchaseContext,
   fetchTrainingPurchaseContext,
-} from "../arkiv/lib/cdr-listing.js";
-import { ArkivError } from "../arkiv/lib/errors.js";
+} from "../../../../skill-capture/db/src/catalog/cdr-listing.js";
+import { catalogError } from "../../../../skill-capture/db/src/lib/errors.js";
 import {
   gatewayUrlForCid,
   pinataConfigured,
@@ -19,10 +19,10 @@ import { downloadViaGatewayForBackfill } from "./backfill-download.js";
 import { tryDownloadFromLocalHeliaStores } from "./backfill-helia-local.js";
 import { tryDownloadFromLocalHeliaProviders } from "./backfill-helia-provider.js";
 import {
-  upsertArkivCatalogListing,
-  upsertArkivTrainingCatalogListing,
+  upsertCatalogListing,
+  upsertTrainingCatalogListing,
   loadSkillManifest,
-} from "./arkiv-listing.js";
+} from "./catalog-listing.js";
 import { log } from "./logger.js";
 
 type ListingKind = "skill" | "training";
@@ -35,7 +35,7 @@ async function fetchPurchaseContext(skillName: string): Promise<{
     const ctx = await fetchSkillPurchaseContext(skillName);
     return { cid: ctx.listing.cid, kind: "skill" };
   } catch (e) {
-    if (e instanceof ArkivError && e.code === "NOT_FOUND") {
+    if (e instanceof catalogError && e.code === "NOT_FOUND") {
       const ctx = await fetchTrainingPurchaseContext(skillName);
       return { cid: ctx.listing.cid, kind: "training" };
     }
@@ -88,7 +88,7 @@ export async function repinSkillToPublicIpfs(opts: {
   }
 
   const { cid, kind } = await fetchPurchaseContext(skillName);
-  log.info(`Arkiv listing type: ${kind === "training" ? "trainingDataListing" : "skillListing"}`);
+  log.info(`Catalog listing type: ${kind === "training" ? "trainingDataListing" : "skillListing"}`);
 
   let bytes: Uint8Array | null = await tryDownloadFromLocalHeliaStores(cid);
   if (bytes?.length) {
@@ -133,18 +133,18 @@ export async function repinSkillToPublicIpfs(opts: {
       writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf-8");
       log.ok(`Updated manifest: ${manifestPath}`);
     } catch {
-      log.warn("No local cdr-manifest.json — Arkiv upsert only");
+      log.warn("No local cdr-manifest.json — Catalog upsert only");
     }
   }
 
   if (kind === "training") {
-    await upsertArkivTrainingCatalogListing({
+    await upsertTrainingCatalogListing({
       skillName,
       bundleDir: upsertBundle,
       ipfsGatewayUrl,
     });
   } else {
-    await upsertArkivCatalogListing({
+    await upsertCatalogListing({
       skillName,
       bundleDir: upsertBundle,
       ipfsGatewayUrl,

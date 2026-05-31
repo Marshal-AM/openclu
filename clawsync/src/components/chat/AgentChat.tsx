@@ -26,7 +26,7 @@ interface DisplayMessage {
 }
 
 const MARKETPLACE_TOOLS = new Set([
-  'search_arkiv_skills',
+  'search_catalog_skills',
   'purchase_and_attach_skill',
   'list_attached_skills',
   'attach_existing_skill',
@@ -203,7 +203,7 @@ export function AgentChat({
           const id = parsePurchaseEventIdFromResult(tc.result);
           if (
             id &&
-            (tc.name === 'purchase_and_attach_skill' || tc.name === 'search_arkiv_skills')
+            (tc.name === 'purchase_and_attach_skill' || tc.name === 'search_catalog_skills')
           ) {
             skillPurchase = { purchaseEventId: id };
             break;
@@ -220,7 +220,7 @@ export function AgentChat({
       let displayContent =
         text.trim() ||
         toolSummary ||
-        (skillPurchase ? 'Acquiring skill from Arkiv marketplace…' : '');
+        (skillPurchase ? 'Acquiring skill from Catalog marketplace…' : '');
 
       if (role === 'assistant' && !displayContent.trim() && !toolCalls?.length && !skillPurchase) {
         continue;

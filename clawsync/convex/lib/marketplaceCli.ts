@@ -54,14 +54,14 @@ function resolveTsxCli(searchPaths: string[]): string {
 
 function assertMarketplaceReady(searchPaths: string[]): void {
   for (const base of searchPaths) {
-    const arkivDir = path.join(base, 'node_modules', '@arkiv-network', 'sdk');
-    if (existsSync(arkivDir)) return;
+    const supabaseDir = path.join(base, 'node_modules', '@supabase', 'supabase-js');
+    if (existsSync(supabaseDir)) return;
   }
 
   const req = createRequire(import.meta.url);
   for (const base of searchPaths) {
     try {
-      req.resolve('@arkiv-network/sdk', { paths: [base] });
+      req.resolve('@supabase/supabase-js', { paths: [base] });
       return;
     } catch {
       /* try next */
@@ -69,7 +69,7 @@ function assertMarketplaceReady(searchPaths: string[]): void {
   }
 
   throw new Error(
-    'skill-marketplace dependencies are not installed. From the clawsync directory run: npm install',
+    'skill-marketplace dependencies are not installed (need @supabase/supabase-js). From clawsync: npm install',
   );
 }
 

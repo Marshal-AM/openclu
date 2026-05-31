@@ -1,4 +1,4 @@
-/** Structured logs for in-chat Arkiv search / purchase (visible in Convex dashboard). */
+/** Structured logs for in-chat Catalog search / purchase (visible in Convex dashboard). */
 
 export function logChatSkill(
   stage: string,

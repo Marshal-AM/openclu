@@ -12,7 +12,7 @@ export function summarizeSearchToolResult(result: string): string | undefined {
       matches?: Array<{ skillName: string; title?: string }>;
       resolvedSlug?: string | null;
       exactSlugMatch?: boolean;
-      slugNotOnArkiv?: boolean;
+      slugNotInCatalog?: boolean;
       purchaseError?: string;
       alreadyAttached?: boolean;
       pickedSkillName?: string;
@@ -25,12 +25,12 @@ export function summarizeSearchToolResult(result: string): string | undefined {
     if (p.purchaseError) return `Could not complete marketplace action: ${p.purchaseError}`;
     if (p.matchCount === 0) {
       return p.resolvedSlug
-        ? `No Arkiv listing found for "${p.resolvedSlug}".`
+        ? `No Catalog listing found for "${p.resolvedSlug}".`
         : 'No marketplace skills matched that query.';
     }
     if (p.matches?.length) {
       const top = p.matches[0];
-      return `Found "${top.title ?? top.skillName}" on Arkiv (${p.matchCount} match${p.matchCount === 1 ? '' : 'es'}).`;
+      return `Found "${top.title ?? top.skillName}" on Catalog (${p.matchCount} match${p.matchCount === 1 ? '' : 'es'}).`;
     }
   } catch {
     /* ignore */
@@ -108,7 +108,7 @@ export function synthesizeReplyFromToolSteps(
           : typeof tr.result === 'string'
             ? tr.result
             : JSON.stringify(tr.result);
-      if (name === 'search_arkiv_skills') {
+      if (name === 'search_catalog_skills') {
         const line = summarizeSearchToolResult(raw);
         if (line) parts.push(line);
       } else if (name === 'purchase_and_attach_skill') {
@@ -126,7 +126,7 @@ export function synthesizeReplyFromToolSteps(
         if (line) parts.push(line);
       } else if (
         name &&
-        name !== 'search_arkiv_skills' &&
+        name !== 'search_catalog_skills' &&
         name !== 'purchase_and_attach_skill' &&
         name !== 'list_attached_skills' &&
         name !== 'attach_existing_skill' &&

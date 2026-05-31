@@ -17,7 +17,7 @@ export type MarketplaceExecutionContext = {
   userMessage?: string;
 };
 
-export async function executeSearchArkivSkills(
+export async function executeSearchCatalogSkills(
   ctx: ActionCtx,
   context: MarketplaceExecutionContext,
   params: { query: string; skillSlug?: string; limit?: number },
@@ -41,7 +41,7 @@ export async function executeSearchArkivSkills(
   let raw: CatalogMatch[] = [];
   let searchMode: 'exact_slug' | 'natural_language' | 'exact_then_nl' = 'natural_language';
   let slugListingExists = false;
-  let slugNotOnArkiv = false;
+  let slugNotInCatalog = false;
 
   if (slug) {
     searchMode = 'exact_slug';
@@ -90,11 +90,11 @@ export async function executeSearchArkivSkills(
           slugListingExists = true;
           logChatSkill('search_slug_exists_via_detail', {
             slug,
-            note: 'Listing exists on Arkiv but did not rank in NL search; purchase may still work.',
+            note: 'Listing exists on Catalog but did not rank in NL search; purchase may still work.',
           });
         } catch (detailErr) {
-          slugNotOnArkiv = true;
-          logChatSkill('search_slug_not_on_arkiv', {
+          slugNotInCatalog = true;
+          logChatSkill('search_slug_not_in_catalog', {
             slug,
             error: detailErr instanceof Error ? detailErr.message : String(detailErr),
           });
@@ -139,18 +139,18 @@ export async function executeSearchArkivSkills(
     : undefined;
 
   let hint: string;
-  if (slug && slugNotOnArkiv && !exactMatch) {
+  if (slug && slugNotInCatalog && !exactMatch) {
     const names = matches
       .slice(0, 5)
       .map((m) => m.skillName)
       .join(', ');
     hint = names.length
-      ? `There is no Arkiv listing named "${slug}". Similar names on the catalog: ${names}.`
-      : `There is no Arkiv listing named "${slug}" on the marketplace.`;
+      ? `There is no Catalog listing named "${slug}". Similar names on the catalog: ${names}.`
+      : `There is no Catalog listing named "${slug}" on the marketplace.`;
   } else if (slug && slugListingExists && !exactMatch) {
-    hint = `Listing "${slug}" exists on Arkiv but was not in search results — you can still call purchase_and_attach_skill with skillName "${slug}" and searchId.`;
+    hint = `Listing "${slug}" exists on Catalog but was not in search results — you can still call purchase_and_attach_skill with skillName "${slug}" and searchId.`;
   } else if (matches.length === 0) {
-    hint = 'No Arkiv listings matched. Try a different skillSlug or query.';
+    hint = 'No Catalog listings matched. Try a different skillSlug or query.';
   } else if (exactMatch) {
     hint = `Found "${exactMatch.title ?? exactMatch.skillName}". To acquire it, call purchase_and_attach_skill with skillName, listingKey, and searchId.`;
   } else {
@@ -164,7 +164,7 @@ export async function executeSearchArkivSkills(
     searchMode,
     matchCount: matches.length,
     exactSlugMatch: Boolean(exactMatch),
-    slugNotOnArkiv: slug ? slugNotOnArkiv : undefined,
+    slugNotInCatalog: slug ? slugNotInCatalog : undefined,
     matches: matches.map(({ payload: _p, ...rest }) => rest),
     hint,
     assistantMessage: hint,
@@ -192,7 +192,7 @@ export async function executeListAttachedSkills(
         );
   const summary =
     skills.length === 0
-      ? 'I do not have any marketplace skills attached yet. I can search Arkiv and purchase skills when you ask.'
+      ? 'I do not have any marketplace skills attached yet. I can search Catalog and purchase skills when you ask.'
       : `I have ${skills.length} marketplace skill(s) attached:\n${lines.join('\n')}`;
   return JSON.stringify({
     count: skills.length,
@@ -255,12 +255,12 @@ async function resolveRegistrySkill(
   const available = all.map((s: { name: string }) => s.name).slice(0, 12);
   return {
     ok: false,
-    error: `No active skill named "${slug}" in your registry. Use purchase_and_attach_skill for Arkiv skills not yet imported.`,
+    error: `No active skill named "${slug}" in your registry. Use purchase_and_attach_skill for Catalog skills not yet imported.`,
     availableNames: available,
   };
 }
 
-/** Attach an already-imported registry skill to this agent (no Arkiv purchase). */
+/** Attach an already-imported registry skill to this agent (no Catalog purchase). */
 export async function executeAttachExistingSkill(
   ctx: ActionCtx,
   context: MarketplaceExecutionContext,
@@ -322,7 +322,7 @@ export async function executeAttachExistingSkill(
   });
 }
 
-/** Remove a skill assignment from this agent (does not delete registry or Arkiv listing). */
+/** Remove a skill assignment from this agent (does not delete registry or Catalog listing). */
 export async function executeDetachAttachedSkill(
   ctx: ActionCtx,
   context: MarketplaceExecutionContext,

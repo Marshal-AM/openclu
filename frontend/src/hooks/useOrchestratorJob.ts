@@ -13,9 +13,9 @@ export type OrchestratorJob = {
   error?: string;
   publishResult?: {
     skillSlug?: string;
-    arkivListingKey?: string;
-    arkivVersion?: number;
-    arkivStatus?: string;
+    catalogListingId?: string;
+    catalogVersion?: number;
+    catalogStatus?: string;
   };
 };
 

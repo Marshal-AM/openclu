@@ -6,7 +6,7 @@ import {
   fetchSkillPurchaseContext,
   purchaseContextFromCatalogSnapshot,
   type SkillCdrListing,
-} from "../arkiv/lib/cdr-listing.js";
+} from "../../../../skill-capture/db/src/catalog/cdr-listing.js";
 import { createClientsFromPrivateKey, ensureWasm, getApiUrl, getRpcUrl } from "./client.js";
 import { downloadFileWithLogs } from "./decrypt-with-logs.js";
 import { ROYALTY_MODULE } from "./constants.js";
@@ -30,7 +30,7 @@ export interface PurchaseSkillOptions {
   skillName: string;
   privateKey: string;
   outputDir: string;
-  /** Full Arkiv catalog row from UI (payload + entityKey) — portable, no sibling repos. */
+  /** Full Catalog catalog row from UI (payload + entityKey) — portable, no sibling repos. */
   catalogSnapshot?: {
     entityKey: string;
     payload: unknown;
@@ -52,7 +52,7 @@ function manifestFromContext(
 }
 
 /**
- * Purchase using Arkiv catalog data only (purchase + ops blocks in JSON).
+ * Purchase using Catalog catalog data only (purchase + ops blocks in JSON).
  * Works on any machine with network — no skill-capture folder required.
  */
 export async function purchaseSkillFromListing(
@@ -68,13 +68,13 @@ export async function purchaseSkillFromListing(
         catalogSnapshot.entityKey,
         catalogSnapshot.payload,
       )
-    : await timed("load Arkiv catalog (purchase + peer hints)", () =>
+    : await timed("load Catalog catalog (purchase + peer hints)", () =>
         fetchSkillPurchaseContext(skillName),
       );
 
   const { listing, title, description, mintingFeeIp } = ctx;
   log.info(
-    `Catalog source: ${catalogSnapshot ? "UI snapshot" : "Arkiv"} · peer ${listing.helia_peer_id} · ${listing.helia_multiaddrs.length} addrs`,
+    `Catalog source: ${catalogSnapshot ? "UI snapshot" : "catalog"} · peer ${listing.helia_peer_id} · ${listing.helia_multiaddrs.length} addrs`,
   );
 
   const manifest = manifestFromContext(skillName, listing, mintingFeeIp);

@@ -1,10 +1,34 @@
-/** @deprecated Import from `@/lib/arkiv/catalog` — kept for existing API route imports. */
+import {
+  getCatalogSkill,
+  getCatalogSkillDetail as fetchCatalogSkillDetail,
+  getCatalogStats,
+  getCatalogTrainingDetail,
+  queryCatalog,
+  queryCatalogTraining,
+  type CatalogQueryBody,
+} from "@/lib/supabase/catalog";
+
+export type { CatalogQueryBody };
+
+export type CatalogDetailParams = {
+  ownerAddress?: string;
+  listingKey?: string;
+  kind?: "skill" | "training";
+};
+
 export {
   getCatalogSkill,
-  getCatalogSkillDetail,
   getCatalogStats,
   queryCatalog,
   queryCatalogTraining,
-  type CatalogDetailParams,
-  type CatalogQueryBody,
-} from "@/lib/arkiv/catalog";
+};
+
+export async function getCatalogSkillDetail(
+  skillName: string,
+  params?: CatalogDetailParams,
+) {
+  if (params?.kind === "training") {
+    return getCatalogTrainingDetail(skillName, params.ownerAddress, params.listingKey);
+  }
+  return fetchCatalogSkillDetail(skillName, params?.ownerAddress, params?.listingKey);
+}

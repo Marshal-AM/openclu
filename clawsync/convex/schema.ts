@@ -587,7 +587,7 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index('by_name', ['name']),
 
-  // Training data purchased from Arkiv (encrypted video bundle on disk)
+  // Training data purchased from Catalog (encrypted video bundle on disk)
   purchasedTrainingData: defineTable({
     skillName: v.string(),
     title: v.string(),
@@ -605,7 +605,7 @@ export default defineSchema({
     .index('by_skillName', ['skillName'])
     .index('by_buyerAddress', ['buyerAddress']),
 
-  // Skills purchased from Arkiv marketplace (CDR decrypt on disk)
+  // Skills purchased from Catalog marketplace (CDR decrypt on disk)
   purchasedSkills: defineTable({
     skillName: v.string(),
     title: v.string(),
@@ -625,7 +625,7 @@ export default defineSchema({
     .index('by_buyerAddress', ['buyerAddress'])
     .index('by_status', ['status']),
 
-  // In-chat Arkiv search snapshots (audit / resolve catalogSnapshot)
+  // In-chat Catalog search snapshots (audit / resolve catalogSnapshot)
   skillSearchSnapshots: defineTable({
     threadId: v.string(),
     agentId: v.optional(v.id('agents')),

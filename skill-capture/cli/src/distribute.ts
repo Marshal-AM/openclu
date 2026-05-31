@@ -5,7 +5,7 @@ import "../../cdr/src/polyfill.js";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { config } from "dotenv";
-import { SKILL_CAPTURE_ROOT } from "../../arkiv/src/lib/device-wallet.js";
+import { SKILL_CAPTURE_ROOT } from "../../db/src/lib/device-wallet.js";
 import {
   encryptBundleToVault,
   getServerPeerHints,
@@ -23,12 +23,12 @@ import {
 import { API_URL, RPC_URL } from "../../cdr/src/client.js";
 import { getHeliaStorage } from "../../cdr/src/helia-storage.js";
 import { createPinataBackedStorage } from "../../cdr/src/storage/pinata-aligned-storage.js";
-import { loadDeviceAccount } from "../../arkiv/src/lib/device-wallet.js";
-import { buildOpsFromManifest } from "../../arkiv/src/lib/listing-ops.js";
-import { publishCatalogToArkiv } from "../../arkiv/src/services/publish-catalog.js";
-import type { PublishCatalogResult } from "../../arkiv/src/lib/types.js";
+import { loadDeviceAccount } from "../../db/src/lib/device-wallet.js";
+import { buildOpsFromManifest } from "../../db/src/lib/listing-ops.js";
+import { publishCatalogToDb } from "../../db/src/services/publish-catalog.js";
+import type { PublishCatalogResult } from "../../db/src/lib/types.js";
 import {
-  printArkivPublish,
+  printCatalogPublish,
   printCdrEncrypt,
   printDistributeSummary,
   printStoryPublish,
@@ -102,7 +102,7 @@ export async function distributeSkill(opts: { skillName: string; bundleDir: stri
 
   const manifestPath = writeLocalManifest(bundleDir, skillName, manifest);
 
-  console.log("\n  [cli] Arkiv catalog (in-process, device owner)…");
+  console.log("\n  [cli] Catalog (in-process, device owner)…");
   const ops = buildOpsFromManifest({
     ...manifest,
     storyApiUrl: API_URL,
@@ -110,14 +110,14 @@ export async function distributeSkill(opts: { skillName: string; bundleDir: stri
     ipfsGatewayUrl,
   });
 
-  const arkiv: PublishCatalogResult = await publishCatalogToArkiv({
+  const catalog: PublishCatalogResult = await publishCatalogToDb({
     skillName,
     manifest,
     bundleDir,
     publisherAddress: account.address,
     ops,
   });
-  printArkivPublish(arkiv);
+  printCatalogPublish(catalog);
 
   printDistributeSummary({
     skillName,
@@ -125,7 +125,7 @@ export async function distributeSkill(opts: { skillName: string; bundleDir: stri
     story,
     vaultUuid,
     cid,
-    arkiv,
+    catalog,
     ipfsGatewayUrl,
   });
 }

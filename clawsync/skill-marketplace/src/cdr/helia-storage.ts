@@ -9,7 +9,7 @@ import { CID } from "multiformats/cid";
 import { mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { log } from "./logger.js";
-import type { SkillCdrListing } from "../arkiv/lib/cdr-listing.js";
+import type { SkillCdrListing } from "../../../../skill-capture/db/src/catalog/cdr-listing.js";
 import { resolveHeliaDataDir } from "./repo-paths.js";
 
 function heliaDataDir(): string {
@@ -145,7 +145,7 @@ export async function getHeliaStorage(): Promise<{
   return { helia, storage };
 }
 
-/** Higher score = try first. Prefer public relay circuit paths from Arkiv ops.heliaMultiaddrs. */
+/** Higher score = try first. Prefer public relay circuit paths from Catalog ops.heliaMultiaddrs. */
 function rankPublisherAddrs(addrs: string[]): string[] {
   const score = (a: string): number => {
     if (a.includes("bootstrap.libp2p")) return 0;
@@ -172,7 +172,7 @@ export async function dialPublisherPeers(
 ): Promise<void> {
   const peerId = listing.helia_peer_id;
   if (!peerId) {
-    throw new Error(`Arkiv listing missing helia_peer_id for "${listing.skill_name}"`);
+    throw new Error(`Catalog listing missing helia_peer_id for "${listing.skill_name}"`);
   }
 
   const addrs = rankPublisherAddrs(
@@ -180,7 +180,7 @@ export async function dialPublisherPeers(
   );
   if (!addrs.length) {
     throw new Error(
-      `No dialable multiaddrs for publisher ${peerId} in Arkiv catalog ops.heliaMultiaddrs.`,
+      `No dialable multiaddrs for publisher ${peerId} in Catalog catalog ops.heliaMultiaddrs.`,
     );
   }
 
@@ -228,7 +228,7 @@ export async function downloadFromIpfs(
   cid: string,
 ): Promise<Uint8Array> {
   if (cid !== listing.cid) {
-    throw new Error(`Vault CID ${cid} != Arkiv catalog CID ${listing.cid}. Re-publish.`);
+    throw new Error(`Vault CID ${cid} != Catalog catalog CID ${listing.cid}. Re-publish.`);
   }
 
   const t = Date.now();
@@ -245,7 +245,7 @@ export async function downloadFromIpfs(
     return local;
   } catch (e) {
     log.info(
-      `Not in local blockstore (${e instanceof Error ? e.message : e}) — dial Arkiv publisher`,
+      `Not in local blockstore (${e instanceof Error ? e.message : e}) — dial Catalog publisher`,
     );
   }
 

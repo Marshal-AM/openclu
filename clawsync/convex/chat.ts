@@ -174,8 +174,8 @@ ${skillsBlock}
 
 ${knowledgeBlock ? `${knowledgeBlock}\n\n` : ''}## Marketplace tools (buy / attach / detach only — not for Q&A on attached skills)
 - list_attached_skills — when the user asks what skills you have or your capabilities.
-- search_arkiv_skills — find a skill on Arkiv (use skillSlug for named skills).
-- purchase_and_attach_skill — buy from Arkiv and attach.
+- search_catalog_skills — find a skill on Catalog (use skillSlug for named skills).
+- purchase_and_attach_skill — buy from Catalog and attach.
 - attach_existing_skill — attach a skill already in the local registry.
 - detach_attached_skill — remove a skill from this agent.
 
@@ -188,7 +188,7 @@ Use assistantMessage from tool JSON when a purchase or attach finishes.`;
       // Load tools from skill registry + MCP servers
       const tools = await loadTools(ctx, effectiveAgentId);
 
-      // Arkiv marketplace tools (Node-only; wired here to keep toolLoader out of node bundle graph)
+      // Catalog marketplace tools (Node-only; wired here to keep toolLoader out of node bundle graph)
       let hasMarketplaceTools = false;
       if (effectiveAgentId && threadId) {
         try {
@@ -284,7 +284,7 @@ Use assistantMessage from tool JSON when a purchase or attach finishes.`;
           const failedGen = extractGroqFailedGeneration(genError);
           const parsed = failedGen ? parseGroqFailedToolCall(failedGen) : null;
           const intent =
-            parsed?.name === 'search_arkiv_skills'
+            parsed?.name === 'search_catalog_skills'
               ? ('search' as const)
               : parsed?.name === 'list_attached_skills'
                 ? ('list' as const)
@@ -378,7 +378,7 @@ Use assistantMessage from tool JSON when a purchase or attach finishes.`;
       }
       if (!responseText && toolCalls.length > 0) {
         const onlyMarketplaceOps = toolCalls.every((tc) =>
-          /^(search_arkiv_skills|purchase_and_attach_skill|list_attached_skills|attach_existing_skill|detach_attached_skill)$/.test(
+          /^(search_catalog_skills|purchase_and_attach_skill|list_attached_skills|attach_existing_skill|detach_attached_skill)$/.test(
             tc.name,
           ),
         );

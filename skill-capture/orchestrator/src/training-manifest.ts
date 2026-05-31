@@ -16,9 +16,9 @@ export function readTrainingPublishResult(skillSlug: string): PublishResult | nu
     return {
       skillSlug,
       skillName: (m.skillName as string) ?? skillSlug,
-      arkivListingKey: m.arkivListingKey as string | undefined,
-      arkivVersion: m.arkivVersion as number | undefined,
-      arkivStatus: m.arkivStatus as string | undefined,
+      catalogListingId: m.catalogListingId as string | undefined,
+      catalogVersion: m.catalogVersion as number | undefined,
+      catalogStatus: m.catalogStatus as string | undefined,
       cid: m.cid as string | undefined,
       ipId: m.ipId as string | undefined,
       vaultUuid: m.vaultUuid as number | undefined,

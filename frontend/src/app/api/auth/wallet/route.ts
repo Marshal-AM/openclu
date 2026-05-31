@@ -7,7 +7,7 @@ function normalizedAddress(value: unknown): string | null {
   return /^0x[a-f0-9]{40}$/.test(address) ? address : null;
 }
 
-/** Establish server session cookie only — no Arkiv write (login must not require portal wallet gas). */
+/** Establish server session cookie only — no Catalog write (login must not require portal wallet gas). */
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const address = normalizedAddress(body.address);

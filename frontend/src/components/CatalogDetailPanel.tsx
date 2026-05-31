@@ -1,8 +1,5 @@
 "use client";
 
-import type { ArkivQueryTrace } from "@/lib/arkiv-trace";
-import { ArkivQueryDebugPanel } from "@/components/ArkivQueryDebugPanel";
-
 type CatalogDetail = Record<string, unknown>;
 
 function collectTags(detail: CatalogDetail, payload?: Record<string, unknown>): string[] {
@@ -11,13 +8,7 @@ function collectTags(detail: CatalogDetail, payload?: Record<string, unknown>): 
   return [...new Set([...fromPayload, ...fromListing].filter(Boolean))];
 }
 
-export function CatalogDetailPanel({
-  detail,
-  arkivTrace,
-}: {
-  detail: CatalogDetail;
-  arkivTrace?: ArkivQueryTrace | null;
-}) {
+export function CatalogDetailPanel({ detail }: { detail: CatalogDetail }) {
   const payload = detail.payload as Record<string, unknown> | undefined;
   const description = payload?.description ? String(payload.description) : "";
   const tags = collectTags(detail, payload);
@@ -49,8 +40,6 @@ export function CatalogDetailPanel({
           </ul>
         </section>
       ) : null}
-
-      <ArkivQueryDebugPanel trace={arkivTrace} />
     </div>
   );
 }
@@ -58,9 +47,9 @@ export function CatalogDetailPanel({
 type ContributionMeta = {
   deviceName?: string | null;
   status?: string;
-  arkivVersion?: number | null;
-  listingKey?: string | null;
-  kind?: "skill" | "training";
+  kind?: string;
+  catalogListingId?: string | null;
+  catalogVersion?: number | null;
 };
 
 export function ContributionDraftPanel({
@@ -68,55 +57,34 @@ export function ContributionDraftPanel({
   description,
   contributionMeta,
 }: {
-  title?: string | null;
-  description?: string | null;
+  title: string | null;
+  description: string | null;
   contributionMeta: ContributionMeta;
 }) {
   return (
-    <div className="catalog-detail-panel flex flex-col gap-5">
-      <dl className="catalog-detail-meta-grid grid grid-cols-2 gap-3">
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Device</dt>
-          <dd className="mt-1 text-sm text-foreground">{contributionMeta.deviceName ?? "Unavailable"}</dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Status</dt>
-          <dd className="mt-1 text-sm text-foreground">{contributionMeta.status ?? "Unavailable"}</dd>
-        </div>
+    <div className="flex flex-col gap-4 text-sm text-muted-foreground">
+      {title ? <p className="m-0 text-base font-medium text-foreground">{title}</p> : null}
+      {description ? <p className="m-0 leading-relaxed">{description}</p> : null}
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+        {contributionMeta.deviceName ? (
+          <>
+            <dt className="uppercase tracking-wide opacity-70">Device</dt>
+            <dd>{contributionMeta.deviceName}</dd>
+          </>
+        ) : null}
+        {contributionMeta.status ? (
+          <>
+            <dt className="uppercase tracking-wide opacity-70">Status</dt>
+            <dd>{contributionMeta.status}</dd>
+          </>
+        ) : null}
         {contributionMeta.kind ? (
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Type</dt>
-            <dd className="mt-1 text-sm capitalize text-foreground">{contributionMeta.kind}</dd>
-          </div>
-        ) : null}
-        {contributionMeta.arkivVersion != null ? (
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Arkiv version</dt>
-            <dd className="mt-1 text-sm text-foreground">{contributionMeta.arkivVersion}</dd>
-          </div>
-        ) : null}
-        {contributionMeta.listingKey ? (
-          <div className="col-span-2">
-            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Listing key</dt>
-            <dd className="mt-1 break-all font-mono text-xs text-foreground">{contributionMeta.listingKey}</dd>
-          </div>
-        ) : null}
-        {title ? (
-          <div className="col-span-2">
-            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Title</dt>
-            <dd className="mt-1 text-sm text-foreground">{title}</dd>
-          </div>
+          <>
+            <dt className="uppercase tracking-wide opacity-70">Kind</dt>
+            <dd>{contributionMeta.kind}</dd>
+          </>
         ) : null}
       </dl>
-
-      {description ? (
-        <section>
-          <h3 className="catalog-detail-section-heading mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Description
-          </h3>
-          <p className="catalog-detail-description m-0 text-base leading-relaxed text-foreground">{description}</p>
-        </section>
-      ) : null}
     </div>
   );
 }

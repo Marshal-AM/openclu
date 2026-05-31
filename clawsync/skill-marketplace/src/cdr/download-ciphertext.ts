@@ -1,4 +1,4 @@
-import type { SkillCdrListing } from "../arkiv/lib/cdr-listing.js";
+import type { SkillCdrListing } from "../../../../skill-capture/db/src/catalog/cdr-listing.js";
 import {
   fetchPublicGateway,
   gatewayUrlForCid,

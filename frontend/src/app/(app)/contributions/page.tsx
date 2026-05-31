@@ -10,8 +10,7 @@ import { ContributionListingCard } from "@/components/skills/ContributionListing
 import { SkillModalDialog } from "@/components/skills/SkillModalDialog";
 import { CatalogDetailSkeleton, SkillCardGridSkeleton } from "@/components/skills/skill-skeletons";
 import { useOrchestratorJob } from "@/hooks/useOrchestratorJob";
-import type { Contribution } from "@/lib/contributions-from-arkiv";
-import { splitArkivTrace, type ArkivQueryTrace } from "@/lib/arkiv-trace";
+import type { Contribution } from "@/lib/contributions-from-catalog";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -35,8 +34,8 @@ type MetadataForm = {
 
 type DeviceSkill = {
   skillSlug: string;
-  arkivListingKey?: string;
-  arkivVersion?: number;
+  catalogListingId?: string;
+  catalogVersion?: number;
 };
 
 type PublishSuccess = {
@@ -54,9 +53,9 @@ type DraftPayload = {
   extraTags: string[];
   expertiseSource?: string;
   recordedAt?: string;
-  arkivListingKey?: string;
-  arkivVersion?: number;
-  arkivStatus?: string;
+  catalogListingId?: string;
+  catalogVersion?: number;
+  catalogStatus?: string;
 };
 
 const ORCH = "/api/orch";
@@ -117,7 +116,6 @@ export default function ContributionsPage() {
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const [selectedContribution, setSelectedContribution] = useState<Contribution | null>(null);
   const [catalogDetail, setCatalogDetail] = useState<Record<string, unknown> | null>(null);
-  const [catalogArkivTrace, setCatalogArkivTrace] = useState<ArkivQueryTrace | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<PublishSuccess | null>(null);
@@ -213,9 +211,9 @@ export default function ContributionsPage() {
       if (label === "update-catalog") {
         setPublishSuccess({
           slug,
-          listingKey: pr?.arkivListingKey,
-          version: pr?.arkivVersion,
-          message: `Catalog updated on Arkiv (v${pr?.arkivVersion ?? "?"})`,
+          listingKey: pr?.catalogListingId,
+          version: pr?.catalogVersion,
+          message: `Catalog updated on Catalog (v${pr?.catalogVersion ?? "?"})`,
         });
         setEditingSlug(null);
         setEditForm(null);
@@ -224,7 +222,7 @@ export default function ContributionsPage() {
       } else if (label === "archive") {
         setPublishSuccess({
           slug,
-          message: `"${slug}" removed from marketplace (archived on Arkiv)`,
+          message: `"${slug}" removed from marketplace (archived on catalog)`,
         });
         setEditingSlug(null);
         setEditForm(null);
@@ -233,9 +231,9 @@ export default function ContributionsPage() {
       } else if (label === "republish") {
         setPublishSuccess({
           slug,
-          listingKey: pr?.arkivListingKey,
-          version: pr?.arkivVersion,
-          message: `Re-encrypted and listed on Arkiv (v${pr?.arkivVersion ?? "?"})`,
+          listingKey: pr?.catalogListingId,
+          version: pr?.catalogVersion,
+          message: `Re-encrypted and listed on Catalog (v${pr?.catalogVersion ?? "?"})`,
         });
         setEditingSlug(null);
         setEditForm(null);
@@ -310,9 +308,9 @@ export default function ContributionsPage() {
         const pr = job.publishResult as DeviceSkill | undefined;
         setPublishSuccess({
           slug,
-          listingKey: pr?.arkivListingKey,
-          version: pr?.arkivVersion,
-          message: `Re-recorded and listed on Arkiv (v${pr?.arkivVersion ?? "?"})`,
+          listingKey: pr?.catalogListingId,
+          version: pr?.catalogVersion,
+          message: `Re-recorded and listed on Catalog (v${pr?.catalogVersion ?? "?"})`,
         });
         setCaptureJobId(null);
         setDistributeJobId(null);
@@ -365,7 +363,7 @@ export default function ContributionsPage() {
       setError(saved.error ?? "Failed to update SKILL.md");
       return;
     }
-    setLogs(["Updating Arkiv catalog…"]);
+    setLogs(["Updating Catalog catalog…"]);
     const res = await fetch(`${ORCH}/jobs/update-catalog`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...deviceHeaders(deviceId) },
@@ -441,11 +439,11 @@ export default function ContributionsPage() {
     const deviceId = requireDeviceId();
     if (!deviceId) return;
     const ok = window.confirm(
-      `Remove "${slug}" from the marketplace? This archives the Arkiv listing (soft delete).`,
+      `Remove "${slug}" from the marketplace? This archives the Catalog listing (soft delete).`,
     );
     if (!ok) return;
     setError("");
-    setLogs(["Archiving on Arkiv…"]);
+    setLogs(["Archiving on catalog…"]);
     const res = await fetch(`${ORCH}/jobs/archive`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...deviceHeaders(deviceId) },
@@ -465,7 +463,6 @@ export default function ContributionsPage() {
     const slug = contribution.skill_slug;
     setSelectedSkill(slug);
     setCatalogDetail(null);
-    setCatalogArkivTrace(null);
     setCatalogError(null);
     setCatalogLoading(true);
     try {
@@ -473,8 +470,8 @@ export default function ContributionsPage() {
       if (contribution.device_wallet_address) {
         params.set("ownerAddress", contribution.device_wallet_address);
       }
-      if (contribution.arkiv_listing_key) {
-        params.set("listingKey", contribution.arkiv_listing_key);
+      if (contribution.catalog_listing_id) {
+        params.set("listingKey", contribution.catalog_listing_id);
       }
       params.set("kind", contribution.kind);
       const qs = params.toString();
@@ -483,12 +480,9 @@ export default function ContributionsPage() {
       );
       const payload = (await res.json().catch(() => ({}))) as Record<string, unknown> & {
         error?: string;
-        arkivTrace?: ArkivQueryTrace;
       };
       if (res.ok) {
-        const { data, trace } = splitArkivTrace(payload);
-        setCatalogDetail(data);
-        setCatalogArkivTrace(trace);
+        setCatalogDetail(payload);
         return;
       }
       const message = payload.error ?? "Could not load catalog entry";
@@ -521,8 +515,8 @@ export default function ContributionsPage() {
     ? {
         deviceName: selectedContribution.device_name,
         status: selectedContribution.status,
-        arkivVersion: selectedContribution.arkiv_version,
-        listingKey: selectedContribution.arkiv_listing_key,
+        catalogVersion: selectedContribution.catalog_version,
+        listingKey: selectedContribution.catalog_listing_id,
         kind: selectedContribution.kind,
       }
     : undefined;
@@ -531,7 +525,6 @@ export default function ContributionsPage() {
     setSelectedContribution(null);
     setSelectedSkill(null);
     setCatalogDetail(null);
-    setCatalogArkivTrace(null);
     setCatalogError(null);
     setCatalogLoading(false);
     setEditingSlug(null);
@@ -606,7 +599,7 @@ export default function ContributionsPage() {
       <header className="skill-page-toolbar">
         <h1>My contributions</h1>
         <p>
-          Skill and training listings on Arkiv across your registered devices.
+          Skill and training listings on Catalog across your registered devices.
         </p>
       </header>
 
@@ -639,7 +632,7 @@ export default function ContributionsPage() {
                 description={contribution.description ?? "No description available"}
                 status={contribution.status}
                 deviceName={contribution.device_name}
-                version={contribution.arkiv_version}
+                version={contribution.catalog_version}
                 kind={contribution.kind}
                 onClick={() => void openContributionDialog(contribution)}
               />
@@ -686,7 +679,7 @@ export default function ContributionsPage() {
             {catalogLoading ? <CatalogDetailSkeleton /> : null}
 
             {!catalogLoading && selectedContribution.status === "published" && catalogDetail ? (
-              <CatalogDetailPanel detail={catalogDetail} arkivTrace={catalogArkivTrace} />
+              <CatalogDetailPanel detail={catalogDetail} />
             ) : null}
 
             {!catalogLoading && selectedContribution.status !== "published" ? (
@@ -706,10 +699,10 @@ export default function ContributionsPage() {
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
                     <p className="font-medium">Catalog entry unavailable</p>
                     <p className="mt-1 text-xs opacity-90">{catalogError}</p>
-                    {catalogError.includes("No Arkiv catalog listing") ? (
+                    {catalogError.includes("No Catalog catalog listing") ? (
                       <p className="mt-2 text-xs">
-                        The skill is marked published locally but is not on Arkiv yet. Re-publish from
-                        the device or run index-arkiv.
+                        The skill is marked published locally but is not on Catalog yet. Re-publish from
+                        the device or re-publish from Contribute.
                       </p>
                     ) : null}
                   </div>
@@ -727,8 +720,8 @@ export default function ContributionsPage() {
                 <Separator />
                 <p className="text-sm text-muted-foreground">
                   Edit catalog metadata
-                  {editDraftMeta?.arkivVersion != null
-                    ? ` (current Arkiv v${editDraftMeta.arkivVersion})`
+                  {editDraftMeta?.catalogVersion != null
+                    ? ` (current Catalog v${editDraftMeta.catalogVersion})`
                     : ""}
                 </p>
                 {renderMetadataFields(editForm, setEditForm, true)}
@@ -738,9 +731,9 @@ export default function ContributionsPage() {
                     onClick={() => void saveMetadataEdit()}
                     disabled={!!orchJobId || !!captureJobId || !editForm.title.trim()}
                   >
-                    Save metadata to Arkiv
+                    Save metadata to catalog
                   </Button>
-                  {editDraftMeta?.arkivListingKey ? (
+                  {editDraftMeta?.catalogListingId ? (
                     <Button
                       type="button"
                       variant="outline"

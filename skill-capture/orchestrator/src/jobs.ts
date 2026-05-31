@@ -250,7 +250,7 @@ export function startDistributeJob(skillSlug: string): Job {
     skillSlug,
     jobKind: "skill",
     status: "distributing",
-    logs: ["Starting local distribute (Story + Helia + Arkiv)..."],
+    logs: ["Starting local distribute (Story + Helia + catalog)..."],
     exitCode: null,
   };
   jobs.set(id, job);
@@ -282,8 +282,8 @@ export function startDistributeJob(skillSlug: string): Job {
         job.status = "published";
         job.publishResult = readPublishResult(skillSlug) ?? undefined;
         appendLog(job, "Publish complete.");
-        if (job.publishResult?.arkivListingKey) {
-          appendLog(job, `Arkiv listing ${job.publishResult.arkivListingKey}`);
+        if (job.publishResult?.catalogListingId) {
+          appendLog(job, `Catalog listing ${job.publishResult.catalogListingId}`);
         }
       },
       (code) => `Distribute exited with code ${code}`,
@@ -306,7 +306,7 @@ export function startDistributeTrainingJob(skillSlug: string): Job {
     skillSlug,
     jobKind: "training",
     status: "distributing",
-    logs: ["Starting training data distribute (Story + Helia + Arkiv)..."],
+    logs: ["Starting training data distribute (Story + Helia + catalog)..."],
     exitCode: null,
   };
   jobs.set(id, job);
@@ -375,8 +375,8 @@ export function startDistributeTrainingJob(skillSlug: string): Job {
         job.status = "published";
         job.publishResult = readTrainingPublishResult(skillSlug) ?? undefined;
         appendLog(job, "Training data publish complete.");
-        if (job.publishResult?.arkivListingKey) {
-          appendLog(job, `Arkiv listing ${job.publishResult.arkivListingKey}`);
+        if (job.publishResult?.catalogListingId) {
+          appendLog(job, `Catalog listing ${job.publishResult.catalogListingId}`);
         }
       },
       (code) => `Distribute training exited with code ${code}`,
@@ -391,7 +391,7 @@ export function startDistributeTrainingJob(skillSlug: string): Job {
   return job;
 }
 
-export function startArkivJob(
+export function startCatalogJob(
   script: "archive-skill" | "extend-skill" | "republish-skill" | "update-catalog",
   skillSlug: string,
 ): Job {
@@ -406,14 +406,14 @@ export function startArkivJob(
   };
   jobs.set(id, job);
 
-  const arkivDir = resolve(SKILL_CAPTURE_ROOT, "arkiv");
-  const scriptPath = resolve(arkivDir, "src", "jobs", `${script}.ts`);
+  const dbDir = resolve(SKILL_CAPTURE_ROOT, "db");
+  const scriptPath = resolve(dbDir, "src", "jobs", `${script}.ts`);
 
   try {
     const child = spawnNodeTsx(scriptPath, [skillSlug], {
-      cwd: arkivDir,
+      cwd: dbDir,
       env: process.env,
-      tsxDirs: [arkivDir],
+      tsxDirs: [dbDir],
     });
     attachChildHandlers(
       job,

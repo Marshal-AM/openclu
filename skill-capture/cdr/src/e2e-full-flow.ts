@@ -13,7 +13,7 @@ import { config } from "dotenv";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { execSync } from "node:child_process";
-import { upsertArkivCatalogListing } from "./arkiv-listing.js";
+import { upsertCatalogListing } from "./catalog-listing.js";
 
 const SKILL = "cursor-usage";
 const BUNDLE = resolve(process.cwd(), "..", "skills", SKILL);
@@ -56,7 +56,7 @@ async function stepCatalogRefresh(): Promise<void> {
       pass("1 catalog", "publish");
     } else {
       console.log("  [e2e] Arkiv full upsert from manifest (no re-encrypt)…");
-      await upsertArkivCatalogListing({
+      await upsertCatalogListing({
         skillName: SKILL,
         refreshPeerHints: false,
       });
@@ -64,8 +64,8 @@ async function stepCatalogRefresh(): Promise<void> {
     }
 
     const m = loadManifest();
-    if (!m.arkivListingKey || !m.ipId || !m.cid) {
-      fail("1 catalog", "manifest missing arkivListingKey, ipId, or cid");
+    if (!m.catalogListingId || !m.ipId || !m.cid) {
+      fail("1 catalog", "manifest missing catalogListingId, ipId, or cid");
       return;
     }
     if (!m.heliaPeerId || !(m.heliaMultiaddrs as string[] | undefined)?.length) {
@@ -73,12 +73,12 @@ async function stepCatalogRefresh(): Promise<void> {
       return;
     }
 
-    const { fetchSkillListingFromArkiv } = await import(
-      "../../arkiv/src/lib/cdr-listing.js"
+    const { fetchSkillListingFromCatalog } = await import(
+      "../../db/src/lib/cdr-listing.js"
     );
-    const listing = await fetchSkillListingFromArkiv(SKILL);
+    const listing = await fetchSkillListingFromCatalog(SKILL);
     if (!listing.helia_peer_id || !listing.helia_multiaddrs.length) {
-      fail("1b ops verify", "Arkiv listing missing ops after upsert");
+      fail("1b ops verify", "Catalog listing missing ops after upsert");
       return;
     }
     pass(
@@ -93,7 +93,7 @@ async function stepCatalogRefresh(): Promise<void> {
 async function stepArkivQuery(manifestCid: string): Promise<void> {
   try {
     const { searchNaturalLanguage } = await import(
-      "../../arkiv/src/services/query-catalog.js"
+      "../../db/src/services/query-catalog.js"
     );
     const matches = await searchNaturalLanguage("cursor", { tag: "cursor" });
     const hit = matches.find((m) => m.skillName === SKILL);
@@ -113,10 +113,10 @@ async function stepArkivQuery(manifestCid: string): Promise<void> {
 
 async function stepFetchListing(): Promise<void> {
   try {
-    const { fetchSkillListingFromArkiv } = await import(
-      "../../arkiv/src/lib/cdr-listing.js"
+    const { fetchSkillListingFromCatalog } = await import(
+      "../../db/src/lib/cdr-listing.js"
     );
-    const listing = await fetchSkillListingFromArkiv(SKILL);
+    const listing = await fetchSkillListingFromCatalog(SKILL);
     pass("3 Arkiv fetch", `addrs=${listing.helia_multiaddrs.length}`);
   } catch (e) {
     fail("3 Arkiv fetch", e instanceof Error ? e.message : String(e));

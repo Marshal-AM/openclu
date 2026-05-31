@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionWalletFromRequest } from "@/lib/auth-session";
-import { listContributionsForOwner } from "@/lib/contributions-from-arkiv";
+import { listContributionsForOwner } from "@/lib/contributions-from-catalog";
 
 export async function GET(req: Request) {
   try {

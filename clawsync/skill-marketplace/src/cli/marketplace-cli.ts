@@ -5,7 +5,7 @@ import {
   catalogGetTrainingDetail,
   catalogStats,
   type CatalogQueryBody,
-} from "../arkiv/catalog-read-bridge.js";
+} from "../../../../skill-capture/db/src/catalog-read-bridge.js";
 
 const cmd = process.argv[2];
 
@@ -50,8 +50,10 @@ async function main() {
   if (cmd === "purchase-training") {
     const { log } = await import("../cdr/logger.js");
     const { purchaseSkillFromListing } = await import("../cdr/purchase-from-listing.js");
-    const { requireAgentPrivateKey } = await import("../arkiv/lib/agent-wallet.js");
-    const { fetchTrainingListings } = await import("../arkiv/services/query-catalog.js");
+    const { requireAgentPrivateKey } = await import("../cdr/agent-wallet.js");
+    const { fetchTrainingListings } = await import(
+      "../../../../skill-capture/db/src/catalog/query.js"
+    );
     const { skillName, outputDir, catalogSnapshot } = parseJsonArg() as {
       skillName: string;
       outputDir: string;
@@ -80,7 +82,7 @@ async function main() {
   if (cmd === "purchase") {
     const { log } = await import("../cdr/logger.js");
     const { purchaseSkillFromListing } = await import("../cdr/purchase-from-listing.js");
-    const { requireAgentPrivateKey } = await import("../arkiv/lib/agent-wallet.js");
+    const { requireAgentPrivateKey } = await import("../cdr/agent-wallet.js");
     const { skillName, outputDir, catalogSnapshot } = parseJsonArg() as {
       skillName: string;
       outputDir: string;
@@ -102,7 +104,7 @@ async function main() {
     return;
   }
   if (cmd === "wallet-address") {
-    const { getAgentBuyerAddress } = await import("../arkiv/lib/agent-wallet.js");
+    const { getAgentBuyerAddress } = await import("../cdr/agent-wallet.js");
     console.log(
       JSON.stringify({
         configured: Boolean(process.env.AGENT_PRIVATE_KEY?.trim()),
@@ -118,6 +120,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }));
+  console.error(e instanceof Error ? e.message : e);
   process.exit(1);
 });

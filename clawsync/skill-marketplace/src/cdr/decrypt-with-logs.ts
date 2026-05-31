@@ -10,7 +10,7 @@ import type { PublicClient } from "viem";
 import { getApiUrl } from "./client.js";
 import { downloadCiphertext } from "./download-ciphertext.js";
 import { log, timed } from "./logger.js";
-import type { SkillCdrListing } from "../arkiv/lib/cdr-listing.js";
+import type { SkillCdrListing } from "../../../../skill-capture/db/src/catalog/cdr-listing.js";
 
 const DECRYPT_TIMEOUT_MS = Number(process.env.CDR_DECRYPT_TIMEOUT_MS ?? "300000");
 const POLL_LOG_INTERVAL_MS = Number(process.env.CDR_POLL_LOG_INTERVAL_MS ?? "5000");
@@ -145,7 +145,7 @@ export async function downloadFileWithLogs(opts: {
   const payloadStr = new TextDecoder().decode(payloadBytes);
   const { cid, key: keyHex } = JSON.parse(payloadStr) as { cid: string; key: string };
   log.info(`Vault payload CID: ${cid}`);
-  log.info(`Arkiv catalog CID: ${opts.listing.cid}`);
+  log.info(`Catalog catalog CID: ${opts.listing.cid}`);
   log.info(`AES key (hex prefix): ${keyHex.slice(0, 16)}...`);
 
   log.section("IPFS — fetch ciphertext (catalog CID + ops.heliaMultiaddrs)");

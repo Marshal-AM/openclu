@@ -22,7 +22,7 @@ const PAGE_META: Record<string, SyncBoardPageMeta> = {
   },
   '/syncboard/skills/purchase': {
     title: 'Skills Marketplace',
-    subtitle: 'Browse and purchase skills from the Arkiv catalog.',
+    subtitle: 'Browse and purchase skills from the Catalog catalog.',
   },
   '/syncboard/training-data': {
     title: 'My Training Data',
@@ -30,7 +30,7 @@ const PAGE_META: Record<string, SyncBoardPageMeta> = {
   },
   '/syncboard/training-data/purchase': {
     title: 'Training Data Marketplace',
-    subtitle: 'Browse and purchase encrypted training videos from the Arkiv catalog.',
+    subtitle: 'Browse and purchase encrypted training videos from the Catalog catalog.',
   },
   '/syncboard/skills/new': {
     title: 'New Skill',

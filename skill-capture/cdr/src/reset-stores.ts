@@ -1,5 +1,5 @@
 /**
- * Reset local Helia blockstore only (Arkiv listings are on-chain).
+ * Reset local Helia blockstore only (Catalog listings are on-chain).
  *
  * Usage: npm run reset-stores
  */

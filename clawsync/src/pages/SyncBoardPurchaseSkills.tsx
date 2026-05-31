@@ -14,8 +14,8 @@ import {
   getMintingFeeFromPayload,
 } from '../components/syncboard/CatalogListingCard';
 import { CatalogSkillDialog } from '../components/syncboard/CatalogSkillDialog';
-import { ArkivQueryDebugPanel } from '../components/syncboard/ArkivQueryDebugPanel';
-import { createArkivTrace, type ArkivQueryTrace } from '../lib/arkivTrace';
+import { CatalogQueryDebugPanel } from '../components/syncboard/CatalogQueryDebugPanel';
+import { createCatalogTrace, type CatalogQueryTrace } from '../lib/catalogTrace';
 import '../components/syncboard/PremiumSkillCard.css';
 import './SyncBoardPurchaseSkills.css';
 import { SkillCardGridSkeleton } from '../components/ui/skeletons';
@@ -38,7 +38,7 @@ type QueryMatch = {
   status: string;
   owner?: string;
   creator?: string;
-  arkivVersion?: number;
+  catalogVersion?: number;
   tags?: string[];
   payload?: Record<string, unknown>;
 };
@@ -65,8 +65,8 @@ export function SyncBoardPurchaseSkills() {
   const [showFullBrowse, setShowFullBrowse] = useState(false);
   const [selectedSkillName, setSelectedSkillName] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
-  const [queryArkivTrace, setQueryArkivTrace] = useState<ArkivQueryTrace | null>(null);
-  const [detailArkivTrace, setDetailArkivTrace] = useState<ArkivQueryTrace | null>(null);
+  const [queryCatalogTrace, setQueryCatalogTrace] = useState<CatalogQueryTrace | null>(null);
+  const [detailCatalogTrace, setDetailCatalogTrace] = useState<CatalogQueryTrace | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [walletConfigured, setWalletConfigured] = useState(false);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
@@ -108,8 +108,8 @@ export function SyncBoardPurchaseSkills() {
         filters?: unknown;
       };
       setMatches(data.matches ?? []);
-      setQueryArkivTrace(
-        createArkivTrace('query', 'convex:catalogActions.query', request, data, {
+      setQueryCatalogTrace(
+        createCatalogTrace('query', 'convex:catalogActions.query', request, data, {
           transport: 'skill-marketplace catalog-query-cli',
           network: 'braga-hoodi',
           resolvedFilters: data.filters,
@@ -134,14 +134,14 @@ export function SyncBoardPurchaseSkills() {
     setPurchaseLogs([]);
     setPurchaseElapsedSec(0);
     setDetail(null);
-    setDetailArkivTrace(null);
+    setDetailCatalogTrace(null);
 
     try {
       const request = { skillName: name };
       const data = await catalogGetDetail(request);
       setDetail(data as Record<string, unknown>);
-      setDetailArkivTrace(
-        createArkivTrace('get-detail', 'convex:catalogActions.getDetail', request, data, {
+      setDetailCatalogTrace(
+        createCatalogTrace('get-detail', 'convex:catalogActions.getDetail', request, data, {
           transport: 'skill-marketplace catalog-query-cli',
           network: 'braga-hoodi',
         }),
@@ -157,7 +157,7 @@ export function SyncBoardPurchaseSkills() {
   function closeDetail() {
     setSelectedSkillName(null);
     setDetail(null);
-    setDetailArkivTrace(null);
+    setDetailCatalogTrace(null);
     setPurchaseError('');
     setPurchaseLogs([]);
     setPurchaseElapsedSec(0);
@@ -179,7 +179,7 @@ export function SyncBoardPurchaseSkills() {
       return;
     }
     if (!entityKey || !payload) {
-      setPurchaseError('Missing Arkiv catalog payload — open full detail first');
+      setPurchaseError('Missing Catalog catalog payload — open full detail first');
       return;
     }
     purchaseInFlight.current = true;
@@ -284,7 +284,7 @@ export function SyncBoardPurchaseSkills() {
                 />
               ))}
             </div>
-            <ArkivQueryDebugPanel trace={queryArkivTrace} />
+            <CatalogQueryDebugPanel trace={queryCatalogTrace} />
           </>
         ) : null}
 
@@ -292,7 +292,7 @@ export function SyncBoardPurchaseSkills() {
           open={selectedSkillName !== null}
           onClose={closeDetail}
           detail={detail}
-          arkivTrace={detailArkivTrace}
+          catalogTrace={detailCatalogTrace}
           loading={detailLoading}
           purchaseFee={mintingFee}
           walletConfigured={walletConfigured}

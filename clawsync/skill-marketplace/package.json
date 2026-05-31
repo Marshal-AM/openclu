@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Vendored Arkiv catalog read + CDR skill purchase for ClawSync",
+  "description": "Supabase catalog read + CDR skill purchase for ClawSync",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
@@ -12,7 +12,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@arkiv-network/sdk": "^0.6.8",
+    "@supabase/supabase-js": "^2.49.1",
     "@helia/unixfs": "^4.0.0",
     "@multiformats/multiaddr": "12.5.1",
     "@piplabs/cdr-sdk": "^0.2.1",
@@ -37,7 +37,7 @@
   "scripts": {
     "cdr-storage": "tsx src/cdr/server.ts",
     "publish": "tsx src/cdr/publish-skill.ts",
-    "index-arkiv": "tsx src/cdr/index-listing.ts",
+    "index-catalog": "tsx src/cdr/index-listing.ts",
     "purchase": "tsx src/cdr/purchase-skill.ts"
   },
   "overrides": {

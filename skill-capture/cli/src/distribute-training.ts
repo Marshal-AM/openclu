@@ -5,7 +5,7 @@ import "../../cdr/src/polyfill.js";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { config } from "dotenv";
-import { SKILL_CAPTURE_ROOT } from "../../arkiv/src/lib/device-wallet.js";
+import { SKILL_CAPTURE_ROOT } from "../../db/src/lib/device-wallet.js";
 import {
   encryptBundleToVault,
   getServerPeerHints,
@@ -23,12 +23,12 @@ import {
 import { API_URL, RPC_URL } from "../../cdr/src/client.js";
 import { getHeliaStorage } from "../../cdr/src/helia-storage.js";
 import { createPinataBackedStorage } from "../../cdr/src/storage/pinata-aligned-storage.js";
-import { loadDeviceAccount } from "../../arkiv/src/lib/device-wallet.js";
-import { buildOpsFromManifest } from "../../arkiv/src/lib/listing-ops.js";
-import { publishTrainingCatalogToArkiv } from "../../arkiv/src/services/publish-training-catalog.js";
-import type { PublishCatalogResult } from "../../arkiv/src/lib/types.js";
+import { loadDeviceAccount } from "../../db/src/lib/device-wallet.js";
+import { buildOpsFromManifest } from "../../db/src/lib/listing-ops.js";
+import { publishTrainingCatalog } from "../../db/src/services/publish-training-catalog.js";
+import type { PublishCatalogResult } from "../../db/src/lib/types.js";
 import {
-  printArkivPublish,
+  printCatalogPublish,
   printCdrEncrypt,
   printDistributeSummary,
   printStoryPublish,
@@ -134,7 +134,7 @@ export async function distributeTraining(opts: { skillName: string; bundleDir: s
 
   const manifestPath = writeLocalManifest(bundleDir, skillName, manifest);
 
-  console.log("\n  [cli] Arkiv training catalog (in-process, device owner)…");
+  console.log("\n  [cli] Training catalog (in-process, device owner)…");
   const ops = buildOpsFromManifest({
     ...manifest,
     storyApiUrl: API_URL,
@@ -142,14 +142,14 @@ export async function distributeTraining(opts: { skillName: string; bundleDir: s
     ipfsGatewayUrl,
   });
 
-  const arkiv: PublishCatalogResult = await publishTrainingCatalogToArkiv({
+  const catalog: PublishCatalogResult = await publishTrainingCatalog({
     skillName,
     manifest,
     bundleDir,
     publisherAddress: account.address,
     ops,
   });
-  printArkivPublish(arkiv);
+  printCatalogPublish(catalog);
 
   printDistributeSummary({
     skillName,
@@ -157,7 +157,7 @@ export async function distributeTraining(opts: { skillName: string; bundleDir: s
     story,
     vaultUuid,
     cid,
-    arkiv,
+    catalog,
     ipfsGatewayUrl,
   });
 }

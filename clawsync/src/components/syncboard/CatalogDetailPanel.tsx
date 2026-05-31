@@ -1,12 +1,12 @@
 import './CatalogDetailPanel.css';
-import { ArkivQueryDebugPanel } from './ArkivQueryDebugPanel';
-import type { ArkivQueryTrace } from '../../lib/arkivTrace';
+import { CatalogQueryDebugPanel } from './CatalogQueryDebugPanel';
+import type { CatalogQueryTrace } from '../../lib/catalogTrace';
 
 type CatalogDetail = Record<string, unknown>;
 
 type CatalogDetailPanelProps = {
   detail: CatalogDetail;
-  arkivTrace?: ArkivQueryTrace | null;
+  catalogTrace?: CatalogQueryTrace | null;
   onClose?: () => void;
   purchaseFee?: string;
   walletConfigured?: boolean;
@@ -25,7 +25,7 @@ function collectTags(detail: CatalogDetail, payload?: Record<string, unknown>): 
 
 export function CatalogDetailPanel({
   detail,
-  arkivTrace,
+  catalogTrace,
   onClose,
   purchaseFee,
   walletConfigured,
@@ -103,7 +103,7 @@ export function CatalogDetailPanel({
         </section>
       ) : null}
 
-      <ArkivQueryDebugPanel trace={arkivTrace} />
+      <CatalogQueryDebugPanel trace={catalogTrace} />
     </div>
   );
 }

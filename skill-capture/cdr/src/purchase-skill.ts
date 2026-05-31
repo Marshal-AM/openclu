@@ -14,7 +14,7 @@ import { downloadFileWithLogs } from "./decrypt-with-logs.js";
 import { ROYALTY_MODULE } from "./constants.js";
 import { getHeliaStorage } from "./helia-storage.js";
 import { log, timed } from "./logger.js";
-import { fetchSkillListingFromArkiv } from "../../arkiv/src/lib/cdr-listing.js";
+import { fetchSkillListingFromCatalog } from "../../db/src/lib/cdr-listing.js";
 import { unzipToDir } from "./zip-bundle.js";
 
 interface CdrManifest {
@@ -54,8 +54,8 @@ async function main() {
   const { manifest, path: manifestPath } = loadManifest(skillName);
 
   log.section(`CDR purchase: ${skillName}`);
-  const listing = await timed("load Arkiv catalog listing (peer hints + CID)", () =>
-    fetchSkillListingFromArkiv(skillName),
+  const listing = await timed("load Catalog listing (peer hints + CID)", () =>
+    fetchSkillListingFromCatalog(skillName),
   );
   log.info(`Manifest: ${manifestPath}`);
   log.info(`Vault UUID: ${manifest.vaultUuid} (listing: ${listing.vault_uuid})`);

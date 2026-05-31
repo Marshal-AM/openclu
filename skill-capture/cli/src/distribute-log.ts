@@ -1,8 +1,8 @@
 /**
- * Verbose distribute output — Story, CDR encrypt, Arkiv, explorer URLs.
+ * Verbose distribute output — Story, CDR encrypt, Supabase catalog.
  */
 import type { PublishStartResult } from "../../cdr/src/services/publish-service.js";
-import type { PublishCatalogResult } from "../../arkiv/src/lib/types.js";
+import type { PublishCatalogResult } from "../../db/src/types.js";
 import {
   ipfsUrl,
   storyAddressUrl,
@@ -84,7 +84,7 @@ export function printCdrEncrypt(opts: {
   line(
     "Fetch",
     opts.ipfsGatewayUrl
-      ? `${opts.ipfsGatewayUrl}/{cid} (also in Arkiv ops.ipfsGatewayUrl)`
+      ? `${opts.ipfsGatewayUrl}/{cid} (stored in catalog ops.ipfsGatewayUrl)`
       : "(re-run distribute with PINATA_API_KEY + PINATA_SECRET_KEY)",
   );
   console.log("\n  Helia peer hints (publish-time only; buyers use public IPFS)");
@@ -98,28 +98,20 @@ export function printCdrEncrypt(opts: {
   }
 }
 
-export function printArkivPublish(arkiv: PublishCatalogResult) {
-  section("Arkiv catalog (Braga)");
-  line("Listing entity key", arkiv.listingKey);
-  line("Status", arkiv.status);
-  line("Version", arkiv.version);
-  line("Tag count", arkiv.tagCount);
-  line("Publisher", arkiv.publisherAddress);
-  line("Chain", `${arkiv.chainName} (${arkiv.chainId})`);
-  line("Entities mutation tx", arkiv.txHash);
-  line("Listing mutation tx", arkiv.listingTxHash ?? "(update-only path)");
-  if (arkiv.tags.length) {
+export function printCatalogPublish(catalog: PublishCatalogResult) {
+  section("Catalog (Supabase)");
+  line("Listing id", catalog.listingId);
+  line("Status", catalog.status);
+  line("Version", catalog.version);
+  line("Tag count", catalog.tagCount);
+  line("Publisher", catalog.publisherAddress);
+  if (catalog.tags.length) {
     console.log("\n  Tags");
-    for (const t of arkiv.tags) console.log(`    • ${t}`);
+    for (const t of catalog.tags) console.log(`    • ${t}`);
   }
-  console.log("\n  Explorers");
-  url("Entities tx", arkiv.urls.entitiesTx);
-  url("Listing tx", arkiv.urls.listingTx);
-  url("Explorer home", arkiv.explorerBaseUrl);
-
-  if (arkiv.catalogPayload) {
-    section("Arkiv indexed payload (full)");
-    console.log(JSON.stringify(arkiv.catalogPayload, null, 2));
+  if (catalog.catalogPayload) {
+    section("Catalog indexed payload (full)");
+    console.log(JSON.stringify(catalog.catalogPayload, null, 2));
   }
 }
 
@@ -129,7 +121,7 @@ export function printDistributeSummary(opts: {
   story: PublishStartResult;
   vaultUuid: number;
   cid: string;
-  arkiv: PublishCatalogResult;
+  catalog: PublishCatalogResult;
   ipfsGatewayUrl?: string;
 }) {
   section("Distribute complete");
@@ -138,8 +130,8 @@ export function printDistributeSummary(opts: {
   line("Vault UUID", opts.vaultUuid);
   line("CID", opts.cid);
   line("IP Asset", opts.story.ipId);
-  line("Arkiv listing", opts.arkiv.listingKey);
-  line("Arkiv version", opts.arkiv.version);
+  line("Catalog listing", opts.catalog.listingId);
+  line("Catalog version", opts.catalog.version);
   if (opts.ipfsGatewayUrl) {
     line("IPFS gateway", opts.ipfsGatewayUrl);
   }
@@ -147,6 +139,5 @@ export function printDistributeSummary(opts: {
   url("Story IPA", storyIpaUrl(opts.story.ipId));
   if (opts.story.txHash) url("Story tx", storyTxUrl(opts.story.txHash));
   url("Ciphertext", ipfsUrl(opts.cid));
-  url("Arkiv entities tx", opts.arkiv.urls.entitiesTx);
   url("Publisher", storyAddressUrl(opts.story.publisherAddress));
 }

@@ -12,7 +12,7 @@ import {
   executeAttachExistingSkill,
   executeDetachAttachedSkill,
   executeListAttachedSkills,
-  executeSearchArkivSkills,
+  executeSearchCatalogSkills,
 } from '../lib/marketplaceExecutions';
 import type { ToolSet } from './toolLoader';
 
@@ -43,7 +43,7 @@ export function loadMarketplaceTools(
       skillSlug: {
         type: 'string',
         description:
-          'Exact Arkiv catalog slug (e.g. "abc" not "abc skill"). Use when the user names a specific skill.',
+          'Exact Catalog catalog slug (e.g. "abc" not "abc skill"). Use when the user names a specific skill.',
       },
       limit: { type: 'number', description: 'Max results (default 8)' },
     },
@@ -63,8 +63,8 @@ export function loadMarketplaceTools(
         type: 'string',
         description: 'Catalog slug from search results (e.g. "abc"), never "abc skill"',
       },
-      listingKey: { type: 'string', description: 'Arkiv listing key from search results' },
-      searchId: { type: 'string', description: 'Search snapshot id from search_arkiv_skills' },
+      listingKey: { type: 'string', description: 'Catalog listing key from search results' },
+      searchId: { type: 'string', description: 'Search snapshot id from search_catalog_skills' },
       title: { type: 'string', description: 'Display title' },
       description: { type: 'string', description: 'Short description' },
     },
@@ -87,15 +87,15 @@ export function loadMarketplaceTools(
   });
 
   return {
-    search_arkiv_skills: createTool({
+    search_catalog_skills: createTool({
       description:
-        'Search the Arkiv marketplace catalog. Use skillSlug for a named skill (slug only, e.g. "rocking" not "rocking skill"). Does not purchase — call purchase_and_attach_skill after search when the user wants to acquire a skill.',
+        'Search the Catalog marketplace catalog. Use skillSlug for a named skill (slug only, e.g. "rocking" not "rocking skill"). Does not purchase — call purchase_and_attach_skill after search when the user wants to acquire a skill.',
       args: searchSchema,
       handler: async (
         _toolCtx,
         { query, skillSlug, limit }: { query: string; skillSlug?: string; limit?: number },
       ) =>
-        executeSearchArkivSkills(
+        executeSearchCatalogSkills(
           ctx,
           { agentId, threadId, userMessage },
           { query, skillSlug, limit },
@@ -115,7 +115,7 @@ export function loadMarketplaceTools(
 
     attach_existing_skill: createTool({
       description:
-        'Attach a skill that already exists in the local skill registry (imported/purchased previously) to this agent. Does not buy from Arkiv — use purchase_and_attach_skill for new marketplace acquisitions.',
+        'Attach a skill that already exists in the local skill registry (imported/purchased previously) to this agent. Does not buy from Catalog — use purchase_and_attach_skill for new marketplace acquisitions.',
       args: skillRefSchema,
       handler: async (
         _toolCtx,
@@ -143,7 +143,7 @@ export function loadMarketplaceTools(
 
     purchase_and_attach_skill: createTool({
       description:
-        'Purchase the chosen Arkiv skill, import it, and attach it to this agent. Call after search_arkiv_skills with the best matching skillName and listingKey.',
+        'Purchase the chosen Catalog skill, import it, and attach it to this agent. Call after search_catalog_skills with the best matching skillName and listingKey.',
       args: purchaseSchema,
       handler: async (
         _toolCtx,
@@ -216,7 +216,7 @@ export function loadMarketplaceTools(
         } else {
           logChatSkill('purchase_no_searchId', {
             normalizedSlug,
-            hint: 'Agent should call search_arkiv_skills before purchase_and_attach_skill',
+            hint: 'Agent should call search_catalog_skills before purchase_and_attach_skill',
           });
         }
 
