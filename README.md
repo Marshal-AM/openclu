@@ -2,7 +2,7 @@
 
 **Record your expertise and monetize instantly as training data or agent skills — protected by [Story CDR](https://docs.story.foundation/developers/cdr-sdk) (Confidential Data Rails).**
 
-[View CDR Integrations](#story-cdr-integration-map) · [View Track Integrations](#openclu--privacy--depin)
+[View CDR Integrations](#story-cdr-integration-map)
 
 <p align="center">
 <img width="200" height="200" alt="ChatGPT_Image_May_23__2026__02_30_41_PM-removebg-preview" src="https://github.com/user-attachments/assets/bf504203-4223-4d3a-8f63-cac887497751" />
@@ -178,7 +178,9 @@ Device capture (plaintext local only)
 
 ## How it works
 
-<img width="1498" height="517" alt="Screenshot 2026-05-25 at 5 10 17 PM" src="https://github.com/user-attachments/assets/e05b53f2-6e87-48a4-a387-2961eb9f6638" />
+<p align="center">
+<img width="899" height="820" alt="Screenshot 2026-05-31 at 8 42 21 PM" src="https://github.com/user-attachments/assets/d357e1e4-8f47-429c-8e98-a241a41454c3" />
+</p>
 
 ### Architecture overview
 
@@ -222,7 +224,7 @@ Device capture (plaintext local only)
 
 ### Phase 1 — Device registration
 
-<img width="1140" height="525" alt="Screenshot 2026-05-25 at 4 17 36 PM" src="https://github.com/user-attachments/assets/a50384a0-5b24-4fed-bb64-df77ec7dc059" />
+<img width="1191" height="507" alt="Screenshot 2026-05-31 at 8 44 28 PM" src="https://github.com/user-attachments/assets/f05e4f4d-73dc-46d6-a430-21fffab63e80" />
 
 Before any recording, the contributor machine must be linked to a human account. Three things get bound together:
 
@@ -243,7 +245,7 @@ Nothing is encrypted in this phase — it is identity and routing setup only.
 
 ### Phase 2 — Contribution
 
-<img width="872" height="483" alt="Screenshot 2026-05-25 at 5 21 07 PM" src="https://github.com/user-attachments/assets/6decee67-c0fa-4a7b-98d5-43759ba50418" />
+<img width="1028" height="503" alt="Screenshot 2026-05-31 at 8 46 32 PM" src="https://github.com/user-attachments/assets/f7110db8-db53-4547-ab08-200d38862617" />
 
 This is the core loop: **capture → (optional process) → Story IP → CDR encrypt → publish listing**.
 
@@ -350,7 +352,7 @@ Identical to the training data path ([sections 2.1 D–F](#d-register-on-chain-i
 
 ### Phase 3 — Buying, decrypting, and using training data & skills
 
-<img width="872" height="483" alt="Screenshot 2026-05-25 at 5 21 30 PM" src="https://github.com/user-attachments/assets/da530d89-ebd9-4f72-bd68-e92fbedce14a" />
+<img width="1049" height="514" alt="Screenshot 2026-05-31 at 8 47 26 PM" src="https://github.com/user-attachments/assets/d41ffa30-0459-4f17-915b-56b3f021f42a" />
 
 Buyers never contact your Pi directly. Whether they want **licensed video for model training** or a **skill for an agent**, the purchase rail is the same: **pay Story → CDR decrypt**. What differs is what they do with the plaintext after decrypt.
 
