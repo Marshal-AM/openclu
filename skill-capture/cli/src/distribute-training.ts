@@ -1,11 +1,11 @@
 /**
- * Local distribute for training data bundles — Story + Helia + Arkiv (trainingDataListing).
+ * Local distribute for training data bundles — Story + Helia + Supabase catalog.
  */
 import "../../cdr/src/polyfill.js";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { config } from "dotenv";
-import { SKILL_CAPTURE_ROOT } from "../../db/src/lib/device-wallet.js";
+import { loadDbEnv } from "../../db/src/env.js";
+import { SKILL_CAPTURE_ROOT } from "../../db/src/device-wallet.js";
 import {
   encryptBundleToVault,
   getServerPeerHints,
@@ -23,10 +23,10 @@ import {
 import { API_URL, RPC_URL } from "../../cdr/src/client.js";
 import { getHeliaStorage } from "../../cdr/src/helia-storage.js";
 import { createPinataBackedStorage } from "../../cdr/src/storage/pinata-aligned-storage.js";
-import { loadDeviceAccount } from "../../db/src/lib/device-wallet.js";
-import { buildOpsFromManifest } from "../../db/src/lib/listing-ops.js";
-import { publishTrainingCatalog } from "../../db/src/services/publish-training-catalog.js";
-import type { PublishCatalogResult } from "../../db/src/lib/types.js";
+import { loadDeviceAccount } from "../../db/src/device-wallet.js";
+import { buildOpsFromManifest } from "../../db/src/listing-ops.js";
+import { publishTrainingCatalog } from "../../db/src/catalog/publish-training-catalog.js";
+import type { PublishCatalogResult } from "../../db/src/types.js";
 import {
   printCatalogPublish,
   printCdrEncrypt,
@@ -34,8 +34,7 @@ import {
   printStoryPublish,
 } from "./distribute-log.js";
 
-config({ path: resolve(SKILL_CAPTURE_ROOT, ".env") });
-config({ path: resolve(SKILL_CAPTURE_ROOT, "cdr/.env"), override: false });
+loadDbEnv();
 
 function assertTrainingVideoBundle(bundleDir: string): void {
   const metaPath = resolve(bundleDir, "video.meta.json");

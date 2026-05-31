@@ -48,7 +48,7 @@ export function FeatureGrid() {
           Audio and frames never leave the device unencrypted. Groq drafts the SKILL.md and knowledge
           graph locally. <span className="text-foreground">Story CDR</span> encrypts via WASM and pins
           ciphertext to Helia. <span className="text-foreground">Story Protocol</span> mints the IP.
-          <span className="text-foreground"> Arkiv Network</span> publishes the Braga catalog listing — all
+          <span className="text-foreground"> Supabase catalog</span> publishes the marketplace catalog listing — all
           signed by your device wallet.
         </p>
       </motion.div>
@@ -78,7 +78,7 @@ export function FeatureGrid() {
           <DitherCard />
         </motion.div>
 
-        {/* Protocol stack (Story CDR + Arkiv) */}
+        {/* Protocol stack (Story CDR + Supabase) */}
         <motion.div
           custom={2}
           variants={cardVariants}

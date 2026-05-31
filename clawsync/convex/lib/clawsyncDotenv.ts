@@ -4,6 +4,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const LOCAL_ENV_KEYS = [
+  'SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
   'AGENT_PRIVATE_KEY',
   'GROQ_API_KEY',
   'OPENAI_API_KEY',

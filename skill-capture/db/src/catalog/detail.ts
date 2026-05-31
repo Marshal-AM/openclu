@@ -18,7 +18,9 @@ import {
   type TrainingDataListingPayload,
 } from "../types.js";
 
-export type CatalogDetailScope = Pick<ListingFilters, "ownerAddress" | "listingKey">;
+export type CatalogDetailScope = Pick<ListingFilters, "ownerAddress" | "listingKey"> & {
+  scope?: ListingFilters["scope"];
+};
 
 export interface CatalogListingDetail {
   listingId: string;
@@ -39,14 +41,14 @@ function listingFiltersForDetail(
   if (scope?.listingKey) {
     return {
       listingKey: scope.listingKey,
-      ownerAddress: scope.ownerAddress,
-      scope: "mine",
+      scope: scope.scope ?? "marketplace",
+      limit: 1,
     };
   }
   return {
     skillSlug: skillName,
     ownerAddress: scope?.ownerAddress,
-    scope: "mine",
+    scope: scope?.scope ?? (scope?.ownerAddress ? "mine" : "marketplace"),
     limit: 1,
   };
 }
@@ -67,7 +69,10 @@ export async function fetchSkillCatalogDetail(
   const tags = await fetchTagsForListing(row.listingId);
   const purchaseView = scope?.listingKey
     ? await fetchSkillListingByKey(scope.listingKey)
-    : await fetchSkillListingFromCatalog(skillName, scope?.ownerAddress as Hex | undefined);
+    : await fetchSkillListingFromCatalog(
+        skillName,
+        scope?.scope === "mine" ? (scope?.ownerAddress as Hex | undefined) : undefined,
+      );
 
   return {
     listingId: row.listingId,

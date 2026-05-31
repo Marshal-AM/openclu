@@ -23,9 +23,24 @@ async function main() {
     return;
   }
   if (cmd === "get-detail") {
-    const slug = process.argv[3];
-    if (!slug) throw new Error("skill slug required");
-    console.log(JSON.stringify(await catalogGetSkillDetail(slug)));
+    const body = parseJsonArg() as {
+      skillName?: string;
+      listingKey?: string;
+      ownerAddress?: string;
+      scope?: "marketplace" | "mine";
+    };
+    const skillName = body.skillName ?? process.argv[3];
+    if (!skillName && !body.listingKey) throw new Error("skillName or listingKey required");
+    console.log(
+      JSON.stringify(
+        await catalogGetSkillDetail(
+          skillName ?? "",
+          body.ownerAddress,
+          body.listingKey,
+          body.scope,
+        ),
+      ),
+    );
     return;
   }
   if (cmd === "stats") {
@@ -42,9 +57,24 @@ async function main() {
     return;
   }
   if (cmd === "get-training-detail") {
-    const slug = process.argv[3];
-    if (!slug) throw new Error("training slug required");
-    console.log(JSON.stringify(await catalogGetTrainingDetail(slug)));
+    const body = parseJsonArg() as {
+      skillName?: string;
+      listingKey?: string;
+      ownerAddress?: string;
+      scope?: "marketplace" | "mine";
+    };
+    const skillName = body.skillName ?? process.argv[3];
+    if (!skillName && !body.listingKey) throw new Error("skillName or listingKey required");
+    console.log(
+      JSON.stringify(
+        await catalogGetTrainingDetail(
+          skillName ?? "",
+          body.ownerAddress,
+          body.listingKey,
+          body.scope,
+        ),
+      ),
+    );
     return;
   }
   if (cmd === "purchase-training") {

@@ -1,5 +1,5 @@
 /**
- * Pin ciphertext to public IPFS (Pinata) and set Arkiv ops.ipfsGatewayUrl.
+ * Pin ciphertext to public IPFS (Pinata) and set catalog ops.ipfsGatewayUrl.
  * Resolves skillListing first, then trainingDataListing.
  *
  * Usage (from clawsync):

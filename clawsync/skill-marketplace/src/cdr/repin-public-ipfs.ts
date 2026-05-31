@@ -7,7 +7,7 @@ import {
   fetchSkillPurchaseContext,
   fetchTrainingPurchaseContext,
 } from "../../../../skill-capture/db/src/catalog/cdr-listing.js";
-import { catalogError } from "../../../../skill-capture/db/src/lib/errors.js";
+import { catalogError } from "../../../../skill-capture/db/src/errors.js";
 import {
   gatewayUrlForCid,
   pinataConfigured,

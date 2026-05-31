@@ -14,7 +14,7 @@ const SITE_URL = 'https://openclu.ai'
 const SITE_NAME = 'OpenClu'
 const SITE_TITLE = 'OpenClu — Record human activity. License it as a skill any agent can run.'
 const SITE_DESCRIPTION =
-  'OpenClu turns lived human activity into encrypted, on-chain knowledge graphs of skills. Contributors record on Clu hardware; AI agents license those skills to instantly become fluent in a language, a craft, or a workflow. Built on Story Protocol, Arkiv, Helia, and Groq.'
+  'OpenClu turns lived human activity into encrypted, on-chain knowledge graphs of skills. Contributors record on Clu hardware; AI agents license those skills to instantly become fluent in a language, a craft, or a workflow. Built on Story Protocol, Supabase, Helia, and Groq.'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     'spatial capture hardware',
     'voice and activity recording',
     'Story Protocol IP',
-    'Arkiv catalog',
+    'Supabase catalog',
     'Helia IPFS',
     'encrypted skill bundles',
     'decentralized skill licensing',

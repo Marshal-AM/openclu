@@ -62,7 +62,7 @@ export async function fetchSkillListingFromCatalog(
   const rows = await fetchListings({
     skillSlug: skillName,
     limit: 1,
-    scope: ownerAddress ? "mine" : undefined,
+    scope: ownerAddress ? "mine" : "marketplace",
     ownerAddress,
   });
   if (!rows.length) {

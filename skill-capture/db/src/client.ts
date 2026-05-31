@@ -1,9 +1,16 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import WebSocket from "ws";
+import { loadDbEnv } from "./env.js";
 import { DbError } from "./errors.js";
+
+if (typeof globalThis.WebSocket === "undefined") {
+  globalThis.WebSocket = WebSocket as unknown as typeof globalThis.WebSocket;
+}
 
 let admin: SupabaseClient | null = null;
 
 export function getSupabaseAdmin(): SupabaseClient {
+  loadDbEnv();
   if (admin) return admin;
   const url = process.env.SUPABASE_URL?.trim();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();

@@ -9,7 +9,7 @@ import { CID } from "multiformats/cid";
 import { mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { log } from "./logger.js";
-import type { SkillCdrListing } from "../../db/src/lib/cdr-listing.js";
+import type { SkillCdrListing } from "../../db/src/catalog/cdr-listing.js";
 
 const HELIA_DATA_DIR = resolve(process.cwd(), ".helia-data");
 const IPFS_DOWNLOAD_TIMEOUT_MS = Number(process.env.IPFS_DOWNLOAD_TIMEOUT_MS ?? "120000");
@@ -212,7 +212,7 @@ export async function downloadFromIpfs(
     return local;
   } catch (e) {
     log.info(
-      `Not in local blockstore (${e instanceof Error ? e.message : e}) — dial Arkiv publisher`,
+      `Not in local blockstore (${e instanceof Error ? e.message : e}) — dial contributor publisher`,
     );
   }
 

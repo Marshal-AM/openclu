@@ -1,6 +1,6 @@
 # skill-marketplace
 
-Self-contained Arkiv catalog read + CDR skill purchase for ClawSync. Vendored from skill-capture; no sibling-repo runtime dependency.
+Self-contained Supabase catalog read + CDR skill purchase for ClawSync. Vendored from skill-capture; no sibling-repo runtime dependency.
 
 ## Setup
 

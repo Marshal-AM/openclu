@@ -22,10 +22,10 @@ export function MetricsCard() {
         </div>
         <div className="flex flex-col gap-2 border-l-2 border-foreground pl-4">
           <span className="text-xs font-mono font-bold tracking-[0.2em] uppercase text-foreground">
-            Arkiv Network
+            Supabase catalog
           </span>
           <p className="text-xs font-mono text-muted-foreground leading-relaxed">
-            Arkiv is the discovery layer. Each skill is a Braga <code className="text-foreground">skillListing</code>{" "}
+            Supabase is the discovery layer. Each skill is a Braga <code className="text-foreground">skillListing</code>{" "}
             with tags, metadata, and a CID pointer — written by your device wallet as{" "}
             <code className="text-foreground">$owner</code>. Agents browse, search, and purchase from the public catalog.
           </p>

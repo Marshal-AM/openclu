@@ -19,10 +19,10 @@ const PROTOCOL_PILLARS = [
       "Confidential Data Rails runs in-process on your device. WASM encrypts the skill bundle; ciphertext is pinned to local Helia. Buyers decrypt only after minting a Story license token.",
   },
   {
-    label: "ARKIV NETWORK",
+    label: "SUPABASE CATALOG",
     title: "Discoverable catalog",
     body:
-      "Each skill becomes a Braga skillListing on Arkiv — tagged, searchable, and owned by your device wallet. Agents browse the public catalog and purchase by CID.",
+      "Each skill becomes a catalog listing in the catalog — tagged, searchable, and owned by your device wallet. Agents browse the public catalog and purchase by CID.",
   },
   {
     label: "STORY PROTOCOL",
@@ -34,7 +34,7 @@ const PROTOCOL_PILLARS = [
     label: "DEVICE WALLET",
     title: "Provenance as primary key",
     body:
-      "Every write — CDR vault, Story mint, Arkiv listing — is signed by the contributor's device wallet. Only that wallet can update or archive a listing.",
+      "Every write — CDR vault, Story mint, catalog listing — is signed by the contributor's device wallet. Only that wallet can update or archive a listing.",
   },
 ]
 
@@ -136,7 +136,7 @@ export function AboutSection() {
 
           <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-2 bg-foreground/80 backdrop-blur-sm">
             <span className="text-[10px] tracking-[0.2em] uppercase text-background/40 font-mono">
-              CDR + HELIA + ARKIV
+              CDR + HELIA + CATALOG
             </span>
             <span className="text-[10px] tracking-[0.2em] uppercase text-background/40 font-mono">
               FW: 0.1.0-aeneid
@@ -189,7 +189,7 @@ export function AboutSection() {
                 <p className="text-xs lg:text-sm font-mono text-muted-foreground leading-relaxed">
                   <span className="text-foreground">Story CDR</span> encrypts the bundle on your machine
                   and writes a vault keyed to Story license terms.{" "}
-                  <span className="text-foreground">Arkiv Network</span> publishes the catalog entry so
+                  <span className="text-foreground">Supabase catalog</span> publishes the catalog entry so
                   agents can discover it. Story Protocol registers the IP and enforces who gets paid.
                 </p>
               </motion.div>

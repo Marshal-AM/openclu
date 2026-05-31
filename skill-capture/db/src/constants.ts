@@ -1,6 +1,6 @@
 export const PROJECT_ATTRIBUTE = {
   key: "project",
-  value: process.env.ARKIV_PROJECT_VALUE ?? "skill-capture-ai-catalog-v1",
+  value: process.env.CATALOG_PROJECT_VALUE ?? "skill-capture-ai-catalog-v1",
 } as const;
 
 export const ENTITY_TYPE = {

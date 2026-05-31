@@ -11,9 +11,9 @@ const LOG_LINES = [
   "> cdr encrypt (wasm) -> threshold vault",
   "> pin helia: bafy... (local ciphertext)",
   "> story register IP on aeneid",
-  "> arkiv publish skillListing: $owner=device",
+  "> catalog publish listing: owner=device",
   "> license terms set via Story Protocol",
-  "> listing live on Arkiv Network",
+  "> listing live on Supabase catalog",
   "> --------- CYCLE COMPLETE ---------",
 ]
 

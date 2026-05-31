@@ -78,7 +78,7 @@ export interface PublishManifest {
   encryptedSizeBytes?: number;
   heliaPeerId?: string;
   heliaMultiaddrs?: string[];
-  /** Public IPFS gateway base for buyers (Arkiv ops.ipfsGatewayUrl), e.g. Pinata. */
+  /** Public IPFS gateway base for buyers (catalog ops.ipfsGatewayUrl), e.g. Pinata. */
   ipfsGatewayUrl?: string;
 }
 

@@ -1,4 +1,4 @@
-import type { SkillCdrListing } from "../../db/src/lib/cdr-listing.js";
+import type { SkillCdrListing } from "../../db/src/catalog/cdr-listing.js";
 import { gatewayUrlForCid, resolvePublicIpfsGateway } from "./pinata-ipfs.js";
 import { log, timed } from "./logger.js";
 

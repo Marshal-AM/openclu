@@ -140,5 +140,5 @@ export interface QueryMatch {
   tags?: string[];
   catalogVersion?: number;
   /** @deprecated Alias for catalogVersion. */
-  arkivVersion?: number;
+  catalogVersion?: number;
 }

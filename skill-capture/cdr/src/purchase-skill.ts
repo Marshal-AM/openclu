@@ -14,7 +14,7 @@ import { downloadFileWithLogs } from "./decrypt-with-logs.js";
 import { ROYALTY_MODULE } from "./constants.js";
 import { getHeliaStorage } from "./helia-storage.js";
 import { log, timed } from "./logger.js";
-import { fetchSkillListingFromCatalog } from "../../db/src/lib/cdr-listing.js";
+import { fetchSkillListingFromCatalog } from "../../db/src/catalog/cdr-listing.js";
 import { unzipToDir } from "./zip-bundle.js";
 
 interface CdrManifest {
@@ -61,7 +61,7 @@ async function main() {
   log.info(`Vault UUID: ${manifest.vaultUuid} (listing: ${listing.vault_uuid})`);
   if (manifest.vaultUuid !== listing.vault_uuid) {
     throw new Error(
-      `Manifest vault ${manifest.vaultUuid} != Arkiv vault ${listing.vault_uuid}. Re-publish.`,
+      `Manifest vault ${manifest.vaultUuid} != Catalog vault ${listing.vault_uuid}. Re-publish.`,
     );
   }
   log.info(`IP ID: ${manifest.ipId}`);

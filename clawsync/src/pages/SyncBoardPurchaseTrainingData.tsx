@@ -67,6 +67,7 @@ export function SyncBoardPurchaseTrainingData() {
   const [purchasedVideoMime, setPurchasedVideoMime] = useState('video/webm');
   const purchaseInFlight = useRef(false);
   const initialCatalogLoad = useRef(false);
+  const queryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     void getWalletStatus({}).then((w) => {
@@ -79,6 +80,17 @@ export function SyncBoardPurchaseTrainingData() {
     initialCatalogLoad.current = true;
     void runSearch({ full: true, emptyQuery: true });
   }, []);
+
+  useEffect(() => {
+    if (!initialCatalogLoad.current) return;
+    if (queryDebounceRef.current) clearTimeout(queryDebounceRef.current);
+    queryDebounceRef.current = setTimeout(() => {
+      void runSearch();
+    }, 350);
+    return () => {
+      if (queryDebounceRef.current) clearTimeout(queryDebounceRef.current);
+    };
+  }, [filters.query]);
 
   async function runSearch(opts?: { full?: boolean; emptyQuery?: boolean }) {
     setLoading(true);
@@ -103,7 +115,7 @@ export function SyncBoardPurchaseTrainingData() {
       setQueryCatalogTrace(
         createCatalogTrace('query', 'convex:trainingDataCatalogActions.query', request, data, {
           transport: 'skill-marketplace query-training',
-          network: 'braga-hoodi',
+          network: 'supabase',
           resolvedFilters: data.filters,
         }),
       );
@@ -118,7 +130,7 @@ export function SyncBoardPurchaseTrainingData() {
     }
   }
 
-  async function openDetail(name: string) {
+  async function openDetail(name: string, listingKey?: string) {
     setSelectedSkillName(name);
     setDetailLoading(true);
     setError('');
@@ -129,13 +141,17 @@ export function SyncBoardPurchaseTrainingData() {
     setDetailCatalogTrace(null);
 
     try {
-      const request = { skillName: name };
+      const request = {
+        skillName: name,
+        listingKey,
+        scope: filters.scope as 'marketplace' | 'mine',
+      };
       const data = await catalogGetDetail(request);
       setDetail(data as Record<string, unknown>);
       setDetailCatalogTrace(
         createCatalogTrace('get-detail', 'convex:trainingDataCatalogActions.getDetail', request, data, {
           transport: 'skill-marketplace get-training-detail',
-          network: 'braga-hoodi',
+          network: 'supabase',
         }),
       );
     } catch (e) {
@@ -223,8 +239,8 @@ export function SyncBoardPurchaseTrainingData() {
           filters={filters}
           onChange={setFilters}
           onSearch={() => void runSearch()}
-          onBrowseAll={() => void runSearch({ full: true, emptyQuery: true })}
           loading={loading}
+          searchPlaceholder="Search training data listings…"
         />
 
         {error && <p className="purchase-error">{error}</p>}
@@ -250,7 +266,7 @@ export function SyncBoardPurchaseTrainingData() {
                   status={match.status}
                   mintingFeeIp={getMintingFeeFromPayload(match.payload)}
                   score={hasQueryScore ? match.score : undefined}
-                  onClick={() => void openDetail(match.skillName)}
+                  onClick={() => void openDetail(match.skillName, match.listingKey)}
                 />
               ))}
             </div>

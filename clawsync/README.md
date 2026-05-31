@@ -80,7 +80,7 @@ OPENROUTER_API_KEY=sk-or-...
 GROQ_API_KEY=gsk_...
 ```
 
-**Skill marketplace (local Convex dev only)** — browse Arkiv, purchase with Story Aeneid, import into your agent:
+**Skill marketplace (local Convex dev only)** — browse Supabase catalog, purchase with Story Aeneid, import into your agent:
 
 ```
 AGENT_PRIVATE_KEY=0x...           # Buyer wallet (fund with Aeneid IP for license mint)

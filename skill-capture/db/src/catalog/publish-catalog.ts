@@ -38,6 +38,7 @@ export function writeManifestCatalogFields(
   delete raw.arkivListingKey;
   delete raw.arkivStatus;
   delete raw.arkivVersion;
+  delete raw.catalogListingKey;
   writeFileSync(manifestPath, JSON.stringify(raw, null, 2), "utf-8");
 }
 

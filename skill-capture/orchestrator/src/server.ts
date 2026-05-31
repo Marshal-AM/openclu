@@ -3,7 +3,7 @@ import cors from "cors";
 import express from "express";
 import { resolve } from "node:path";
 import { config } from "dotenv";
-import { SKILL_CAPTURE_ROOT } from "../../db/src/lib/device-wallet.js";
+import { SKILL_CAPTURE_ROOT } from "../../db/src/device-wallet.js";
 import { readDraftSkill, writeDraftSkillMd, type SkillMetadataInput } from "./skill-md.js";
 import { writeDraftTrainingMd, type TrainingMetadataInput } from "./training-md.js";
 import {

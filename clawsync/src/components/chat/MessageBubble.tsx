@@ -129,9 +129,9 @@ export function MessageBubble({
                 'convex:marketplaceTools.search_catalog_skills',
                 request,
                 response,
-                { transport: 'skill-marketplace catalog-query-cli', network: 'braga-hoodi' },
+                { transport: 'skill-marketplace catalog-query', network: 'supabase' },
               );
-              return <CatalogQueryDebugPanel key={`arkiv-${index}`} trace={trace} />;
+              return <CatalogQueryDebugPanel key={`catalog-${index}`} trace={trace} />;
             } catch {
               return null;
             }

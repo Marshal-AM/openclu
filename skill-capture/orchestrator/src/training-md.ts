@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { SKILL_CAPTURE_ROOT } from "../../db/src/lib/device-wallet.js";
-import { parseSkillFrontmatter } from "../../db/src/lib/skill-md.js";
+import { SKILL_CAPTURE_ROOT } from "../../db/src/device-wallet.js";
+import { parseSkillFrontmatter } from "../../db/src/skill-md.js";
 import { readTrainingPublishResult } from "./training-manifest.js";
 
 export interface TrainingMetadataInput {

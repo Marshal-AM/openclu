@@ -1,12 +1,12 @@
 /**
- * Skill Capture CLI — local capture/process/encrypt; Story + Arkiv in-process (device wallet).
+ * Skill Capture CLI — local capture/process/encrypt; Story + Supabase catalog in-process (device wallet).
  */
 import { config } from "dotenv";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { SKILL_CAPTURE_ROOT } from "../../db/src/lib/device-wallet.js";
+import { SKILL_CAPTURE_ROOT } from "../../db/src/device-wallet.js";
 import { resolveVenvPython } from "../../lib/spawn-util.js";
 import { distributeSkill } from "./distribute.js";
 import { distributeTraining } from "./distribute-training.js";

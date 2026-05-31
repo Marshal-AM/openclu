@@ -215,7 +215,7 @@ function rowToMatch(
     owner: row.owner_wallet,
     creator: row.creator_wallet,
     catalogVersion: row.version,
-    arkivVersion: row.version,
+    catalogVersion: row.version,
   };
   return match;
 }

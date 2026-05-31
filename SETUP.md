@@ -38,7 +38,7 @@ cd skill-capture && python3 -m venv venv && source venv/bin/activate && npm run 
 This installs:
 
 - Python deps (`requirements.txt`, including ffmpeg via `imageio-ffmpeg`)
-- Node packages for `skill-capture/cdr`, `arkiv`, `cli`, `orchestrator`
+- Node packages for `skill-capture/cdr`, `db`, `cli`, `orchestrator`
 - `clawsync` + `skill-marketplace` (via `postinstall`)
 
 ---
@@ -67,15 +67,15 @@ flowchart TB
   Reg[register.sh / register.ps1] --> FE
   FE -->|jobs via ngrok| Orch
   Vite --> CV
-  MP -->|Story mint + CDR decrypt| Chain[Arkiv + Story + IPFS]
+  MP -->|Story mint + CDR decrypt| Chain[Supabase catalog + Story + IPFS]
 ```
 
 | Role | What runs locally | What runs hosted |
 |------|-------------------|------------------|
-| **Contributor** | Orchestrator, capture, Story/CDR/Arkiv publish | Login, register device, Contribute UI |
+| **Contributor** | Orchestrator, capture, Story/CDR/Supabase catalog publish | Login, register device, Contribute UI |
 | **Buyer** | ClawSync (Convex + Vite + optional Helia) | — |
 
-**SDK note:** Story CDR uses `@piplabs/cdr-sdk` and `@story-protocol/core-sdk` in TypeScript. Arkiv uses `@arkiv-network/sdk`. This repo uses **local `tsx` scripts**, not official Arkiv/CDR shell CLIs.
+**SDK note:** Story CDR uses `@piplabs/cdr-sdk` and `@story-protocol/core-sdk` in TypeScript. Supabase catalog uses `@supabase/supabase-js`. This repo uses **local `tsx` scripts**, not official Supabase catalog/CDR shell CLIs.
 
 ---
 
@@ -104,7 +104,7 @@ flowchart TB
 After device registration, fund the printed **device wallet**:
 
 - **Story Aeneid** — IP / WIP for IP registration and license terms
-- **Braga GLM** — [Braga faucet](https://braga.hoodi.arkiv.network/faucet/) for Arkiv catalog writes
+- **Supabase project** — [Braga faucet](Supabase dashboard (service role key)) for Supabase catalog writes
 
 Fund the **buyer wallet** (`AGENT_PRIVATE_KEY`) with Aeneid IP before purchasing in ClawSync.
 
@@ -209,7 +209,7 @@ The script will:
 
 **Then:**
 
-1. Fund the printed device wallet (Story Aeneid + Braga GLM).
+1. Fund the printed device wallet (Story Aeneid + Supabase project).
 2. Scan the QR or open the URL in your browser.
 
 ## Browser — Register device
@@ -259,8 +259,8 @@ URL: [https://openclu.vercel.app/contribute](https://openclu.vercel.app/contribu
 
 3. Click the card for your mode. The UI saves the draft on device if needed, then starts a job.
 4. In **Terminal A (orchestrator)**, when recording is active, type **`q`** and press **Enter** to stop capture.
-5. The UI polls job logs. After capture succeeds it automatically runs **distribute** (Story IP + CDR encrypt + Arkiv listing).
-6. Wait until logs show publish success (toast: skill or training data listed on Arkiv).
+5. The UI polls job logs. After capture succeeds it automatically runs **distribute** (Story IP + CDR encrypt + Supabase catalog listing).
+6. Wait until logs show publish success (toast: skill or training data listed on Supabase catalog).
 
 **While contributing:** keep Terminal A (orchestrator + ngrok) running.
 
@@ -273,7 +273,7 @@ URL: [https://openclu.vercel.app/contribute](https://openclu.vercel.app/contribu
 
 # Part B — Buyer: ClawSync (purchase skills and training data)
 
-All commands below are from [`clawsync/`](clawsync/). You need at least one listing published in Part A (or an existing Arkiv catalog entry).
+All commands below are from [`clawsync/`](clawsync/). You need at least one listing published in Part A (or an existing Supabase catalog entry).
 
 ## 1. Configure environment
 
@@ -332,7 +332,7 @@ If `SYNCBOARD_PASSWORD_HASH` is set in Convex, log in on the SyncBoard login pag
 ## 5. Purchase agent skills
 
 1. In SyncBoard, go to **Skills Marketplace** (nav: **Skills Marketplace**, path `/syncboard/skills/purchase`).
-2. Use **Search** or **Browse all** to load Arkiv catalog listings.
+2. Use **Search** or **Browse all** to load Supabase catalog listings.
 3. Click a listing card to open the detail dialog.
 4. Confirm the buyer wallet is configured (the page checks wallet status on load).
 5. Click the primary purchase button (shows minting fee, e.g. **`1 IP`**).
@@ -374,7 +374,7 @@ See [`clawsync/local-trainer/README.md`](clawsync/local-trainer/README.md) for m
 
 ## 8. Optional — Chat-driven purchase
 
-With `GROQ_API_KEY` and `AGENT_PRIVATE_KEY` set, agent **Chat** can call marketplace tools (`search_arkiv_skills`, `purchase_and_attach_skill`) in addition to the SyncBoard purchase pages.
+With `GROQ_API_KEY` and `AGENT_PRIVATE_KEY` set, agent **Chat** can call marketplace tools (`search_catalog_skills`, `purchase_and_attach_skill`) in addition to the SyncBoard purchase pages.
 
 ---
 
@@ -382,7 +382,7 @@ With `GROQ_API_KEY` and `AGENT_PRIVATE_KEY` set, agent **Chat** can call marketp
 
 - [ ] `http://127.0.0.1:8790/health` returns `publicUrl` (ngrok)
 - [ ] Device appears in Contribute **Choose device**
-- [ ] Publish completes; orchestrator/UI logs show Arkiv listing key
+- [ ] Publish completes; orchestrator/UI logs show Supabase catalog listing key
 - [ ] ClawSync **Skills Marketplace** or **Purchase Training Data** finds the listing
 - [ ] Purchase succeeds; files under `clawsync/data/purchased-skills/` or `purchased-training-data/`
 - [ ] **My Skills** / **My Training Data** shows the import
@@ -399,9 +399,9 @@ With `GROQ_API_KEY` and `AGENT_PRIVATE_KEY` set, agent **Chat** can call marketp
 | Contribute jobs fail immediately | Wrong device selected; orchestrator stopped; stale ngrok URL — re-register |
 | Capture never stops | Type **`q`** + Enter in the **orchestrator** terminal |
 | Distribute / Pinata errors | Set `PINATA_API_KEY` and `PINATA_SECRET_KEY` in `skill-capture/.env` |
-| Insufficient funds on publish | Fund device wallet on Aeneid + Braga GLM |
+| Insufficient funds on publish | Fund device wallet on Aeneid + Supabase project |
 | ClawSync purchase fails | Fund `AGENT_PRIVATE_KEY`; run `npx convex env set AGENT_PRIVATE_KEY ...`; run `npm run cdr-storage`; read `npx convex dev` logs |
-| `tsx` or `@arkiv-network/sdk` missing | Re-run `.\scripts\setup-all.ps1` or `cd clawsync && npm install` |
+| `tsx` or `@supabase/supabase-js` missing | Re-run `.\scripts\setup-all.ps1` or `cd clawsync && npm install` |
 | Marketplace CLI cannot find repo | Set `CLAWSYNC_ROOT` to your `clawsync` folder path in Convex env if needed |
 
 ---

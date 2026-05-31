@@ -34,9 +34,13 @@ export const query = action({
 });
 
 export const getDetail = action({
-  args: { skillName: v.string() },
+  args: {
+    skillName: v.string(),
+    listingKey: v.optional(v.string()),
+    scope: v.optional(v.union(v.literal('marketplace'), v.literal('mine'))),
+  },
   handler: async (_ctx, args) => {
-    return await runMarketplaceCli('get-detail', args.skillName);
+    return await runMarketplaceCli('get-detail', args);
   },
 });
 

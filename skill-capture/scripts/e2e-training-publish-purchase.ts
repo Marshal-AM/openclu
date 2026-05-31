@@ -1,5 +1,5 @@
 /**
- * End-to-end: build training bundle → publish (Pinata + Arkiv) → purchase → verify video.
+ * End-to-end: build training bundle → publish (Pinata + Supabase catalog) → purchase → verify video.
  *
  * Run from skill-capture (after setup + .env keys):
  *   npm run test:e2e-training
@@ -20,7 +20,7 @@
  *   E2E_SKIP_BUNDLE       — 1 = skip python bundle step (bundle must exist)
  *   E2E_SKIP_PUBLISH      — 1 = skip publish (use existing cdr-manifest.json)
  *   E2E_ONLY_PURCHASE     — 1 = skip bundle + publish; requires E2E_SKILL_SLUG
- *   ARKIV_SETTLE_MS       — wait after publish before purchase (default: 10000)
+ *   CATALOG_SETTLE_MS       — wait after publish before purchase (default: 10000)
  *   CLAWSYNC_ROOT         — path to clawsync (auto-detected)
  */
 import { execFile } from "node:child_process";
@@ -282,7 +282,7 @@ async function main() {
   const expectedSourceDur = process.env.E2E_EXPECTED_SOURCE_SEC
     ? Number(process.env.E2E_EXPECTED_SOURCE_SEC)
     : null;
-  const settleMs = Number(process.env.ARKIV_SETTLE_MS ?? "10000");
+  const settleMs = Number(process.env.CATALOG_SETTLE_MS ?? "10000");
   const skipBundle = process.env.E2E_SKIP_BUNDLE === "1";
   const skipPublish = process.env.E2E_SKIP_PUBLISH === "1";
   const onlyPurchase = process.env.E2E_ONLY_PURCHASE === "1";
@@ -374,7 +374,7 @@ async function main() {
   if (payload.purchase?.cid !== manifest.cid) {
     fail(
       "catalog-cid",
-      `Arkiv cid ${payload.purchase?.cid} != manifest ${manifest.cid}`,
+      `Supabase catalog cid ${payload.purchase?.cid} != manifest ${manifest.cid}`,
     );
   }
   pass("catalog", `entityKey=${detail.entityKey.slice(0, 18)}…`);

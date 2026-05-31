@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { SKILL_CAPTURE_ROOT } from "../../db/src/lib/device-wallet.js";
+import { SKILL_CAPTURE_ROOT } from "../../db/src/device-wallet.js";
 
 function npmRemainArgv(): string[] {
   const raw = process.env.npm_config_argv;

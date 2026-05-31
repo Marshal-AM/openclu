@@ -16,7 +16,7 @@ const USE_CASES = [
     tag: "LANGUAGE",
     title: "A Tamil speaker uploads 40 hours",
     body:
-      "Conversations, slang, code-switching, intonation. Clu turns it into a knowledge graph of how Tamil is actually spoken — not how a textbook says it should be. CDR encrypts the bundle; Arkiv lists it; any agent that purchases a Story license stops translating and starts speaking.",
+      "Conversations, slang, code-switching, intonation. Clu turns it into a knowledge graph of how Tamil is actually spoken — not how a textbook says it should be. CDR encrypts the bundle; Supabase lists it; any agent that purchases a Story license stops translating and starts speaking.",
   },
   {
     icon: Hammer,
@@ -30,7 +30,7 @@ const USE_CASES = [
     tag: "CLINICAL",
     title: "A nurse records a triage shift",
     body:
-      "Patterns of escalation, side-effect interactions, the soft signals before a code blue. Anonymized and CDR-encrypted before publish. Hospital agents discover the skill on Arkiv and license it — junior staff get a ten-year veteran in their pocket on day one.",
+      "Patterns of escalation, side-effect interactions, the soft signals before a code blue. Anonymized and CDR-encrypted before publish. Hospital agents discover the skill in the catalog and license it — junior staff get a ten-year veteran in their pocket on day one.",
   },
   {
     icon: Music,
@@ -101,7 +101,7 @@ export function VisionSection() {
               Every recording becomes a knowledge graph. Every graph becomes a skill encrypted by{" "}
               <span className="text-foreground">Story CDR</span>, registered on{" "}
               <span className="text-foreground">Story Protocol</span>, and listed on{" "}
-              <span className="text-foreground">Arkiv Network</span> — owned by the human who lived it,
+              <span className="text-foreground">Supabase catalog</span> — owned by the human who lived it,
               signed by their device wallet, and licensable by any agent. The model layer has
               commoditized. The next moat is <span className="text-foreground">whose skills</span> your
               agent has.
@@ -137,15 +137,15 @@ export function VisionSection() {
             </div>
             <div className="border-b-2 border-foreground px-5 py-6 flex flex-col gap-3">
               <span className="text-[10px] tracking-[0.2em] uppercase text-foreground font-mono">
-                ARKIV NETWORK
+                SUPABASE CATALOG
               </span>
               <span className="text-lg lg:text-xl font-mono font-bold tracking-tight uppercase">
                 The skill catalog
               </span>
               <p className="text-xs font-mono text-muted-foreground leading-relaxed">
-                Arkiv indexes every listing as a Braga skillListing — searchable tags, metadata, CID
+                The catalog indexes every listing as a catalog listing — searchable tags, metadata, CID
                 pointer, and <code className="text-foreground">$owner</code> attribution. The frontend
-                Purchase tab and agent marketplaces query Arkiv directly for discovery.
+                Purchase tab and agent marketplaces query the catalog directly for discovery.
               </p>
             </div>
             <div className="px-5 py-6 flex flex-col gap-3 flex-1">
@@ -217,7 +217,7 @@ export function VisionSection() {
               </h3>
               <p className="mt-4 text-xs lg:text-sm font-mono text-background/70 leading-relaxed max-w-2xl">
                 We are not building a dataset. We are building the substrate for a market in lived
-                expertise — powered by Story CDR for encryption, Arkiv Network for discovery, and Story
+                expertise — powered by Story CDR for encryption, Supabase catalog for discovery, and Story
                 Protocol for ownership. The Clu device is the first instrument. The skill graph is the
                 first primitive. Models will keep getting smarter; what they need next is to inherit you.
               </p>
@@ -230,7 +230,7 @@ export function VisionSection() {
                 Story CDR
               </span>
               <span className="font-mono text-sm lg:text-base uppercase tracking-widest text-background/80">
-                Arkiv Network
+                Supabase catalog
               </span>
               <span className="text-[10px] tracking-[0.2em] uppercase text-background/40 font-mono">
                 ENCRYPT · DISCOVER · LICENSE

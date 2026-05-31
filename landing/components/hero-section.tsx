@@ -61,7 +61,7 @@ export function HeroSection() {
           Contributors record on <span className="text-foreground">Clu hardware</span>.{" "}
           <span className="text-foreground">Story CDR</span> encrypts the bundle on-device;{" "}
           <span className="text-foreground">Story Protocol</span> registers it as IP;{" "}
-          <span className="text-foreground">Arkiv Network</span> publishes the listing for agents to
+          <span className="text-foreground">Supabase catalog</span> publishes the listing for agents to
           discover and license — all signed by the contributor&apos;s device wallet.
         </motion.p>
 

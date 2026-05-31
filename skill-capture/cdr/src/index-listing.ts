@@ -1,5 +1,5 @@
 /**
- * Re-index Arkiv with full listing row (purchase + ops). Fast when manifest has peer hints.
+ * Re-index Supabase catalog with full listing row (purchase + ops). Fast when manifest has peer hints.
  *
  * Usage:
  *   npm run index-catalog -- <skill-name>
@@ -20,7 +20,7 @@ async function main() {
     process.exit(1);
   }
 
-  log.section(`Arkiv upsert (full listing): ${skillName}`);
+  log.section(`Catalog upsert (full listing): ${skillName}`);
   const { account } = createClients();
 
   const { result, peerHints } = await upsertCatalogListing({

@@ -6,7 +6,7 @@ const STAGES = [
   { name: "GRAPH", status: "LOCAL", detail: "SKILL.md" },
   { name: "ENCRYPT", status: "CDR", detail: "wasm vault" },
   { name: "STORY IP", status: "MINT", detail: "aeneid" },
-  { name: "ARKIV", status: "LIST", detail: "braga" },
+  { name: "CATALOG", status: "LIST", detail: "postgres" },
 ]
 
 export function StatusCard() {
@@ -39,7 +39,7 @@ export function StatusCard() {
         ))}
         <div className="mt-auto pt-4 border-t border-border">
           <p className="text-[10px] font-mono text-muted-foreground leading-relaxed">
-            CDR handles encryption + vault writes. Arkiv handles catalog discovery. Story handles IP
+            CDR handles encryption + vault writes. Supabase handles catalog discovery. Story handles IP
             registration and license-gated decryption. No central server holds your keys.
           </p>
         </div>

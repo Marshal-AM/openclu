@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { log } from "./logger.js";
 
-/** skill-capture repo root (cdr/src → ../..) — avoid importing arkiv across package rootDir */
+/** skill-capture repo root (cdr/src → ../..) — avoid cross-package rootDir imports */
 const SKILL_CAPTURE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 const REGISTRY_HTTP_TIMEOUT_MS = Number(process.env.REGISTRY_HTTP_TIMEOUT_MS ?? "20000");
@@ -33,7 +33,7 @@ export function writeLocalRegistryBlob(cid: string, bytes: Uint8Array): void {
   log.info(`Cached ciphertext in marketplace registry (${bytes.length} bytes)`);
 }
 
-/** Public base URL written to Arkiv ops — buyers fetch ciphertext here. */
+/** Public base URL written to catalog ops — buyers fetch ciphertext here. */
 export function defaultContentRegistryBaseUrl(): string {
   const url = process.env.SKILL_CONTENT_REGISTRY_URL?.trim();
   if (url) return url.replace(/\/$/, "");
@@ -114,7 +114,7 @@ export async function uploadToRegistry(
 
 /**
  * Legacy local/HTTP registry cache (dev server routes). Prefer Pinata via pinata-ipfs.ts for buyers.
- * Returns registry base URL (deprecated; Arkiv uses ops.ipfsGatewayUrl).
+ * Returns registry base URL (deprecated; Supabase catalog uses ops.ipfsGatewayUrl).
  */
 export async function registerMarketplaceBlob(
   cid: string,

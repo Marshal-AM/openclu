@@ -11,12 +11,13 @@
     "server": "tsx src/server.ts",
     "publish": "tsx src/publish-skill.ts",
     "purchase": "tsx src/purchase-skill.ts",
-    "index-arkiv": "tsx src/index-listing.ts",
+    "index-catalog": "tsx src/index-listing.ts",
     "reset-stores": "tsx src/reset-stores.ts",
     "e2e": "tsx src/e2e-full-flow.ts",
     "test:pinata-api-keys": "tsx scripts/test-pinata-api-keys.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
     "@helia/unixfs": "^4.0.0",
     "@multiformats/multiaddr": "12.5.1",
     "@piplabs/cdr-sdk": "^0.2.1",

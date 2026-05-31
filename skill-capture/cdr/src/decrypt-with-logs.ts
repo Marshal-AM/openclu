@@ -10,7 +10,7 @@ import { fromHex, toHex } from "viem";
 import type { PublicClient } from "viem";
 import { API_URL } from "./client.js";
 import { log, timed } from "./logger.js";
-import type { SkillCdrListing } from "../../db/src/lib/cdr-listing.js";
+import type { SkillCdrListing } from "../../db/src/catalog/cdr-listing.js";
 import type { Helia } from "helia";
 import type { HeliaProvider } from "@piplabs/cdr-sdk";
 

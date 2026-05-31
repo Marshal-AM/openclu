@@ -2,7 +2,7 @@
   "name": "skill-capture-cli",
   "version": "0.1.0",
   "private": true,
-  "description": "Local capture, process, encrypt — calls CDR and Arkiv servers",
+  "description": "Local capture, process, encrypt — Story CDR + Supabase catalog",
   "type": "module",
   "scripts": {
     "capture": "tsx src/pipeline.ts capture",

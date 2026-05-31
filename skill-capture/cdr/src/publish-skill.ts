@@ -352,8 +352,8 @@ async function main() {
     "utf-8",
   );
 
-  console.log("  [arkiv] Upserting full catalog listing on Braga (required)…");
-  const { result: arkivResult, peerHints } = await upsertCatalogListing({
+  console.log("  [catalog] Upserting full catalog listing on Braga (required)…");
+  const { result: catalogResult, peerHints } = await upsertCatalogListing({
     skillName,
     bundleDir,
     publisherAddress: owner,
@@ -364,8 +364,8 @@ async function main() {
 
   console.log(`  [cdr] Helia peer id: ${peerHints.helia_peer_id}`);
   console.log(`  [cdr] Helia multiaddrs: ${peerHints.helia_multiaddrs.length}`);
-  console.log(`  [arkiv] Listing key: ${arkivResult.listingKey}`);
-  console.log(`  [arkiv] Version: ${arkivResult.version} (${arkivResult.tagCount} tags)`);
+  console.log(`  [catalog] Listing key: ${catalogResult.listingKey}`);
+  console.log(`  [catalog] Version: ${catalogResult.version} (${catalogResult.tagCount} tags)`);
 
 
 
@@ -375,7 +375,7 @@ async function main() {
 
   console.log(`IPFS CID:   ${cid}`);
 
-  console.log(`Arkiv key:  ${arkivResult.listingKey}`);
+  console.log(`Catalog id:  ${catalogResult.listingKey}`);
 
   console.log(`Manifest:   ${manifestPath}`);
 

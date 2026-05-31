@@ -75,6 +75,7 @@ export function SyncBoardPurchaseSkills() {
   const [purchaseElapsedSec, setPurchaseElapsedSec] = useState(0);
   const purchaseInFlight = useRef(false);
   const initialCatalogLoad = useRef(false);
+  const queryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     void getWalletStatus({}).then((w) => {
@@ -87,6 +88,17 @@ export function SyncBoardPurchaseSkills() {
     initialCatalogLoad.current = true;
     void runSearch({ full: true, emptyQuery: true });
   }, []);
+
+  useEffect(() => {
+    if (!initialCatalogLoad.current) return;
+    if (queryDebounceRef.current) clearTimeout(queryDebounceRef.current);
+    queryDebounceRef.current = setTimeout(() => {
+      void runSearch();
+    }, 350);
+    return () => {
+      if (queryDebounceRef.current) clearTimeout(queryDebounceRef.current);
+    };
+  }, [filters.query]);
 
   async function runSearch(opts?: { full?: boolean; emptyQuery?: boolean }) {
     setLoading(true);
@@ -110,8 +122,8 @@ export function SyncBoardPurchaseSkills() {
       setMatches(data.matches ?? []);
       setQueryCatalogTrace(
         createCatalogTrace('query', 'convex:catalogActions.query', request, data, {
-          transport: 'skill-marketplace catalog-query-cli',
-          network: 'braga-hoodi',
+          transport: 'skill-marketplace catalog-query',
+          network: 'supabase',
           resolvedFilters: data.filters,
         }),
       );
@@ -126,7 +138,7 @@ export function SyncBoardPurchaseSkills() {
     }
   }
 
-  async function openDetail(name: string) {
+  async function openDetail(name: string, listingKey?: string) {
     setSelectedSkillName(name);
     setDetailLoading(true);
     setError('');
@@ -137,13 +149,17 @@ export function SyncBoardPurchaseSkills() {
     setDetailCatalogTrace(null);
 
     try {
-      const request = { skillName: name };
+      const request = {
+        skillName: name,
+        listingKey,
+        scope: filters.scope as 'marketplace' | 'mine',
+      };
       const data = await catalogGetDetail(request);
       setDetail(data as Record<string, unknown>);
       setDetailCatalogTrace(
         createCatalogTrace('get-detail', 'convex:catalogActions.getDetail', request, data, {
-          transport: 'skill-marketplace catalog-query-cli',
-          network: 'braga-hoodi',
+          transport: 'skill-marketplace catalog-get-detail',
+          network: 'supabase',
         }),
       );
     } catch (e) {
@@ -252,8 +268,8 @@ export function SyncBoardPurchaseSkills() {
           filters={filters}
           onChange={setFilters}
           onSearch={() => void runSearch()}
-          onBrowseAll={() => void runSearch({ full: true, emptyQuery: true })}
           loading={loading}
+          searchPlaceholder="Search marketplace skills…"
         />
 
         {error && <p className="purchase-error">{error}</p>}
@@ -280,7 +296,7 @@ export function SyncBoardPurchaseSkills() {
                   status={match.status}
                   mintingFeeIp={getMintingFeeFromPayload(match.payload)}
                   score={hasQueryScore ? match.score : undefined}
-                  onClick={() => void openDetail(match.skillName)}
+                  onClick={() => void openDetail(match.skillName, match.listingKey)}
                 />
               ))}
             </div>

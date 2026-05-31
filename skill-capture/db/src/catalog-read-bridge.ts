@@ -57,12 +57,14 @@ export async function catalogGetSkillDetail(
   skillName: string,
   ownerAddress?: string,
   listingKey?: string,
+  scope?: ListingQueryScope,
 ) {
-  const scope: CatalogDetailScope = {
+  const detailScope: CatalogDetailScope = {
     ownerAddress: ownerAddress as CatalogDetailScope["ownerAddress"],
     listingKey: listingKey as CatalogDetailScope["listingKey"],
+    scope,
   };
-  return fetchSkillCatalogDetail(skillName, scope);
+  return fetchSkillCatalogDetail(skillName, detailScope);
 }
 
 export async function catalogStats(scope: ListingQueryScope = "marketplace", ownerAddress?: string) {
@@ -92,10 +94,12 @@ export async function catalogGetTrainingDetail(
   skillName: string,
   ownerAddress?: string,
   listingKey?: string,
+  scope?: ListingQueryScope,
 ) {
-  const scope: CatalogDetailScope = {
+  const detailScope: CatalogDetailScope = {
     ownerAddress: ownerAddress as CatalogDetailScope["ownerAddress"],
     listingKey: listingKey as CatalogDetailScope["listingKey"],
+    scope,
   };
-  return fetchTrainingCatalogDetail(skillName, scope);
+  return fetchTrainingCatalogDetail(skillName, detailScope);
 }

@@ -29,6 +29,7 @@ type CatalogSearchPanelProps = {
   onChange: (filters: CatalogSearchFilters) => void;
   onSearch: () => void;
   loading?: boolean;
+  searchPlaceholder?: string;
 };
 
 function countActiveFilters(filters: CatalogSearchFilters): number {
@@ -48,6 +49,7 @@ export function CatalogSearchPanel({
   onChange,
   onSearch,
   loading = false,
+  searchPlaceholder = 'Search marketplace listings…',
 }: CatalogSearchPanelProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
@@ -83,7 +85,7 @@ export function CatalogSearchPanel({
           <MagnifyingGlass size={18} weight="regular" className="catalog-search-icon" aria-hidden />
           <input
             className="catalog-search-input"
-            placeholder="Search marketplace skills…"
+            placeholder={searchPlaceholder}
             value={filters.query}
             onChange={(event) => patch({ query: event.target.value })}
             onKeyDown={onFilterKeyDown}

@@ -67,12 +67,12 @@ const TIERS: Tier[] = [
     price: "0",
     period: "/ forever",
     tag: null,
-    description: "Capture from your PC today. CDR encrypts, Arkiv lists, Story pays.",
+    description: "Capture from your PC today. CDR encrypts, Supabase lists, Story pays.",
     features: [
       { text: "Open-source capture pipeline", included: true },
       { text: "Local Groq transcription + graph", included: true },
       { text: "Story CDR on-device encryption", included: true },
-      { text: "Arkiv Network catalog listing", included: true },
+      { text: "Supabase catalog catalog listing", included: true },
       { text: "Story Protocol IP + royalties", included: true },
       { text: "Clu hardware (when shipped)", included: false },
     ],
@@ -91,7 +91,7 @@ const TIERS: Tier[] = [
       { text: "Story CDR encryption at source", included: true },
       { text: "Multi-modal capture (voice/video/IMU)", included: true },
       { text: "Built-in device wallet ($owner)", included: true },
-      { text: "Direct Arkiv + Story publishing", included: true },
+      { text: "Direct Supabase + Story publishing", included: true },
       { text: "Founder serial numbers", included: true },
     ],
     cta: "GET STARTED",
@@ -103,9 +103,9 @@ const TIERS: Tier[] = [
     price: "CUSTOM",
     period: "",
     tag: null,
-    description: "Bulk skill licensing via Arkiv catalog + Story license mints.",
+    description: "Bulk skill licensing via Supabase catalog + Story license mints.",
     features: [
-      { text: "Bulk Arkiv catalog queries", included: true },
+      { text: "Bulk Supabase catalog queries", included: true },
       { text: "Story license token purchases", included: true },
       { text: "CDR vault decryption for agents", included: true },
       { text: "Commissioned capture (sponsored)", included: true },
@@ -285,7 +285,7 @@ export function PricingSection() {
             Pick your track on OpenClu
           </h2>
           <p className="text-xs lg:text-sm font-mono text-muted-foreground leading-relaxed max-w-md">
-            Contributors capture and publish via CDR + Arkiv. Devices ship with the full encryption stack.
+            Contributors capture and publish via CDR + Supabase. Devices ship with the full encryption stack.
             Studios license at scale through Story Protocol — every track shares the same on-chain rails.
           </p>
         </div>
@@ -307,7 +307,7 @@ export function PricingSection() {
         className="flex items-center gap-3 mt-6"
       >
         <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground font-mono">
-          {"* Encryption via Story CDR. Discovery via Arkiv Network. Royalties via Story Protocol."}
+          {"* Encryption via Story CDR. Discovery via Supabase catalog. Royalties via Story Protocol."}
         </span>
         <div className="flex-1 border-t border-border" />
       </motion.div>

@@ -39,7 +39,7 @@ export function Footer() {
               {"(C) 2026 OpenClu \u00B7 Built for the people who do the work"}
             </span>
             <span className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase">
-              {"Story CDR \u00B7 Arkiv Network \u00B7 Story Protocol \u00B7 Helia \u00B7 Groq"}
+              {"Story CDR \u00B7 Supabase catalog \u00B7 Story Protocol \u00B7 Helia \u00B7 Groq"}
             </span>
           </div>
         </div>

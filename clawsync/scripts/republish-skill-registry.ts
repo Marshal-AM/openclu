@@ -1,5 +1,5 @@
 /**
- * Full re-publish (Story + CDR encrypt + Pinata pin + Arkiv).
+ * Full re-publish (Story + CDR encrypt + Pinata pin + Supabase catalog).
  * For existing listings, prefer: npm run repin-pinata -- <skill>
  *
  * Usage (from clawsync):

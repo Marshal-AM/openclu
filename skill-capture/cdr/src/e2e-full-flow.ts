@@ -1,18 +1,19 @@
 /**
- * E2E: cursor-usage — full Arkiv upsert → query → fetch → purchase
+ * E2E: cursor-usage — full catalog upsert → query → fetch → purchase
  *
  * Usage: npm run e2e
  *
- * Step 1 always upserts the full Arkiv row (like Supabase). Uses manifest peer hints
+ * Step 1 always upserts the full Supabase catalog row. Uses manifest peer hints
  * when present (fast); starts Helia only if hints are missing.
  *
  * Env:
- *   E2E_SKIP_PUBLISH=1 — skip Story/CDR re-encrypt; still runs full Arkiv upsert
+ *   E2E_SKIP_PUBLISH=1 — skip Story/CDR re-encrypt; still runs full catalog upsert
+ *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — from skill-capture/.env or frontend/.env
  */
-import { config } from "dotenv";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { execSync } from "node:child_process";
+import { loadDbEnv } from "../../db/src/env.js";
 import { upsertCatalogListing } from "./catalog-listing.js";
 
 const SKILL = "cursor-usage";
@@ -21,8 +22,7 @@ const MANIFEST_PATH = resolve(BUNDLE, "cdr-manifest.json");
 const PURCHASED_SKILL = resolve(process.cwd(), "..", "skills", "purchased", SKILL, "SKILL.md");
 const RECEIPT_PATH = resolve(process.cwd(), "..", "skills", "purchased", SKILL, "purchase-receipt.json");
 
-config({ path: resolve(process.cwd(), ".env") });
-config({ path: resolve(process.cwd(), "../arkiv/.env"), override: false });
+loadDbEnv();
 
 type StepResult = { name: string; ok: boolean; detail?: string };
 const results: StepResult[] = [];
@@ -47,7 +47,7 @@ async function stepCatalogRefresh(): Promise<void> {
   );
   try {
     if (!skipPublish) {
-      console.log("  [e2e] Full CDR publish (encrypt + Arkiv upsert)…");
+      console.log("  [e2e] Full CDR publish (encrypt + catalog upsert)…");
       execSync(`npm run publish -- ${SKILL} ${BUNDLE}`, {
         cwd: process.cwd(),
         stdio: "inherit",
@@ -55,12 +55,12 @@ async function stepCatalogRefresh(): Promise<void> {
       });
       pass("1 catalog", "publish");
     } else {
-      console.log("  [e2e] Arkiv full upsert from manifest (no re-encrypt)…");
+      console.log("  [e2e] Catalog full upsert from manifest (no re-encrypt)…");
       await upsertCatalogListing({
         skillName: SKILL,
         refreshPeerHints: false,
       });
-      pass("1 catalog", "Arkiv upsert (manifest peer hints)");
+      pass("1 catalog", "catalog upsert (manifest peer hints)");
     }
 
     const m = loadManifest();
@@ -74,7 +74,7 @@ async function stepCatalogRefresh(): Promise<void> {
     }
 
     const { fetchSkillListingFromCatalog } = await import(
-      "../../db/src/lib/cdr-listing.js"
+      "../../db/src/catalog/cdr-listing.js"
     );
     const listing = await fetchSkillListingFromCatalog(SKILL);
     if (!listing.helia_peer_id || !listing.helia_multiaddrs.length) {
@@ -90,36 +90,36 @@ async function stepCatalogRefresh(): Promise<void> {
   }
 }
 
-async function stepArkivQuery(manifestCid: string): Promise<void> {
+async function stepCatalogQuery(manifestCid: string): Promise<void> {
   try {
     const { searchNaturalLanguage } = await import(
-      "../../db/src/services/query-catalog.js"
+      "../../db/src/catalog/query.js"
     );
     const matches = await searchNaturalLanguage("cursor", { tag: "cursor" });
     const hit = matches.find((m) => m.skillName === SKILL);
     if (!hit) {
-      fail("2 Arkiv query", `no match for ${SKILL} (${matches.length} hits)`);
+      fail("2 catalog query", `no match for ${SKILL} (${matches.length} hits)`);
       return;
     }
     if (hit.purchase.cid !== manifestCid) {
-      fail("2 Arkiv query", `cid mismatch: arkiv=${hit.purchase.cid} manifest=${manifestCid}`);
+      fail("2 catalog query", `cid mismatch: catalog=${hit.purchase.cid} manifest=${manifestCid}`);
       return;
     }
-    pass("2 Arkiv query", `hits=${matches.length}`);
+    pass("2 catalog query", `hits=${matches.length}`);
   } catch (e) {
-    fail("2 Arkiv query", e instanceof Error ? e.message : String(e));
+    fail("2 catalog query", e instanceof Error ? e.message : String(e));
   }
 }
 
 async function stepFetchListing(): Promise<void> {
   try {
     const { fetchSkillListingFromCatalog } = await import(
-      "../../db/src/lib/cdr-listing.js"
+      "../../db/src/catalog/cdr-listing.js"
     );
     const listing = await fetchSkillListingFromCatalog(SKILL);
-    pass("3 Arkiv fetch", `addrs=${listing.helia_multiaddrs.length}`);
+    pass("3 catalog fetch", `addrs=${listing.helia_multiaddrs.length}`);
   } catch (e) {
-    fail("3 Arkiv fetch", e instanceof Error ? e.message : String(e));
+    fail("3 catalog fetch", e instanceof Error ? e.message : String(e));
   }
 }
 
@@ -162,7 +162,7 @@ async function main() {
     fail("manifest", `cannot read ${MANIFEST_PATH}`);
   }
 
-  if (cid) await stepArkivQuery(cid);
+  if (cid) await stepCatalogQuery(cid);
   await stepFetchListing();
 
   const ok = results.filter((r) => r.name.startsWith("1") || r.name.startsWith("2") || r.name.startsWith("3")).every((r) => r.ok);
