@@ -2,8 +2,6 @@
 
 **Record your expertise and monetize instantly as training data or agent skills — protected by [Story CDR](https://docs.story.foundation/developers/cdr-sdk) (Confidential Data Rails).**
 
-**Applied Track - DePIN + Privacy (Hybrid)**
-
 [View CDR Integrations](#story-cdr-integration-map) · [View Track Integrations](#openclu--privacy--depin)
 
 <p align="center">
@@ -20,15 +18,12 @@ OpenClu records voice, video, and activity data from a **Clu device** (currently
 |-------|-----------------|
 | **Story CDR** | Confidential Data Rails — encrypts training bundles and skill bundles on-device before publication. Decryption requires a valid Story license token; raw audio and video are never stored in plaintext on IPFS. |
 | **Story Protocol** | Registers each bundle as on-chain IP on Aeneid testnet. License mints gate CDR vault access and route royalty payments to the contributor's device wallet. |
-| **Supabase catalog** | Marketplace and portal registry — searchable skill and training listings, device registration, and user profiles. |
 
-OpenClu is built as a deliberate hybrid of two [Arkiv ETHNS Builder Challenge themes](docs/themes.md) — **DePIN** and **Privacy**.
+OpenClu is built as a deliberate hybrid of **DePIN** and **Privacy**.
 
 **DePIN** — every contribution is grounded in physical, wallet-attributed hardware. Data originates from a real Clu device, signed by a device wallet key derived locally from the machine that never leaves it. Contributions cannot be injected or spoofed without the device key; the hardware *is* the provenance. Device wallets own the on-chain IP and receive royalty payments directly — no platform intermediary in the money path.
 
 **Privacy** — raw audio and video are encrypted on-device before a single byte leaves the machine. Story CDR encrypts the bundle using WASM crypto with threshold key splitting, so no single party holds the decryption key. The ciphertext is pinned to IPFS publicly, but is gibberish without a valid license token. Access is gated, auditable, and revocable entirely on-chain — OpenClu and Pinata never see plaintext content.
-
-**Privacy is the product:** capture happens on your hardware; encryption happens on your hardware; only ciphertext and license metadata are shared outward. A buyer must pay Story, receive a license token, and run CDR threshold decrypt before they ever see your video, voice, or skill text.
 
 ---
 
@@ -49,18 +44,17 @@ OpenClu is built as a deliberate hybrid of two [Arkiv ETHNS Builder Challenge th
 
 1. [Introduction](#introduction)
 2. [Example: sitting and standing training data end-to-end](#example-sitting-and-standing-training-data-end-to-end)
-3. [OpenClu = Privacy + DePIN](#openclu--privacy--depin)
-4. [How it works](#how-it-works)
+3. [How it works](#how-it-works)
    - [Phase 1 — Device registration](#phase-1--device-registration)
    - [Phase 2 — Contribution](#phase-2--contribution)
      - [2.1 Training data contribution (video → TRAINING.md)](#21-training-data-contribution-camera--voice--ml-dataset)
      - [2.2 Skill contribution (screen + voice → SKILL.md)](#22-skill-contribution-screen--voice--agent-skill)
    - [Phase 3 — Buying, decrypting, and using training data & skills](#phase-3--buying-decrypting-and-using-training-data--skills)
-5. [Story CDR integration map](#story-cdr-integration-map)
-6. [Our vision](#our-vision)
-7. [What we are currently working on](#what-we-are-currently-working-on)
-8. [Conclusion](#conclusion)
-9. [Setup & runbook](SETUP.md)
+4. [Story CDR integration map](#story-cdr-integration-map)
+5. [Our vision](#our-vision)
+6. [What we are currently working on](#what-we-are-currently-working-on)
+7. [Conclusion](#conclusion)
+8. [Setup & runbook](SETUP.md)
 
 ---
 
@@ -148,32 +142,6 @@ OpenClu also supports a **skill path** for agent operators who want procedural k
 After the same Story license + CDR decrypt flow, Alex's buyer extracts `SKILL.md`, `transcript.json`, and frame annotations. ClawSync imports the skill via [`skillPurchaseImport.ts`](clawsync/convex/skillPurchaseImport.ts). See [Phase 2.2](#22-skill-contribution-screen--voice--agent-skill) and [Phase 3](#phase-3--buying-decrypting-and-using-training-data--skills).
 
 ---
-
-## OpenClu = Privacy + DePIN
-
-OpenClu is a deliberate **hybrid of two [Arkiv ETHNS Builder Challenge themes](docs/themes.md)**. We go deep on each — not a tag slapped on a CRUD app.
-
-### Privacy — confidential data on a public layer
-
-| Requirement | How OpenClu delivers |
-|-------------|----------------------|
-| Encrypted payloads on public layer | Raw A/V never published; only CDR ciphertext on IPFS |
-| Access gated, revocable | Story license token required for CDR read condition; license terms on-chain |
-| Threat model honesty | Public metadata (title, tags, mint fee) is visible; content ciphertext is not |
-| Audit trail | Story tx hashes, CDR read tx hash, and `purchase-receipt.json` on the buyer side |
-
-**Components:** **Story CDR** (`@piplabs/cdr-sdk`) WASM encrypt on device; threshold decrypt via Story validators; **Helia** local pin + **Pinata** public gateway for buyer fetch; Supabase catalog stores vault UUID + Story `ipId` pointers only.
-
-### DePIN — queryable device-origin data
-
-| Requirement | How OpenClu delivers |
-|-------------|----------------------|
-| Device-attributed readings | Device wallet signs Story IP registration and CDR vault creation; contributions cannot be injected without the device key |
-| Real hardware path | Raspberry Pi + mic/camera today; wearable Clu device on roadmap |
-| Time-scoped telemetry | `publishedAt`, `recordedAt` on catalog rows; contribution timeline in UI |
-| Operator sovereignty | Contributor holds device wallet; platform cannot republish without signature |
-
-**Components:** Clu hardware / Pi runs orchestrator + capture; ngrok tunnels device API; portal device rows link device wallet → owner wallet → orchestrator URL.
 
 ### Story CDR — the encryption layer
 
